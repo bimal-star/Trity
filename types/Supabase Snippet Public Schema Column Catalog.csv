@@ -1,0 +1,517 @@
+table_name,column_name,data_type,is_nullable,column_default,is_primary_key,foreign_table,foreign_column,relationship_type
+attribute_definitions,id,uuid,NO,uuid_generate_v4(),YES,null,null,null
+attribute_definitions,name,text,NO,null,NO,null,null,null
+attribute_definitions,key,text,NO,null,NO,null,null,null
+attribute_definitions,industry_type,USER-DEFINED,YES,null,NO,null,null,null
+attribute_definitions,category_id,uuid,YES,null,NO,categories,id,ONE-TO-MANY
+attribute_definitions,data_type,text,NO,null,NO,null,null,null
+attribute_definitions,validation_rules,jsonb,YES,null,NO,null,null,null
+attribute_definitions,unit_id,uuid,YES,null,NO,units,id,ONE-TO-MANY
+attribute_definitions,is_required,boolean,YES,false,NO,null,null,null
+attribute_definitions,display_order,integer,YES,0,NO,null,null,null
+attribute_definitions,help_text,text,YES,null,NO,null,null,null
+attribute_definitions,created_at,timestamp with time zone,YES,now(),NO,null,null,null
+attribute_definitions,tenant_id,uuid,NO,null,NO,null,null,null
+attribute_definitions,created_by,uuid,YES,null,NO,null,null,null
+attribute_definitions,updated_by,uuid,YES,null,NO,null,null,null
+attribute_definitions,is_deleted,boolean,NO,false,NO,null,null,null
+attribute_definitions,metadata,jsonb,NO,'{}'::jsonb,NO,null,null,null
+attribute_definitions,version,integer,NO,1,NO,null,null,null
+attribute_definitions,updated_at,timestamp with time zone,NO,now(),NO,null,null,null
+bom_headers,id,uuid,NO,uuid_generate_v4(),YES,null,null,null
+bom_headers,product_id,uuid,NO,null,NO,products,id,ONE-TO-MANY
+bom_headers,product_id,uuid,NO,null,NO,products,id,ONE-TO-MANY
+bom_headers,version,text,NO,'1.0'::text,NO,null,null,null
+bom_headers,name,text,YES,null,NO,null,null,null
+bom_headers,description,text,YES,null,NO,null,null,null
+bom_headers,output_quantity,numeric,NO,1,NO,null,null,null
+bom_headers,output_unit_id,uuid,YES,null,NO,units,id,ONE-TO-MANY
+bom_headers,is_active,boolean,YES,true,NO,null,null,null
+bom_headers,effective_from,date,YES,null,NO,null,null,null
+bom_headers,effective_to,date,YES,null,NO,null,null,null
+bom_headers,standard_cost,numeric,YES,null,NO,null,null,null
+bom_headers,notes,text,YES,null,NO,null,null,null
+bom_headers,created_at,timestamp with time zone,YES,now(),NO,null,null,null
+bom_headers,updated_at,timestamp with time zone,YES,now(),NO,null,null,null
+bom_headers,tenant_id,uuid,NO,null,NO,null,null,null
+bom_headers,created_by,uuid,YES,null,NO,null,null,null
+bom_headers,updated_by,uuid,YES,null,NO,null,null,null
+bom_headers,is_deleted,boolean,NO,false,NO,null,null,null
+bom_headers,metadata,jsonb,NO,'{}'::jsonb,NO,null,null,null
+bom_lines,id,uuid,NO,uuid_generate_v4(),YES,null,null,null
+bom_lines,bom_header_id,uuid,NO,null,NO,bom_headers,id,ONE-TO-MANY
+bom_lines,component_product_id,uuid,NO,null,NO,products,id,ONE-TO-MANY
+bom_lines,sequence,integer,NO,null,NO,null,null,null
+bom_lines,quantity,numeric,NO,null,NO,null,null,null
+bom_lines,unit_id,uuid,YES,null,NO,units,id,ONE-TO-MANY
+bom_lines,waste_percentage,numeric,YES,0,NO,null,null,null
+bom_lines,notes,text,YES,null,NO,null,null,null
+bom_lines,is_optional,boolean,YES,false,NO,null,null,null
+bom_lines,substitute_group,integer,YES,null,NO,null,null,null
+bom_lines,created_at,timestamp with time zone,YES,now(),NO,null,null,null
+bom_lines,tenant_id,uuid,NO,null,NO,null,null,null
+bom_lines,created_by,uuid,YES,null,NO,null,null,null
+bom_lines,updated_by,uuid,YES,null,NO,null,null,null
+bom_lines,is_deleted,boolean,NO,false,NO,null,null,null
+bom_lines,metadata,jsonb,NO,'{}'::jsonb,NO,null,null,null
+bom_lines,version,integer,NO,1,NO,null,null,null
+bom_lines,updated_at,timestamp with time zone,NO,now(),NO,null,null,null
+calendar,id,bigint,NO,null,YES,null,null,null
+calendar,date,date,NO,null,NO,null,null,null
+calendar,year,integer,NO,null,NO,null,null,null
+calendar,month,integer,NO,null,NO,null,null,null
+calendar,month_name,text,NO,null,NO,null,null,null
+calendar,day,integer,NO,null,NO,null,null,null
+calendar,day_of_week,integer,NO,null,NO,null,null,null
+calendar,day_name,text,NO,null,NO,null,null,null
+calendar,week_iso,integer,NO,null,NO,null,null,null
+calendar,week_monday,integer,NO,null,NO,null,null,null
+calendar,week_sunday,integer,NO,null,NO,null,null,null
+calendar,julian_day,integer,NO,null,NO,null,null,null
+calendar,bank_holiday,text,YES,null,NO,null,null,null
+calendar,events,text,YES,null,NO,null,null,null
+calendar,notes,text,YES,null,NO,null,null,null
+calendar,tenant_id,uuid,YES,null,NO,null,null,null
+calendar,created_by,uuid,YES,null,NO,null,null,null
+calendar,updated_by,uuid,YES,null,NO,null,null,null
+calendar,is_deleted,boolean,NO,false,NO,null,null,null
+calendar,metadata,jsonb,NO,'{}'::jsonb,NO,null,null,null
+calendar,version,integer,NO,1,NO,null,null,null
+calendar,created_at,timestamp with time zone,NO,now(),NO,null,null,null
+calendar,updated_at,timestamp with time zone,NO,now(),NO,null,null,null
+categories,id,uuid,NO,uuid_generate_v4(),YES,null,null,null
+categories,name,text,NO,null,NO,null,null,null
+categories,description,text,YES,null,NO,null,null,null
+categories,parent_id,uuid,YES,null,NO,categories,id,ONE-TO-MANY
+categories,industry_type,USER-DEFINED,NO,null,NO,null,null,null
+categories,code,text,YES,null,NO,null,null,null
+categories,icon,text,YES,null,NO,null,null,null
+categories,image_url,text,YES,null,NO,null,null,null
+categories,display_order,integer,YES,0,NO,null,null,null
+categories,is_active,boolean,YES,true,NO,null,null,null
+categories,metadata,jsonb,YES,'{}'::jsonb,NO,null,null,null
+categories,created_at,timestamp with time zone,YES,now(),NO,null,null,null
+categories,updated_at,timestamp with time zone,YES,now(),NO,null,null,null
+categories,tenant_id,uuid,NO,null,NO,null,null,null
+categories,created_by,uuid,YES,null,NO,null,null,null
+categories,updated_by,uuid,YES,null,NO,null,null,null
+categories,is_deleted,boolean,NO,false,NO,null,null,null
+categories,version,integer,NO,1,NO,null,null,null
+demand_forecasts,id,uuid,NO,uuid_generate_v4(),YES,null,null,null
+demand_forecasts,product_id,uuid,NO,null,NO,products,id,ONE-TO-MANY
+demand_forecasts,product_id,uuid,NO,null,NO,products,id,ONE-TO-MANY
+demand_forecasts,period_start,date,NO,null,NO,null,null,null
+demand_forecasts,period_end,date,NO,null,NO,null,null,null
+demand_forecasts,forecast_quantity,numeric,NO,null,NO,null,null,null
+demand_forecasts,forecast_method,text,YES,null,NO,null,null,null
+demand_forecasts,confidence_level,numeric,YES,null,NO,null,null,null
+demand_forecasts,actual_quantity,numeric,YES,null,NO,null,null,null
+demand_forecasts,notes,text,YES,null,NO,null,null,null
+demand_forecasts,created_at,timestamp with time zone,YES,now(),NO,null,null,null
+demand_forecasts,created_by,uuid,YES,null,NO,null,null,null
+demand_forecasts,tenant_id,uuid,NO,null,NO,null,null,null
+demand_forecasts,updated_by,uuid,YES,null,NO,null,null,null
+demand_forecasts,is_deleted,boolean,NO,false,NO,null,null,null
+demand_forecasts,metadata,jsonb,NO,'{}'::jsonb,NO,null,null,null
+demand_forecasts,version,integer,NO,1,NO,null,null,null
+demand_forecasts,updated_at,timestamp with time zone,NO,now(),NO,null,null,null
+navigation,id,uuid,NO,gen_random_uuid(),YES,null,null,null
+navigation,created_at,timestamp with time zone,NO,now(),NO,null,null,null
+navigation,label,text,YES,null,NO,null,null,null
+navigation,path,text,YES,null,NO,null,null,null
+navigation,icon,text,YES,null,NO,null,null,null
+navigation,role,text,YES,null,NO,null,null,null
+navigation,position,text,YES,null,NO,null,null,null
+navigation,is_enabled,boolean,YES,null,NO,null,null,null
+navigation,tenant_id,uuid,NO,null,NO,null,null,null
+navigation,created_by,uuid,YES,null,NO,null,null,null
+navigation,updated_by,uuid,YES,null,NO,null,null,null
+navigation,is_deleted,boolean,NO,false,NO,null,null,null
+navigation,metadata,jsonb,NO,'{}'::jsonb,NO,null,null,null
+navigation,version,integer,NO,1,NO,null,null,null
+navigation,updated_at,timestamp with time zone,NO,now(),NO,null,null,null
+packing_configurations,id,uuid,NO,uuid_generate_v4(),YES,null,null,null
+packing_configurations,product_id,uuid,NO,null,NO,products,id,ONE-TO-MANY
+packing_configurations,product_id,uuid,NO,null,NO,products,id,ONE-TO-MANY
+packing_configurations,level,USER-DEFINED,NO,null,NO,null,null,null
+packing_configurations,quantity,numeric,NO,null,NO,null,null,null
+packing_configurations,previous_level,USER-DEFINED,YES,null,NO,null,null,null
+packing_configurations,gtin,text,YES,null,NO,null,null,null
+packing_configurations,barcode,text,YES,null,NO,null,null,null
+packing_configurations,weight,numeric,YES,null,NO,null,null,null
+packing_configurations,weight_unit_id,uuid,YES,null,NO,units,id,ONE-TO-MANY
+packing_configurations,length,numeric,YES,null,NO,null,null,null
+packing_configurations,width,numeric,YES,null,NO,null,null,null
+packing_configurations,height,numeric,YES,null,NO,null,null,null
+packing_configurations,dimension_unit_id,uuid,YES,null,NO,units,id,ONE-TO-MANY
+packing_configurations,description,text,YES,null,NO,null,null,null
+packing_configurations,is_default,boolean,YES,false,NO,null,null,null
+packing_configurations,created_at,timestamp with time zone,YES,now(),NO,null,null,null
+packing_configurations,tenant_id,uuid,NO,null,NO,null,null,null
+packing_configurations,created_by,uuid,YES,null,NO,null,null,null
+packing_configurations,updated_by,uuid,YES,null,NO,null,null,null
+packing_configurations,is_deleted,boolean,NO,false,NO,null,null,null
+packing_configurations,metadata,jsonb,NO,'{}'::jsonb,NO,null,null,null
+packing_configurations,version,integer,NO,1,NO,null,null,null
+packing_configurations,updated_at,timestamp with time zone,NO,now(),NO,null,null,null
+price_list_items,id,uuid,NO,uuid_generate_v4(),YES,null,null,null
+price_list_items,price_list_id,uuid,NO,null,NO,price_lists,id,ONE-TO-MANY
+price_list_items,price_list_id,uuid,NO,null,NO,price_lists,id,ONE-TO-MANY
+price_list_items,product_id,uuid,NO,null,NO,products,id,ONE-TO-MANY
+price_list_items,product_id,uuid,NO,null,NO,products,id,ONE-TO-MANY
+price_list_items,unit_price,numeric,NO,null,NO,null,null,null
+price_list_items,min_quantity,numeric,YES,1,NO,null,null,null
+price_list_items,max_quantity,numeric,YES,null,NO,null,null,null
+price_list_items,created_at,timestamp with time zone,YES,now(),NO,null,null,null
+price_list_items,tenant_id,uuid,NO,null,NO,null,null,null
+price_list_items,created_by,uuid,YES,null,NO,null,null,null
+price_list_items,updated_by,uuid,YES,null,NO,null,null,null
+price_list_items,is_deleted,boolean,NO,false,NO,null,null,null
+price_list_items,metadata,jsonb,NO,'{}'::jsonb,NO,null,null,null
+price_list_items,version,integer,NO,1,NO,null,null,null
+price_list_items,updated_at,timestamp with time zone,NO,now(),NO,null,null,null
+price_lists,id,uuid,NO,uuid_generate_v4(),YES,null,null,null
+price_lists,name,text,NO,null,NO,null,null,null
+price_lists,description,text,YES,null,NO,null,null,null
+price_lists,currency,text,YES,'GBP'::text,NO,null,null,null
+price_lists,is_default,boolean,YES,false,NO,null,null,null
+price_lists,effective_from,date,YES,null,NO,null,null,null
+price_lists,effective_to,date,YES,null,NO,null,null,null
+price_lists,is_active,boolean,YES,true,NO,null,null,null
+price_lists,created_at,timestamp with time zone,YES,now(),NO,null,null,null
+price_lists,tenant_id,uuid,NO,null,NO,null,null,null
+price_lists,created_by,uuid,YES,null,NO,null,null,null
+price_lists,updated_by,uuid,YES,null,NO,null,null,null
+price_lists,is_deleted,boolean,NO,false,NO,null,null,null
+price_lists,metadata,jsonb,NO,'{}'::jsonb,NO,null,null,null
+price_lists,version,integer,NO,1,NO,null,null,null
+price_lists,updated_at,timestamp with time zone,NO,now(),NO,null,null,null
+product_activity_log,id,uuid,NO,uuid_generate_v4(),YES,null,null,null
+product_activity_log,product_id,uuid,NO,null,NO,products,id,ONE-TO-MANY
+product_activity_log,action,text,NO,null,NO,null,null,null
+product_activity_log,changed_fields,jsonb,YES,null,NO,null,null,null
+product_activity_log,old_values,jsonb,YES,null,NO,null,null,null
+product_activity_log,new_values,jsonb,YES,null,NO,null,null,null
+product_activity_log,user_id,uuid,YES,null,NO,null,null,null
+product_activity_log,ip_address,inet,YES,null,NO,null,null,null
+product_activity_log,user_agent,text,YES,null,NO,null,null,null
+product_activity_log,created_at,timestamp with time zone,YES,now(),NO,null,null,null
+product_activity_log,tenant_id,uuid,NO,null,NO,null,null,null
+product_activity_log,created_by,uuid,YES,null,NO,null,null,null
+product_activity_log,updated_by,uuid,YES,null,NO,null,null,null
+product_activity_log,is_deleted,boolean,NO,false,NO,null,null,null
+product_activity_log,metadata,jsonb,NO,'{}'::jsonb,NO,null,null,null
+product_activity_log,version,integer,NO,1,NO,null,null,null
+product_activity_log,updated_at,timestamp with time zone,NO,now(),NO,null,null,null
+product_barcodes,id,uuid,NO,uuid_generate_v4(),YES,null,null,null
+product_barcodes,product_id,uuid,NO,null,NO,products,id,ONE-TO-MANY
+product_barcodes,barcode,text,NO,null,NO,null,null,null
+product_barcodes,barcode_type,USER-DEFINED,NO,'ean13'::barcode_type,NO,null,null,null
+product_barcodes,is_primary,boolean,YES,false,NO,null,null,null
+product_barcodes,packing_level,USER-DEFINED,YES,'unit'::packing_level,NO,null,null,null
+product_barcodes,quantity,numeric,YES,1,NO,null,null,null
+product_barcodes,description,text,YES,null,NO,null,null,null
+product_barcodes,is_active,boolean,YES,true,NO,null,null,null
+product_barcodes,created_at,timestamp with time zone,YES,now(),NO,null,null,null
+product_barcodes,tenant_id,uuid,NO,null,NO,null,null,null
+product_barcodes,created_by,uuid,YES,null,NO,null,null,null
+product_barcodes,updated_by,uuid,YES,null,NO,null,null,null
+product_barcodes,is_deleted,boolean,NO,false,NO,null,null,null
+product_barcodes,metadata,jsonb,NO,'{}'::jsonb,NO,null,null,null
+product_barcodes,version,integer,NO,1,NO,null,null,null
+product_barcodes,updated_at,timestamp with time zone,NO,now(),NO,null,null,null
+product_categories,id,uuid,NO,uuid_generate_v4(),YES,null,null,null
+product_categories,product_id,uuid,NO,null,NO,products,id,ONE-TO-MANY
+product_categories,product_id,uuid,NO,null,NO,products,id,ONE-TO-MANY
+product_categories,category_id,uuid,NO,null,NO,categories,id,ONE-TO-MANY
+product_categories,category_id,uuid,NO,null,NO,categories,id,ONE-TO-MANY
+product_categories,created_at,timestamp with time zone,YES,now(),NO,null,null,null
+product_categories,created_by,uuid,YES,null,NO,null,null,null
+product_categories,tenant_id,uuid,NO,null,NO,null,null,null
+product_categories,updated_by,uuid,YES,null,NO,null,null,null
+product_categories,is_deleted,boolean,NO,false,NO,null,null,null
+product_categories,metadata,jsonb,NO,'{}'::jsonb,NO,null,null,null
+product_categories,version,integer,NO,1,NO,null,null,null
+product_categories,updated_at,timestamp with time zone,NO,now(),NO,null,null,null
+product_cost_history,id,uuid,NO,uuid_generate_v4(),YES,null,null,null
+product_cost_history,product_id,uuid,NO,null,NO,products,id,ONE-TO-MANY
+product_cost_history,cost_price,numeric,NO,null,NO,null,null,null
+product_cost_history,effective_from,date,NO,null,NO,null,null,null
+product_cost_history,cost_method,text,YES,null,NO,null,null,null
+product_cost_history,notes,text,YES,null,NO,null,null,null
+product_cost_history,created_at,timestamp with time zone,YES,now(),NO,null,null,null
+product_cost_history,created_by,uuid,YES,null,NO,null,null,null
+product_cost_history,tenant_id,uuid,NO,null,NO,null,null,null
+product_cost_history,updated_by,uuid,YES,null,NO,null,null,null
+product_cost_history,is_deleted,boolean,NO,false,NO,null,null,null
+product_cost_history,metadata,jsonb,NO,'{}'::jsonb,NO,null,null,null
+product_cost_history,version,integer,NO,1,NO,null,null,null
+product_cost_history,updated_at,timestamp with time zone,NO,now(),NO,null,null,null
+product_metrics,id,uuid,NO,uuid_generate_v4(),YES,null,null,null
+product_metrics,product_id,uuid,NO,null,NO,products,id,ONE-TO-MANY
+product_metrics,product_id,uuid,NO,null,NO,products,id,ONE-TO-MANY
+product_metrics,metric_date,date,NO,null,NO,null,null,null
+product_metrics,period_type,text,NO,null,NO,null,null,null
+product_metrics,sales_quantity,numeric,YES,0,NO,null,null,null
+product_metrics,sales_revenue,numeric,YES,0,NO,null,null,null
+product_metrics,sales_count,integer,YES,0,NO,null,null,null
+product_metrics,produced_quantity,numeric,YES,0,NO,null,null,null
+product_metrics,production_cost,numeric,YES,0,NO,null,null,null
+product_metrics,opening_stock,numeric,YES,null,NO,null,null,null
+product_metrics,closing_stock,numeric,YES,null,NO,null,null,null
+product_metrics,average_stock,numeric,YES,null,NO,null,null,null
+product_metrics,stock_value,numeric,YES,null,NO,null,null,null
+product_metrics,turnover_rate,numeric,YES,null,NO,null,null,null
+product_metrics,days_of_stock,numeric,YES,null,NO,null,null,null
+product_metrics,stock_out_days,integer,YES,0,NO,null,null,null
+product_metrics,created_at,timestamp with time zone,YES,now(),NO,null,null,null
+product_metrics,tenant_id,uuid,NO,null,NO,null,null,null
+product_metrics,created_by,uuid,YES,null,NO,null,null,null
+product_metrics,updated_by,uuid,YES,null,NO,null,null,null
+product_metrics,is_deleted,boolean,NO,false,NO,null,null,null
+product_metrics,metadata,jsonb,NO,'{}'::jsonb,NO,null,null,null
+product_metrics,version,integer,NO,1,NO,null,null,null
+product_metrics,updated_at,timestamp with time zone,NO,now(),NO,null,null,null
+product_variants,id,uuid,NO,uuid_generate_v4(),YES,null,null,null
+product_variants,parent_product_id,uuid,NO,null,NO,products,id,ONE-TO-MANY
+product_variants,variant_sku,text,NO,null,NO,null,null,null
+product_variants,variant_name,text,NO,null,NO,null,null,null
+product_variants,attributes,jsonb,NO,null,NO,null,null,null
+product_variants,price_adjustment,numeric,YES,0,NO,null,null,null
+product_variants,cost_adjustment,numeric,YES,0,NO,null,null,null
+product_variants,is_active,boolean,YES,true,NO,null,null,null
+product_variants,created_at,timestamp with time zone,YES,now(),NO,null,null,null
+product_variants,tenant_id,uuid,NO,null,NO,null,null,null
+product_variants,created_by,uuid,YES,null,NO,null,null,null
+product_variants,updated_by,uuid,YES,null,NO,null,null,null
+product_variants,is_deleted,boolean,NO,false,NO,null,null,null
+product_variants,metadata,jsonb,NO,'{}'::jsonb,NO,null,null,null
+product_variants,version,integer,NO,1,NO,null,null,null
+product_variants,updated_at,timestamp with time zone,NO,now(),NO,null,null,null
+production_plans,id,uuid,NO,uuid_generate_v4(),YES,null,null,null
+production_plans,product_id,uuid,NO,null,NO,products,id,ONE-TO-MANY
+production_plans,bom_header_id,uuid,YES,null,NO,bom_headers,id,ONE-TO-MANY
+production_plans,planned_quantity,numeric,NO,null,NO,null,null,null
+production_plans,planned_start_date,date,NO,null,NO,null,null,null
+production_plans,planned_end_date,date,NO,null,NO,null,null,null
+production_plans,actual_quantity,numeric,YES,null,NO,null,null,null
+production_plans,actual_start_date,date,YES,null,NO,null,null,null
+production_plans,actual_end_date,date,YES,null,NO,null,null,null
+production_plans,status,text,YES,'planned'::text,NO,null,null,null
+production_plans,priority,integer,YES,5,NO,null,null,null
+production_plans,notes,text,YES,null,NO,null,null,null
+production_plans,created_at,timestamp with time zone,YES,now(),NO,null,null,null
+production_plans,updated_at,timestamp with time zone,YES,now(),NO,null,null,null
+production_plans,tenant_id,uuid,NO,null,NO,null,null,null
+production_plans,created_by,uuid,YES,null,NO,null,null,null
+production_plans,updated_by,uuid,YES,null,NO,null,null,null
+production_plans,is_deleted,boolean,NO,false,NO,null,null,null
+production_plans,metadata,jsonb,NO,'{}'::jsonb,NO,null,null,null
+production_plans,version,integer,NO,1,NO,null,null,null
+products,id,uuid,NO,uuid_generate_v4(),YES,null,null,null
+products,user_id,uuid,YES,null,NO,null,null,null
+products,sku,text,NO,null,NO,null,null,null
+products,name,text,NO,null,NO,null,null,null
+products,description,text,YES,null,NO,null,null,null
+products,short_description,text,YES,null,NO,null,null,null
+products,product_type,USER-DEFINED,NO,'finished_good'::product_type,NO,null,null,null
+products,industry_type,USER-DEFINED,NO,null,NO,null,null,null
+products,category_id,uuid,YES,null,NO,categories,id,ONE-TO-MANY
+products,base_unit_id,uuid,YES,null,NO,units,id,ONE-TO-MANY
+products,status,USER-DEFINED,YES,'active'::status_type,NO,null,null,null
+products,cost_price,numeric,YES,null,NO,null,null,null
+products,sell_price,numeric,YES,null,NO,null,null,null
+products,currency,text,YES,'GBP'::text,NO,null,null,null
+products,weight,numeric,YES,null,NO,null,null,null
+products,weight_unit_id,uuid,YES,null,NO,units,id,ONE-TO-MANY
+products,length,numeric,YES,null,NO,null,null,null
+products,width,numeric,YES,null,NO,null,null,null
+products,height,numeric,YES,null,NO,null,null,null
+products,dimension_unit_id,uuid,YES,null,NO,units,id,ONE-TO-MANY
+products,volume,numeric,YES,null,NO,null,null,null
+products,volume_unit_id,uuid,YES,null,NO,units,id,ONE-TO-MANY
+products,min_stock_level,numeric,YES,null,NO,null,null,null
+products,max_stock_level,numeric,YES,null,NO,null,null,null
+products,reorder_point,numeric,YES,null,NO,null,null,null
+products,reorder_quantity,numeric,YES,null,NO,null,null,null
+products,lead_time_days,integer,YES,null,NO,null,null,null
+products,shelf_life_days,integer,YES,null,NO,null,null,null
+products,storage_conditions,text,YES,null,NO,null,null,null
+products,allergens,ARRAY,YES,null,NO,null,null,null
+products,certifications,ARRAY,YES,null,NO,null,null,null
+products,safety_rating,text,YES,null,NO,null,null,null
+products,default_supplier_id,uuid,YES,null,NO,null,null,null
+products,manufacturer_part_number,text,YES,null,NO,null,null,null
+products,batch_tracked,boolean,YES,false,NO,null,null,null
+products,serial_tracked,boolean,YES,false,NO,null,null,null
+products,lot_controlled,boolean,YES,false,NO,null,null,null
+products,image_url,text,YES,null,NO,null,null,null
+products,images,jsonb,YES,'[]'::jsonb,NO,null,null,null
+products,documents,jsonb,YES,'[]'::jsonb,NO,null,null,null
+products,specifications_url,text,YES,null,NO,null,null,null
+products,attributes,jsonb,YES,'{}'::jsonb,NO,null,null,null
+products,metadata,jsonb,YES,'{}'::jsonb,NO,null,null,null
+products,tags,ARRAY,YES,null,NO,null,null,null
+products,is_active,boolean,YES,true,NO,null,null,null
+products,created_at,timestamp with time zone,YES,now(),NO,null,null,null
+products,updated_at,timestamp with time zone,YES,now(),NO,null,null,null
+products,created_by,uuid,YES,null,NO,null,null,null
+products,updated_by,uuid,YES,null,NO,null,null,null
+products,tenant_id,uuid,NO,null,NO,null,null,null
+products,is_deleted,boolean,NO,false,NO,null,null,null
+products,version,integer,NO,1,NO,null,null,null
+retailer_weeks,id,bigint,NO,nextval('retailer_weeks_id_seq'::regclass),YES,null,null,null
+retailer_weeks,retailer_name,character varying,NO,null,NO,null,null,null
+retailer_weeks,retail_year,integer,NO,null,NO,null,null,null
+retailer_weeks,start_date,date,NO,null,NO,null,null,null
+retailer_weeks,end_date,date,NO,null,NO,null,null,null
+retailer_weeks,created_at,timestamp with time zone,YES,now(),NO,null,null,null
+retailer_weeks,updated_at,timestamp with time zone,YES,now(),NO,null,null,null
+retailer_weeks,tenant_id,uuid,NO,null,NO,null,null,null
+retailer_weeks,created_by,uuid,YES,null,NO,null,null,null
+retailer_weeks,updated_by,uuid,YES,null,NO,null,null,null
+retailer_weeks,is_deleted,boolean,NO,false,NO,null,null,null
+retailer_weeks,metadata,jsonb,NO,'{}'::jsonb,NO,null,null,null
+retailer_weeks,version,integer,NO,1,NO,null,null,null
+stock_levels,id,uuid,NO,uuid_generate_v4(),YES,null,null,null
+stock_levels,product_id,uuid,NO,null,NO,products,id,ONE-TO-MANY
+stock_levels,location_id,uuid,YES,null,NO,null,null,null
+stock_levels,quantity,numeric,NO,0,NO,null,null,null
+stock_levels,reserved_quantity,numeric,YES,0,NO,null,null,null
+stock_levels,available_quantity,numeric,YES,null,NO,null,null,null
+stock_levels,batch_number,text,YES,null,NO,null,null,null
+stock_levels,lot_number,text,YES,null,NO,null,null,null
+stock_levels,serial_number,text,YES,null,NO,null,null,null
+stock_levels,expiry_date,date,YES,null,NO,null,null,null
+stock_levels,last_counted_date,date,YES,null,NO,null,null,null
+stock_levels,last_counted_by,uuid,YES,null,NO,null,null,null
+stock_levels,updated_at,timestamp with time zone,YES,now(),NO,null,null,null
+stock_levels,tenant_id,uuid,NO,null,NO,null,null,null
+stock_levels,created_by,uuid,YES,null,NO,null,null,null
+stock_levels,updated_by,uuid,YES,null,NO,null,null,null
+stock_levels,is_deleted,boolean,NO,false,NO,null,null,null
+stock_levels,metadata,jsonb,NO,'{}'::jsonb,NO,null,null,null
+stock_levels,version,integer,NO,1,NO,null,null,null
+stock_levels,created_at,timestamp with time zone,NO,now(),NO,null,null,null
+stock_transactions,id,uuid,NO,uuid_generate_v4(),YES,null,null,null
+stock_transactions,product_id,uuid,NO,null,NO,products,id,ONE-TO-MANY
+stock_transactions,transaction_type,USER-DEFINED,NO,null,NO,null,null,null
+stock_transactions,quantity,numeric,NO,null,NO,null,null,null
+stock_transactions,unit_id,uuid,YES,null,NO,units,id,ONE-TO-MANY
+stock_transactions,from_location_id,uuid,YES,null,NO,null,null,null
+stock_transactions,to_location_id,uuid,YES,null,NO,null,null,null
+stock_transactions,reference_number,text,YES,null,NO,null,null,null
+stock_transactions,reference_type,text,YES,null,NO,null,null,null
+stock_transactions,reference_id,uuid,YES,null,NO,null,null,null
+stock_transactions,batch_number,text,YES,null,NO,null,null,null
+stock_transactions,lot_number,text,YES,null,NO,null,null,null
+stock_transactions,cost_per_unit,numeric,YES,null,NO,null,null,null
+stock_transactions,total_cost,numeric,YES,null,NO,null,null,null
+stock_transactions,notes,text,YES,null,NO,null,null,null
+stock_transactions,transaction_date,timestamp with time zone,YES,now(),NO,null,null,null
+stock_transactions,created_by,uuid,YES,null,NO,null,null,null
+stock_transactions,created_at,timestamp with time zone,YES,now(),NO,null,null,null
+stock_transactions,tenant_id,uuid,NO,null,NO,null,null,null
+stock_transactions,updated_by,uuid,YES,null,NO,null,null,null
+stock_transactions,is_deleted,boolean,NO,false,NO,null,null,null
+stock_transactions,metadata,jsonb,NO,'{}'::jsonb,NO,null,null,null
+stock_transactions,version,integer,NO,1,NO,null,null,null
+stock_transactions,updated_at,timestamp with time zone,NO,now(),NO,null,null,null
+unit_conversions,id,uuid,NO,uuid_generate_v4(),YES,null,null,null
+unit_conversions,from_unit_id,uuid,NO,null,NO,units,id,ONE-TO-MANY
+unit_conversions,from_unit_id,uuid,NO,null,NO,units,id,ONE-TO-MANY
+unit_conversions,to_unit_id,uuid,NO,null,NO,units,id,ONE-TO-MANY
+unit_conversions,to_unit_id,uuid,NO,null,NO,units,id,ONE-TO-MANY
+unit_conversions,conversion_factor,numeric,NO,null,NO,null,null,null
+unit_conversions,is_reversible,boolean,YES,true,NO,null,null,null
+unit_conversions,notes,text,YES,null,NO,null,null,null
+unit_conversions,created_at,timestamp with time zone,YES,now(),NO,null,null,null
+unit_conversions,tenant_id,uuid,NO,null,NO,null,null,null
+unit_conversions,created_by,uuid,YES,null,NO,null,null,null
+unit_conversions,updated_by,uuid,YES,null,NO,null,null,null
+unit_conversions,is_deleted,boolean,NO,false,NO,null,null,null
+unit_conversions,metadata,jsonb,NO,'{}'::jsonb,NO,null,null,null
+unit_conversions,version,integer,NO,1,NO,null,null,null
+unit_conversions,updated_at,timestamp with time zone,NO,now(),NO,null,null,null
+units,id,uuid,NO,uuid_generate_v4(),YES,null,null,null
+units,name,text,NO,null,NO,null,null,null
+units,symbol,text,NO,null,NO,null,null,null
+units,unit_type,USER-DEFINED,NO,null,NO,null,null,null
+units,is_base_unit,boolean,YES,false,NO,null,null,null
+units,base_conversion_factor,numeric,YES,null,NO,null,null,null
+units,description,text,YES,null,NO,null,null,null
+units,is_active,boolean,YES,true,NO,null,null,null
+units,created_at,timestamp with time zone,YES,now(),NO,null,null,null
+units,tenant_id,uuid,NO,null,NO,null,null,null
+units,created_by,uuid,YES,null,NO,null,null,null
+units,updated_by,uuid,YES,null,NO,null,null,null
+units,is_deleted,boolean,NO,false,NO,null,null,null
+units,metadata,jsonb,NO,'{}'::jsonb,NO,null,null,null
+units,version,integer,NO,1,NO,null,null,null
+units,updated_at,timestamp with time zone,NO,now(),NO,null,null,null
+vw_bom_costing,bom_id,uuid,YES,null,NO,null,null,null
+vw_bom_costing,product_id,uuid,YES,null,NO,null,null,null
+vw_bom_costing,product_name,text,YES,null,NO,null,null,null
+vw_bom_costing,product_sku,text,YES,null,NO,null,null,null
+vw_bom_costing,version,text,YES,null,NO,null,null,null
+vw_bom_costing,output_quantity,numeric,YES,null,NO,null,null,null
+vw_bom_costing,component_count,bigint,YES,null,NO,null,null,null
+vw_bom_costing,total_component_cost,numeric,YES,null,NO,null,null,null
+vw_bom_costing,cost_per_unit,numeric,YES,null,NO,null,null,null
+vw_products_full,id,uuid,YES,null,NO,null,null,null
+vw_products_full,user_id,uuid,YES,null,NO,null,null,null
+vw_products_full,sku,text,YES,null,NO,null,null,null
+vw_products_full,name,text,YES,null,NO,null,null,null
+vw_products_full,description,text,YES,null,NO,null,null,null
+vw_products_full,short_description,text,YES,null,NO,null,null,null
+vw_products_full,product_type,USER-DEFINED,YES,null,NO,null,null,null
+vw_products_full,industry_type,USER-DEFINED,YES,null,NO,null,null,null
+vw_products_full,category_id,uuid,YES,null,NO,null,null,null
+vw_products_full,base_unit_id,uuid,YES,null,NO,null,null,null
+vw_products_full,status,USER-DEFINED,YES,null,NO,null,null,null
+vw_products_full,cost_price,numeric,YES,null,NO,null,null,null
+vw_products_full,sell_price,numeric,YES,null,NO,null,null,null
+vw_products_full,currency,text,YES,null,NO,null,null,null
+vw_products_full,weight,numeric,YES,null,NO,null,null,null
+vw_products_full,weight_unit_id,uuid,YES,null,NO,null,null,null
+vw_products_full,length,numeric,YES,null,NO,null,null,null
+vw_products_full,width,numeric,YES,null,NO,null,null,null
+vw_products_full,height,numeric,YES,null,NO,null,null,null
+vw_products_full,dimension_unit_id,uuid,YES,null,NO,null,null,null
+vw_products_full,volume,numeric,YES,null,NO,null,null,null
+vw_products_full,volume_unit_id,uuid,YES,null,NO,null,null,null
+vw_products_full,min_stock_level,numeric,YES,null,NO,null,null,null
+vw_products_full,max_stock_level,numeric,YES,null,NO,null,null,null
+vw_products_full,reorder_point,numeric,YES,null,NO,null,null,null
+vw_products_full,reorder_quantity,numeric,YES,null,NO,null,null,null
+vw_products_full,lead_time_days,integer,YES,null,NO,null,null,null
+vw_products_full,shelf_life_days,integer,YES,null,NO,null,null,null
+vw_products_full,storage_conditions,text,YES,null,NO,null,null,null
+vw_products_full,allergens,ARRAY,YES,null,NO,null,null,null
+vw_products_full,certifications,ARRAY,YES,null,NO,null,null,null
+vw_products_full,safety_rating,text,YES,null,NO,null,null,null
+vw_products_full,default_supplier_id,uuid,YES,null,NO,null,null,null
+vw_products_full,manufacturer_part_number,text,YES,null,NO,null,null,null
+vw_products_full,batch_tracked,boolean,YES,null,NO,null,null,null
+vw_products_full,serial_tracked,boolean,YES,null,NO,null,null,null
+vw_products_full,lot_controlled,boolean,YES,null,NO,null,null,null
+vw_products_full,image_url,text,YES,null,NO,null,null,null
+vw_products_full,images,jsonb,YES,null,NO,null,null,null
+vw_products_full,documents,jsonb,YES,null,NO,null,null,null
+vw_products_full,specifications_url,text,YES,null,NO,null,null,null
+vw_products_full,attributes,jsonb,YES,null,NO,null,null,null
+vw_products_full,metadata,jsonb,YES,null,NO,null,null,null
+vw_products_full,tags,ARRAY,YES,null,NO,null,null,null
+vw_products_full,is_active,boolean,YES,null,NO,null,null,null
+vw_products_full,created_at,timestamp with time zone,YES,null,NO,null,null,null
+vw_products_full,updated_at,timestamp with time zone,YES,null,NO,null,null,null
+vw_products_full,created_by,uuid,YES,null,NO,null,null,null
+vw_products_full,updated_by,uuid,YES,null,NO,null,null,null
+vw_products_full,category_name,text,YES,null,NO,null,null,null
+vw_products_full,category_code,text,YES,null,NO,null,null,null
+vw_products_full,base_unit_symbol,text,YES,null,NO,null,null,null
+vw_products_full,weight_unit_symbol,text,YES,null,NO,null,null,null
+vw_products_full,dimension_unit_symbol,text,YES,null,NO,null,null,null
+vw_products_full,volume_unit_symbol,text,YES,null,NO,null,null,null
+vw_products_full,barcodes,jsonb,YES,null,NO,null,null,null
+vw_products_full,total_stock,numeric,YES,null,NO,null,null,null

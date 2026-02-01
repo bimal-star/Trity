@@ -1,0 +1,42 @@
+{
+  "name": "trity",
+  "version": "1.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "generate:types": "node scripts/generate-types.js",
+    "document:schema": "node scripts/document-schema.js",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.1",
+    "dompurify": "^3.3.1",
+    "isomorphic-dompurify": "^2.35.0",
+    "lucide-react": "^0.303.0",
+    "next": "14.0.4",
+    "papaparse": "^5.5.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "@types/papaparse": "^5.5.2",
+    "@types/react": "^18.2.46",
+    "@types/react-dom": "^18.2.18",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "14.0.4",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "postcss": "^8.4.32",
+    "prettier": "^3.7.4",
+    "supabase": "^2.70.5",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.3.3"
+  }
+}
