@@ -297,9 +297,80 @@ Work through this checklist before you announce your product:
 - [ ] Supabase query performance reviewed (see `SUPABASE_PERFORMANCE_FIXES.md`)
 - [ ] No N+1 queries in high-traffic pages
 
+### Intellectual Property
+- [ ] `LICENSE` file reflects your intended licence (MIT for open-source, proprietary for closed-source)
+- [ ] `package.json` `"license"` field matches the `LICENSE` file
+- [ ] Trademark search completed for your product name
+- [ ] Terms of Service page published and linked from sign-up flow
+- [ ] Privacy Policy page published and linked from sign-up flow
+- [ ] No secrets or service-role keys committed to version control
+
 ---
 
-## Stage 8 — Post-Launch Operations
+## Stage 8 — Intellectual Property (IP)
+
+Protecting your IP is an essential step before you launch publicly. Here is what to consider at each layer.
+
+### 8.1 Software Copyright
+
+Source code is protected by copyright automatically from the moment it is written — no registration is required. However, you should make the terms explicit:
+
+- **Open-source**: Trity ships under the **MIT License** (see [`LICENSE`](LICENSE)). If you intend to keep your product proprietary, replace the `LICENSE` file with a commercial or proprietary licence before publishing your fork.
+- **Proprietary SaaS**: Remove or replace the MIT `LICENSE` file and add a proprietary notice such as:
+  ```
+  Copyright (c) 2024 Your Company Name. All rights reserved.
+  This software is proprietary and confidential.
+  ```
+- **Update `package.json`**: Set the `"license"` field to match — e.g. `"UNLICENSED"` for proprietary code, or `"MIT"` for open-source.
+
+> **Current status:** This repository has a `LICENSE` file declaring the MIT License.  
+> ✅ If you are keeping Trity open-source, you are covered.  
+> ⚠️ If you are building a proprietary product on top of Trity, update the `LICENSE` file before launch.
+
+### 8.2 Trademark
+
+A trademark protects your **brand name and logo** (e.g., "Trity", your product name, your logo). Unlike copyright it is *not* automatic — you need to register it.
+
+**Recommended steps:**
+1. Search for conflicts on your national trademark register (e.g., USPTO in the US, IPO in the UK, EUIPO in the EU).
+2. File a trademark application for your product name and logo before your public launch.
+3. Add a ™ symbol next to your product name while the application is pending, and ® once registered.
+
+### 8.3 Trade Secrets
+
+Keep the following confidential and out of version control:
+
+| Asset | How to protect |
+|---|---|
+| Environment variables (API keys, DB passwords) | `.env.local` — already in `.gitignore` |
+| Supabase service-role key | **Never** commit — use server-side only |
+| Business logic specific to your vertical | Keep in private repositories |
+| Customer data | Governed by your Privacy Policy and RLS policies |
+
+### 8.4 Terms of Service & Privacy Policy
+
+Before accepting paying customers you must have:
+
+- **Terms of Service (ToS)** — defines what users may and may not do, limits your liability, and governs subscription cancellations and refunds.
+- **Privacy Policy** — legally required in most jurisdictions (GDPR, CCPA, etc.). Discloses what data you collect, how you use it, and user rights.
+
+> **Tip:** Services like [Termly](https://termly.io), [Iubenda](https://www.iubenda.com), or a lawyer can generate compliant documents for your jurisdiction.  
+> Host them as static pages in `app/terms/page.tsx` and `app/privacy/page.tsx` and link them from your sign-up flow.
+
+### 8.5 Third-Party Licences
+
+Trity depends on open-source libraries (see `package.json`). All current dependencies use permissive licences (MIT, Apache 2.0, ISC). Audit them before a commercial launch:
+
+```bash
+# List all dependency licences
+npx license-checker --summary
+```
+
+Ensure none of your dependencies carry **GPL** or **AGPL** licences unless you intend to open-source your entire product.
+
+---
+
+## Stage 9 — Post-Launch Operations
 
 ### Onboarding New Tenants
 
