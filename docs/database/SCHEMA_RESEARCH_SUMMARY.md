@@ -416,7 +416,7 @@ const ROLE_PERMISSIONS: Record<TenantRole, PermissionAction[]> = {
 - [supabase/migrations/20260131150000_create_user_module_access.sql](supabase/migrations/20260131150000_create_user_module_access.sql) - Module access table
 
 **Documentation:**
-- [TRITY_CONTEXT.md](TRITY_CONTEXT.md) - Project context
+- [TRITY_CONTEXT.md](../../TRITY_CONTEXT.md) - Project context
 - [supabase-multi-tenant-audit-report.md](supabase-multi-tenant-audit-report.md) - Schema audit
 
 ---

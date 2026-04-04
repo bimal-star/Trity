@@ -219,7 +219,7 @@ All 20+ pages now documented:
 ## Documentation Best Practices Applied
 
 ### 1. **Single Source of Truth**
-- Schema: `types/Supabase Snippet Public Schema Column Catalog.csv`
+- Schema: `docs/database/Supabase Snippet Public Schema Column Catalog.csv`
 - Navigation: `lib/navigation-default.ts`
 - Types: `types/database.ts` (auto-generated)
 
@@ -279,7 +279,7 @@ All 20+ pages now documented:
 2. Update table list in TRITY_CONTEXT.md
 3. Update schema documentation in PROJECT_DOCUMENTATION.md
 4. Update README.md if adding major tables
-5. Reference `types/Supabase Snippet Public Schema Column Catalog.csv` as source
+5. Reference `docs/database/Supabase Snippet Public Schema Column Catalog.csv` as source
 
 ### When Changing Navigation:
 1. Update `lib/navigation-default.ts` with position strings

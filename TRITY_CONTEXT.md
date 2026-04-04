@@ -187,7 +187,7 @@ Current rules (`.eslintrc.json`):
 
 ### Authoritative Schema Source
 
-**File:** `types/Supabase Snippet Public Schema Column Catalog.csv`
+**File:** `docs/database/Supabase Snippet Public Schema Column Catalog.csv`
 
 This CSV file is the **single source of truth** for the database schema. Always reference this file when:
 - Generating SQL migrations
@@ -538,36 +538,46 @@ trity/
 │   ├── customer.ts          # Customer interfaces
 │   ├── workstream.ts        # Workstream interfaces
 │   ├── okr.ts               # OKR interfaces
-│   ├── profile.ts           # Profile interfaces
-│   └── Supabase Snippet Public Schema Column Catalog.csv  # ⚠️ SCHEMA SOURCE OF TRUTH
+│   └── profile.ts           # Profile interfaces
 │
 ├── providers/               # Context providers
 │   └── AppProviders.tsx     # Application-level providers
 │
-├── sql/                     # SQL migrations & queries
-│   └── ... (migration files)
+├── supabase/                # Supabase project
+│   └── migrations/          # Timestamped SQL migration files
 │
 ├── scripts/                 # Build & utility scripts
 │   ├── generate-types.js    # ⚠️ Type generation from Supabase
 │   ├── document-schema.js   # Schema documentation generator
 │   └── discover-tables.js   # Table discovery utility
 │
-├── docs/                    # Documentation
-│   ├── AI_PROMPT.md         # AI assistant guidelines
-│   ├── SUPABASE_OPTIMIZATION_SUMMARY.md  # DB optimization details
-│   └── TYPE_GENERATION.md   # Type generation guide
+├── docs/                    # Documentation (organised by topic)
+│   ├── architecture/        # Core architecture, RBAC, system design
+│   │   ├── PROJECT_DOCUMENTATION.md   # ✅ Complete technical docs
+│   │   ├── IMPLEMENTATION_GUIDE.md    # Access control implementation
+│   │   ├── ACCESS_CONTROL_IMPLEMENTATION.md
+│   │   └── QUICK_REFERENCE.md        # Quick reference for RBAC
+│   ├── database/            # Supabase schema, migrations & performance
+│   │   ├── Supabase Snippet Public Schema Column Catalog.csv  # ⚠️ SCHEMA SOURCE OF TRUTH
+│   │   ├── SUPABASE_INTEGRATION_STATUS.md
+│   │   ├── SUPABASE_OPTIMIZATION_SUMMARY.md
+│   │   ├── SUPABASE_PERFORMANCE_FIXES.md
+│   │   ├── SUPABASE_SECURITY_FIXES.md
+│   │   └── ... (migration guides, schema reports)
+│   ├── schema-isolation/    # Multi-tenant schema isolation
+│   ├── design/              # UI/UX design guidelines
+│   ├── guides/              # Developer guides (AI prompts, type generation)
+│   └── history/             # Changelogs and audit summaries
 │
 ├── .env.credentials         # ⚠️ Template with hardcoded dev credentials
-├── package.json             # Version 0.2.0+
+├── package.json             # Version 1.1.0
 ├── tsconfig.json            # TypeScript config with @/* alias
 ├── tailwind.config.js       # Tailwind configuration
 ├── next.config.js           # Next.js configuration
 ├── postcss.config.js        # PostCSS configuration
 ├── README.md                # ✅ Quick-start guide
-├── PROJECT_DOCUMENTATION.md # ✅ Complete technical docs
-├── TRITY_CONTEXT.md         # ← This file (Updated Jan 31, 2026)
-├── REFERENCE_FILES_INDEX.md # ✅ Master reference index
-└── ... (other documentation)
+├── TRITY_CONTEXT.md         # ← This file
+└── REFERENCE_FILES_INDEX.md # ✅ Master reference index
 ```
 
 ---
@@ -655,7 +665,7 @@ npm run dev
    - All pages depend on this component
    - Changes affect visual consistency across entire app
 
-6. **`types/Supabase Snippet Public Schema Column Catalog.csv`**  
+6. **`docs/database/Supabase Snippet Public Schema Column Catalog.csv`**  
    - Schema source of truth
    - Referenced by documentation and comments
    - Only update from Supabase exports
@@ -711,7 +721,7 @@ npm run dev
    - Use module colors from the three-module system
 
 6. **Documentation**
-   - Update `types/Supabase Snippet Public Schema Column Catalog.csv` if schema changes
+   - Update `docs/database/Supabase Snippet Public Schema Column Catalog.csv` if schema changes
    - Add JSDoc comments for complex functions
    - Don't modify README.md or PROJECT_DOCUMENTATION.md unless explicitly asked
 

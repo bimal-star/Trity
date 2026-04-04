@@ -2,7 +2,8 @@
 
 **Date:** 2026-01-25  
 **Source:** Supabase Snippet Public Schema Column Catalog.csv  
-**Status:** Complete Analysis with SQL Fixes Provided
+**Status:** Complete Analysis with SQL Fixes Provided  
+**Note:** References to `sql/*.sql` fix scripts below are historical recommendations. Actual migrations are in `supabase/migrations/`.
 
 ---
 

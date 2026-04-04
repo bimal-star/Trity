@@ -26,10 +26,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_DSUbUfO9Dsyg3v6FzKLnCg_oyIYJeCC
 
 3. **Set up the database:**
 
-Run the navigation table migration in your Supabase SQL editor:
-```bash
-# See sql/create_navigation_table.sql for the migration script
-```
+Run the migrations in your Supabase SQL editor (see `supabase/migrations/` for all migration scripts).
 
 4. **Generate database types:**
 ```bash
@@ -149,8 +146,8 @@ trity/
 ├── providers/                    # Context providers
 │   └── AppProviders.tsx          # App-level providers
 │
-├── sql/                          # SQL migrations
-│   └── ... (migration files)
+├── supabase/                     # Supabase project
+│   └── migrations/              # Timestamped SQL migrations
 │
 ├── scripts/                      # Build & utility scripts
 │   ├── generate-types.js         # Generate DB types
@@ -158,8 +155,12 @@ trity/
 │   └── discover-tables.js        # Table discovery
 │
 ├── docs/                         # Documentation
-│   ├── SUPABASE_OPTIMIZATION_SUMMARY.md
-│   └── TYPE_GENERATION.md
+│   ├── architecture/            # Core architecture & RBAC docs
+│   ├── database/                # Supabase schema, migrations & performance
+│   ├── schema-isolation/        # Multi-tenant schema isolation
+│   ├── design/                  # UI/UX design guidelines
+│   ├── guides/                  # Developer guides & tools
+│   └── history/                 # Changelogs & audit summaries
 │
 └── Configuration Files
     ├── .env.credentials          # Environment variables
@@ -195,7 +196,7 @@ trity/
 
 ## Database Schema (Authoritative Source)
 
-The file **`Supabase Snippet Public Schema Column Catalog.csv`** is the authoritative 
+The file **`docs/database/Supabase Snippet Public Schema Column Catalog.csv`** is the authoritative 
 source of truth for our Supabase database schema.
 
 **Core Tables:**
@@ -368,7 +369,7 @@ npm run lint
 
 For detailed technical documentation, architecture details, development guidelines, and design system patterns, see:
 
-**→ [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)**
+**→ [docs/architecture/PROJECT_DOCUMENTATION.md](docs/architecture/PROJECT_DOCUMENTATION.md)**
 
 This comprehensive guide includes:
 - Complete system architecture
@@ -407,7 +408,7 @@ npm run document:schema  # Generate schema documentation
 4. Always use audit helpers for INSERT/UPDATE operations
 
 ### Adding a New Feature
-1. Review [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) for architecture patterns
+1. Review [docs/architecture/PROJECT_DOCUMENTATION.md](docs/architecture/PROJECT_DOCUMENTATION.md) for architecture patterns
 2. Follow the module color system (Business Core/Analytics/Execution)
 3. Use existing component patterns from the design system
 4. Maintain TypeScript type safety throughout
@@ -419,4 +420,4 @@ MIT
 
 ---
 
-**Need Help?** Check [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) for comprehensive technical documentation and development guidelines.
+**Need Help?** Check [docs/architecture/PROJECT_DOCUMENTATION.md](docs/architecture/PROJECT_DOCUMENTATION.md) for comprehensive technical documentation and development guidelines.

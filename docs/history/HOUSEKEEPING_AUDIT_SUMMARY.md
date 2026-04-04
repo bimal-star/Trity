@@ -69,13 +69,13 @@ Review before deleting:
 | `lib/validation.ts` | Not imported. Generic validation helpers; may be used for future forms/signup. |
 | `lib/sanitization.ts` | Not imported. Input sanitization; may be used later. |
 | `lib/security.ts` | Not imported. CSRF etc.; may be used later. |
-| `docs/AI_PROMPT.md` | Reference only. |
+| `docs/guides/AI_PROMPT.md` | Reference only. |
 | `MIGRATION_GUIDE_depends_on_workstream_id.md` | Migration guide. |
 | `PROJECT_DOCUMENTATION.md` | Project docs. |
 | `TRITY_CONTEXT.md` | Context docs. |
 | `schema_analysis_report.md` | Schema analysis. |
 | `supabase-multi-tenant-audit-report.md` | Audit report. |
-| `types/Supabase Snippet Public Schema Column Catalog.csv` | Schema reference. |
+| `docs/database/Supabase Snippet Public Schema Column Catalog.csv` | Schema reference. |
 
 ---
 

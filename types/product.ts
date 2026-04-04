@@ -18,7 +18,7 @@ export interface PackingConfiguration {
   created_at?: string;
 }
 
-// Product-related tables inferred from Supabase Snippet Public Schema Column Catalog.csv
+// Product-related tables inferred from docs/database/Supabase Snippet Public Schema Column Catalog.csv
 
 export interface ProductVariant {
   id: string;

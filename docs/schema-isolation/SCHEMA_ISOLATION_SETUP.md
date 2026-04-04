@@ -1,4 +1,4 @@
-<!-- docs/SCHEMA_ISOLATION_SETUP.md -->
+<!-- docs/schema-isolation/SCHEMA_ISOLATION_SETUP.md -->
 
 # Schema Isolation Setup - Manual Steps
 

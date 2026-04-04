@@ -25,8 +25,8 @@
 - ✅ useOKRs hook - Uses tenantedSupabase, removed tenant_id filters
 
 ### 3. Created Documentation
-- ✅ `docs/SCHEMA_ISOLATION_IMPLEMENTATION.md` - Full technical guide
-- ✅ `docs/SCHEMA_ISOLATION_SETUP.md` - Step-by-step instructions
+- ✅ `SCHEMA_ISOLATION_IMPLEMENTATION.md` - Full technical guide
+- ✅ `SCHEMA_ISOLATION_SETUP.md` - Step-by-step instructions
 - ✅ `SCHEMA_ISOLATION_IMPLEMENTATION_COMPLETE.md` - Summary
 - ✅ `FILES_MODIFIED_SUMMARY.md` - List of all changes
 
@@ -60,7 +60,7 @@ CREATE INDEX idx_calendar_year_month ON SCHEMA_NAME.calendar(year, month);
 CREATE INDEX idx_navigation_tenant ON SCHEMA_NAME.navigation(tenant_id);
 ```
 
-**Detailed Instructions:** See `docs/SCHEMA_ISOLATION_SETUP.md`
+**Detailed Instructions:** See `SCHEMA_ISOLATION_SETUP.md`
 
 ### Step 2: Test the Implementation
 
@@ -121,7 +121,7 @@ tenantedSupabase
    - Example of "after" - uses tenantedSupabase
    - Compare with git history to see changes
 
-4. **`docs/SCHEMA_ISOLATION_IMPLEMENTATION.md`**
+4. **`SCHEMA_ISOLATION_IMPLEMENTATION.md`**
    - Complete guide if you want to understand deeply
 
 ---
@@ -224,8 +224,8 @@ Git might not be in PATH. Try:
 
 ## Documentation Index
 
-- **START HERE:** `docs/SCHEMA_ISOLATION_SETUP.md` - How to set up
-- **TECHNICAL:** `docs/SCHEMA_ISOLATION_IMPLEMENTATION.md` - How it works
+- **START HERE:** `SCHEMA_ISOLATION_SETUP.md` - How to set up
+- **TECHNICAL:** `SCHEMA_ISOLATION_IMPLEMENTATION.md` - How it works
 - **SUMMARY:** `SCHEMA_ISOLATION_IMPLEMENTATION_COMPLETE.md` - What changed
 - **DETAILED:** `FILES_MODIFIED_SUMMARY.md` - Line-by-line changes
 
@@ -233,8 +233,8 @@ Git might not be in PATH. Try:
 
 ## Questions?
 
-1. **Setup issues?** → See `docs/SCHEMA_ISOLATION_SETUP.md`
-2. **Code questions?** → See `docs/SCHEMA_ISOLATION_IMPLEMENTATION.md`
+1. **Setup issues?** → See `SCHEMA_ISOLATION_SETUP.md`
+2. **Code questions?** → See `SCHEMA_ISOLATION_IMPLEMENTATION.md`
 3. **What changed?** → See `FILES_MODIFIED_SUMMARY.md`
 4. **Need details?** → Read the implementation guide
 
@@ -275,4 +275,4 @@ Then you're ready to:
 
 **Status: READY FOR SETUP** ✅  
 **Version: 1.1.0**  
-**Next: Run SQL in `docs/SCHEMA_ISOLATION_SETUP.md`**
+**Next: Run SQL in `SCHEMA_ISOLATION_SETUP.md`**

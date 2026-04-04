@@ -1073,7 +1073,7 @@ className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
 ## Database Schema
 
 ### Schema Documentation Source
-**Authoritative Source:** `types/Supabase Snippet Public Schema Column Catalog.csv`
+**Authoritative Source:** `docs/database/Supabase Snippet Public Schema Column Catalog.csv`
 
 This CSV file contains the complete, authoritative schema definition exported directly from Supabase. It includes:
 - Table names
