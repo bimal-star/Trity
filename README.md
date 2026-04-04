@@ -18,7 +18,7 @@ npm install
 
 2. **Set up environment variables:**
 
-Copy [.env.credentials](.env.credentials) to `.env.local` and configure your Supabase credentials:
+Copy `.env.credentials` to `.env.local` and configure your Supabase credentials:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://wvqlpcraxorchrtpatph.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_DSUbUfO9Dsyg3v6FzKLnCg_oyIYJeCC
