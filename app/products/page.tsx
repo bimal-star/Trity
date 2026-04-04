@@ -7,7 +7,7 @@ import ProductMasterCard from '@/components/products/ProductMasterCard';
 import ProductDetailsTabs from '@/components/products/ProductDetailsTabs';
 import { useProducts } from '@/hooks/useProducts';
 import { Product, ProductFormData, ProductFilters } from '@/types/product';
-import { BarChart3, Package2, Plus } from 'lucide-react';
+import { Package2, Plus } from 'lucide-react';
 import ProductCreateModal from '../../components/products/ProductCreateModal';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { logProductCreated } from '@/lib/auditLog';
@@ -19,18 +19,10 @@ export default function ProductsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { tenant_id, user } = useTenant();
 
-  const filters: ProductFilters | undefined = search
-    ? { searchQuery: search }
-    : undefined;
+  const filters: ProductFilters | undefined = search ? { searchQuery: search } : undefined;
 
-  const {
-    products,
-    isLoading,
-    error,
-    availableCategories,
-    createProduct,
-    refreshProducts,
-  } = useProducts(filters, 'created_at', 'desc');
+  const { products, isLoading, error, availableCategories, createProduct, refreshProducts } =
+    useProducts(filters, 'created_at', 'desc');
 
   const handleCreateProduct = async (data: ProductFormData) => {
     const result = await createProduct(data);
@@ -62,9 +54,7 @@ export default function ProductsPage() {
               <div className="p-2">
                 <Package2 className="w-5 h-5 text-green-700 dark:text-green-500" />
               </div>
-              <h1 className="text-3xl font-bold text-green-700 dark:text-green-500">
-                Products
-              </h1>
+              <h1 className="text-3xl font-bold text-green-700 dark:text-green-500">Products</h1>
             </div>
             {/* Right: Action Buttons */}
             <button
@@ -83,11 +73,12 @@ export default function ProductsPage() {
         {/* Subtle Divider */}
         <div className="h-px bg-gradient-to-r from-gray-200 dark:from-gray-700 to-transparent mb-4" />
 
-        {/* Main layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start w-full overflow-hidden">
-          <div className="lg:col-span-1 h-[calc(100vh-200px)] max-h-[600px]">
+        {/* Main layout — shared max height so list and detail scale together */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch w-full overflow-hidden min-h-0">
+          <div className="lg:col-span-1 min-h-0 h-[min(640px,calc(100vh-200px))] lg:h-[min(640px,calc(100vh-180px))]">
             <ProductList
               products={products}
+              selectedProductId={selectedProduct?.id ?? null}
               isLoading={isLoading}
               error={error}
               search={search}
@@ -96,9 +87,15 @@ export default function ProductsPage() {
             />
           </div>
 
-          <div className="lg:col-span-2 space-y-4 min-w-0 overflow-hidden max-h-[calc(100vh-200px)]">
-            <ProductMasterCard product={selectedProduct} />
-            {selectedProduct && <ProductDetailsTabs product={selectedProduct} />}
+          <div className="lg:col-span-2 space-y-4 min-w-0 overflow-hidden min-h-0 h-[min(640px,calc(100vh-200px))] lg:h-[min(640px,calc(100vh-180px))] flex flex-col">
+            <div className="shrink-0">
+              <ProductMasterCard product={selectedProduct} />
+            </div>
+            {selectedProduct && (
+              <div className="min-h-0 flex-1 flex flex-col overflow-hidden">
+                <ProductDetailsTabs product={selectedProduct} />
+              </div>
+            )}
           </div>
         </div>
 

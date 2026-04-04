@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { X, Plus, Package2 } from "lucide-react";
-import { IndustryType, ProductFormData, ProductType, StatusType } from "@/types/product";
+import { useState } from 'react';
+import { X, Plus, Package2, ChevronDown } from 'lucide-react';
+import { IndustryType, ProductFormData, ProductType, StatusType } from '@/types/product';
 
 interface CategoryOption {
   id: string;
@@ -14,35 +14,33 @@ interface ProductCreateModalProps {
   isOpen: boolean;
   onClose: () => void;
   availableCategories: CategoryOption[];
-  onCreate: (
-    data: ProductFormData
-  ) => Promise<{ success: boolean; error?: string | undefined }>;
+  onCreate: (data: ProductFormData) => Promise<{ success: boolean; error?: string | undefined }>;
 }
 
 const industryOptions: IndustryType[] = [
-  "bakery",
-  "ready_meals",
-  "pizza",
-  "construction",
-  "manufacturing",
-  "retail",
-  "other",
+  'bakery',
+  'ready_meals',
+  'pizza',
+  'construction',
+  'manufacturing',
+  'retail',
+  'other',
 ];
 
 const productTypeOptions: ProductType[] = [
-  "raw_material",
-  "semi_finished",
-  "finished_good",
-  "service",
-  "assembly",
+  'raw_material',
+  'semi_finished',
+  'finished_good',
+  'service',
+  'assembly',
 ];
 
 const statusOptions: StatusType[] = [
-  "active",
-  "inactive",
-  "discontinued",
-  "planned",
-  "development",
+  'active',
+  'inactive',
+  'discontinued',
+  'planned',
+  'development',
 ];
 
 export default function ProductCreateModal({
@@ -51,47 +49,72 @@ export default function ProductCreateModal({
   availableCategories,
   onCreate,
 }: ProductCreateModalProps) {
-  const [sku, setSku] = useState("");
-  const [name, setName] = useState("");
-  const [shortDescription, setShortDescription] = useState("");
-  const [description, setDescription] = useState("");
-  const [industryType, setIndustryType] = useState<IndustryType>("manufacturing");
-  const [productType, setProductType] = useState<ProductType>("finished_good");
-  const [status, setStatus] = useState<StatusType>("active");
-  const [sellPrice, setSellPrice] = useState<string>("");
-  const [minStock, setMinStock] = useState<string>("");
-  const [maxStock, setMaxStock] = useState<string>("");
-  const [reorderPoint, setReorderPoint] = useState<string>("");
-  const [leadTimeDays, setLeadTimeDays] = useState<string>("");
-  const [shelfLifeDays, setShelfLifeDays] = useState<string>("");
-  const [storageConditions, setStorageConditions] = useState("");
+  const [sku, setSku] = useState('');
+  const [name, setName] = useState('');
+  const [shortDescription, setShortDescription] = useState('');
+  const [description, setDescription] = useState('');
+  const [industryType, setIndustryType] = useState<IndustryType>('manufacturing');
+  const [productType, setProductType] = useState<ProductType>('finished_good');
+  const [status, setStatus] = useState<StatusType>('active');
+  const [sellPrice, setSellPrice] = useState<string>('');
+  const [minStock, setMinStock] = useState<string>('');
+  const [maxStock, setMaxStock] = useState<string>('');
+  const [reorderPoint, setReorderPoint] = useState<string>('');
+  const [leadTimeDays, setLeadTimeDays] = useState<string>('');
+  const [shelfLifeDays, setShelfLifeDays] = useState<string>('');
+  const [storageConditions, setStorageConditions] = useState('');
   const [lotControlled, setLotControlled] = useState(false);
   const [serialTracked, setSerialTracked] = useState(false);
-  const [tagsInput, setTagsInput] = useState("");
+  const [tagsInput, setTagsInput] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [openSection, setOpenSection] = useState<'basics' | 'pricing' | 'lifecycle' | 'categories'>(
+    'basics'
+  );
 
   if (!isOpen) return null;
 
+  const sectionBtn = (id: typeof openSection, label: string) => {
+    const isOpenSec = openSection === id;
+    return (
+      <button
+        type="button"
+        onClick={() => setOpenSection(id)}
+        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-left text-sm font-semibold transition-colors ${
+          isOpenSec
+            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200'
+            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+        }`}
+        aria-expanded={isOpenSec}
+      >
+        <span>{label}</span>
+        <ChevronDown
+          className={`w-4 h-4 shrink-0 transition-transform ${isOpenSec ? 'rotate-180' : ''}`}
+          aria-hidden
+        />
+      </button>
+    );
+  };
+
   const resetForm = () => {
-    setSku("");
-    setName("");
-    setShortDescription("");
-    setDescription("");
-    setIndustryType("manufacturing");
-    setProductType("finished_good");
-    setStatus("active");
-    setSellPrice("");
-    setMinStock("");
-    setMaxStock("");
-    setReorderPoint("");
-    setLeadTimeDays("");
-    setShelfLifeDays("");
-    setStorageConditions("");
+    setSku('');
+    setName('');
+    setShortDescription('');
+    setDescription('');
+    setIndustryType('manufacturing');
+    setProductType('finished_good');
+    setStatus('active');
+    setSellPrice('');
+    setMinStock('');
+    setMaxStock('');
+    setReorderPoint('');
+    setLeadTimeDays('');
+    setShelfLifeDays('');
+    setStorageConditions('');
     setLotControlled(false);
     setSerialTracked(false);
-    setTagsInput("");
+    setTagsInput('');
     setSelectedCategories([]);
     setError(null);
   };
@@ -119,7 +142,7 @@ export default function ProductCreateModal({
     if (isSubmitting) return;
 
     if (!sku.trim() || !name.trim()) {
-      setError("SKU and Name are required");
+      setError('SKU and Name are required');
       return;
     }
 
@@ -147,7 +170,7 @@ export default function ProductCreateModal({
       tags:
         tagsInput.trim().length > 0
           ? tagsInput
-              .split(",")
+              .split(',')
               .map((t) => t.trim())
               .filter(Boolean)
           : undefined,
@@ -157,14 +180,14 @@ export default function ProductCreateModal({
     try {
       const result = await onCreate(payload);
       if (!result.success) {
-        setError(result.error || "Failed to create product");
+        setError(result.error || 'Failed to create product');
         return;
       }
       resetForm();
       onClose();
     } catch (err: any) {
-      console.error("Error creating product:", err);
-      setError(err.message || "Failed to create product");
+      console.error('Error creating product:', err);
+      setError(err.message || 'Failed to create product');
     } finally {
       setIsSubmitting(false);
     }
@@ -174,7 +197,7 @@ export default function ProductCreateModal({
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4 animate-in fade-in duration-200">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[95vh] overflow-hidden border border-gray-200 dark:border-gray-700">
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-6 py-4 border-b border-purple-700">
+        <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4 border-b border-green-800">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-white/20 rounded-lg">
@@ -182,7 +205,7 @@ export default function ProductCreateModal({
               </div>
               <div>
                 <h2 className="text-base font-bold text-white">Create New Product</h2>
-                <p className="text-xs text-purple-100 mt-0.5">
+                <p className="text-xs text-green-100 mt-0.5">
                   Master data, pricing, inventory thresholds and categories
                 </p>
               </div>
@@ -207,305 +230,318 @@ export default function ProductCreateModal({
               </div>
             )}
 
-            {/* Basic Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  SKU <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={sku}
-                  onChange={(e) => setSku(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-                  placeholder="e.g., PROD-001"
-                  autoFocus
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div className="md:col-span-2 lg:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-                  placeholder="Product name"
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div className="md:col-span-2 lg:col-span-3">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Short Description
-                </label>
-                <input
-                  type="text"
-                  value={shortDescription}
-                  onChange={(e) => setShortDescription(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-                  placeholder="Short summary used in lists and cards"
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div className="md:col-span-2 lg:col-span-3">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all resize-none"
-                  placeholder="Detailed description, usage notes, etc."
-                  rows={3}
-                  disabled={isSubmitting}
-                />
-              </div>
-            </div>
+            <div className="space-y-2">
+              {sectionBtn('basics', 'Basics & classification')}
+              {openSection === 'basics' && (
+                <div className="pt-1 pb-4 space-y-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        SKU <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={sku}
+                        onChange={(e) => setSku(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                        placeholder="e.g., PROD-001"
+                        autoFocus
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    <div className="md:col-span-2 lg:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                        placeholder="Product name"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    <div className="md:col-span-2 lg:col-span-3">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Short Description
+                      </label>
+                      <input
+                        type="text"
+                        value={shortDescription}
+                        onChange={(e) => setShortDescription(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                        placeholder="Short summary used in lists and cards"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    <div className="md:col-span-2 lg:col-span-3">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Description
+                      </label>
+                      <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all resize-none"
+                        placeholder="Detailed description, usage notes, etc."
+                        rows={3}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </div>
 
-            {/* Classification & Status */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Industry Type
-                </label>
-                <select
-                  value={industryType}
-                  onChange={(e) => setIndustryType(e.target.value as IndustryType)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-                  disabled={isSubmitting}
-                >
-                  {industryOptions.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt.replace("_", " ")}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Product Type
-                </label>
-                <select
-                  value={productType}
-                  onChange={(e) => setProductType(e.target.value as ProductType)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-                  disabled={isSubmitting}
-                >
-                  {productTypeOptions.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt.replace("_", " ")}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Status
-                </label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as StatusType)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-                  disabled={isSubmitting}
-                >
-                  {statusOptions.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt.charAt(0).toUpperCase() + opt.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Industry Type
+                      </label>
+                      <select
+                        value={industryType}
+                        onChange={(e) => setIndustryType(e.target.value as IndustryType)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                        disabled={isSubmitting}
+                      >
+                        {industryOptions.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt.replace('_', ' ')}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Product Type
+                      </label>
+                      <select
+                        value={productType}
+                        onChange={(e) => setProductType(e.target.value as ProductType)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                        disabled={isSubmitting}
+                      >
+                        {productTypeOptions.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt.replace('_', ' ')}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Status
+                      </label>
+                      <select
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value as StatusType)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                        disabled={isSubmitting}
+                      >
+                        {statusOptions.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-            {/* Pricing & Inventory */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Sell Price
-                </label>
-                <input
-                  type="number"
-                  value={sellPrice}
-                  onChange={(e) => setSellPrice(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-                  placeholder="e.g., 9.99"
-                  min="0"
-                  step="0.01"
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Min Stock Level
-                </label>
-                <input
-                  type="number"
-                  value={minStock}
-                  onChange={(e) => setMinStock(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-                  min="0"
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Max Stock Level
-                </label>
-                <input
-                  type="number"
-                  value={maxStock}
-                  onChange={(e) => setMaxStock(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-                  min="0"
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Reorder Point
-                </label>
-                <input
-                  type="number"
-                  value={reorderPoint}
-                  onChange={(e) => setReorderPoint(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-                  min="0"
-                  disabled={isSubmitting}
-                />
-              </div>
-            </div>
+              {sectionBtn('pricing', 'Pricing & inventory')}
+              {openSection === 'pricing' && (
+                <div className="pt-1 pb-4 space-y-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Sell Price
+                      </label>
+                      <input
+                        type="number"
+                        value={sellPrice}
+                        onChange={(e) => setSellPrice(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                        placeholder="e.g., 9.99"
+                        min="0"
+                        step="0.01"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Min Stock Level
+                      </label>
+                      <input
+                        type="number"
+                        value={minStock}
+                        onChange={(e) => setMinStock(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                        min="0"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Max Stock Level
+                      </label>
+                      <input
+                        type="number"
+                        value={maxStock}
+                        onChange={(e) => setMaxStock(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                        min="0"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Reorder Point
+                      </label>
+                      <input
+                        type="number"
+                        value={reorderPoint}
+                        onChange={(e) => setReorderPoint(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                        min="0"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
-            {/* Lifecycle & Compliance */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Lead Time (days)
-                </label>
-                <input
-                  type="number"
-                  value={leadTimeDays}
-                  onChange={(e) => setLeadTimeDays(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-                  min="0"
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Shelf Life (days)
-                </label>
-                <input
-                  type="number"
-                  value={shelfLifeDays}
-                  onChange={(e) => setShelfLifeDays(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-                  min="0"
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Storage Conditions
-                </label>
-                <input
-                  type="text"
-                  value={storageConditions}
-                  onChange={(e) => setStorageConditions(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-                  placeholder="e.g., Frozen, Chilled, Ambient"
-                  disabled={isSubmitting}
-                />
-              </div>
-            </div>
+              {sectionBtn('lifecycle', 'Lifecycle, tracking & tags')}
+              {openSection === 'lifecycle' && (
+                <div className="pt-1 pb-4 space-y-4 border-b border-gray-200 dark:border-gray-700">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Lead Time (days)
+                      </label>
+                      <input
+                        type="number"
+                        value={leadTimeDays}
+                        onChange={(e) => setLeadTimeDays(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                        min="0"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Shelf Life (days)
+                      </label>
+                      <input
+                        type="number"
+                        value={shelfLifeDays}
+                        onChange={(e) => setShelfLifeDays(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                        min="0"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Storage Conditions
+                      </label>
+                      <input
+                        type="text"
+                        value={storageConditions}
+                        onChange={(e) => setStorageConditions(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                        placeholder="e.g., Frozen, Chilled, Ambient"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="flex items-center gap-2 mt-5">
+                      <input
+                        id="lot-controlled"
+                        type="checkbox"
+                        checked={lotControlled}
+                        onChange={(e) => setLotControlled(e.target.checked)}
+                        className="rounded text-green-600 focus:ring-green-500"
+                        disabled={isSubmitting}
+                      />
+                      <label
+                        htmlFor="lot-controlled"
+                        className="text-sm text-gray-700 dark:text-gray-300"
+                      >
+                        Lot controlled
+                      </label>
+                    </div>
+                    <div className="flex items-center gap-2 mt-5">
+                      <input
+                        id="serial-tracked"
+                        type="checkbox"
+                        checked={serialTracked}
+                        onChange={(e) => setSerialTracked(e.target.checked)}
+                        className="rounded text-green-600 focus:ring-green-500"
+                        disabled={isSubmitting}
+                      />
+                      <label
+                        htmlFor="serial-tracked"
+                        className="text-sm text-gray-700 dark:text-gray-300"
+                      >
+                        Serial tracked
+                      </label>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Tags
+                      </label>
+                      <input
+                        type="text"
+                        value={tagsInput}
+                        onChange={(e) => setTagsInput(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                        placeholder="Comma-separated tags"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
-            {/* Tracking & Tags */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex items-center gap-2 mt-5">
-                <input
-                  id="lot-controlled"
-                  type="checkbox"
-                  checked={lotControlled}
-                  onChange={(e) => setLotControlled(e.target.checked)}
-                  className="rounded text-purple-600 focus:ring-purple-500"
-                  disabled={isSubmitting}
-                />
-                <label
-                  htmlFor="lot-controlled"
-                  className="text-sm text-gray-700 dark:text-gray-300"
-                >
-                  Lot controlled
-                </label>
-              </div>
-              <div className="flex items-center gap-2 mt-5">
-                <input
-                  id="serial-tracked"
-                  type="checkbox"
-                  checked={serialTracked}
-                  onChange={(e) => setSerialTracked(e.target.checked)}
-                  className="rounded text-purple-600 focus:ring-purple-500"
-                  disabled={isSubmitting}
-                />
-                <label
-                  htmlFor="serial-tracked"
-                  className="text-sm text-gray-700 dark:text-gray-300"
-                >
-                  Serial tracked
-                </label>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Tags
-                </label>
-                <input
-                  type="text"
-                  value={tagsInput}
-                  onChange={(e) => setTagsInput(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-                  placeholder="Comma-separated tags"
-                  disabled={isSubmitting}
-                />
-              </div>
-            </div>
-
-            {/* Categories */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Categories
-                </label>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Applies many-to-many links via product_categories
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {availableCategories.length === 0 && (
-                  <p className="text-xs text-gray-500">
-                    No categories defined yet. You can add them from the
-                    category maintenance screens.
-                  </p>
-                )}
-                {availableCategories.map((cat) => {
-                  const isSelected = selectedCategories.includes(cat.name);
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() => handleToggleCategory(cat.name)}
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors shadow-sm flex items-center gap-1.5 ${
-                        isSelected
-                          ? "bg-purple-600 text-white border-purple-500"
-                          : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
-                      }`}
-                      disabled={isSubmitting}
-                    >
-                      {isSelected && <span className="text-[10px]">●</span>}
-                      <span>{cat.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
+              {sectionBtn('categories', 'Categories')}
+              {openSection === 'categories' && (
+                <div className="pt-1 pb-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Categories
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Choose which groups this product belongs to
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {availableCategories.length === 0 && (
+                      <p className="text-xs text-gray-500">
+                        No categories defined yet. You can add them from the category maintenance
+                        screens.
+                      </p>
+                    )}
+                    {availableCategories.map((cat) => {
+                      const isSelected = selectedCategories.includes(cat.name);
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => handleToggleCategory(cat.name)}
+                          className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors shadow-sm flex items-center gap-1.5 ${
+                            isSelected
+                              ? 'bg-green-600 text-white border-green-500'
+                              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                          }`}
+                          disabled={isSubmitting}
+                        >
+                          {isSelected && <span className="text-[10px]">●</span>}
+                          <span>{cat.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -522,11 +558,11 @@ export default function ProductCreateModal({
             </button>
             <button
               type="submit"
-              className="px-4 py-2.5 text-sm font-semibold bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2.5 text-sm font-semibold bg-green-600 hover:bg-green-700 active:bg-green-800 text-white rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isSubmitting}
             >
               <Plus className="w-4 h-4" />
-              {isSubmitting ? "Creating..." : "Create Product"}
+              {isSubmitting ? 'Creating...' : 'Create Product'}
             </button>
           </div>
         </form>
