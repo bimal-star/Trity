@@ -19,18 +19,10 @@ export default function ProductsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { tenant_id, user } = useTenant();
 
-  const filters: ProductFilters | undefined = search
-    ? { searchQuery: search }
-    : undefined;
+  const filters: ProductFilters | undefined = search ? { searchQuery: search } : undefined;
 
-  const {
-    products,
-    isLoading,
-    error,
-    availableCategories,
-    createProduct,
-    refreshProducts,
-  } = useProducts(filters, 'created_at', 'desc');
+  const { products, isLoading, error, availableCategories, createProduct, refreshProducts } =
+    useProducts(filters, 'created_at', 'desc');
 
   const handleCreateProduct = async (data: ProductFormData) => {
     const result = await createProduct(data);
@@ -62,9 +54,7 @@ export default function ProductsPage() {
               <div className="p-2">
                 <Package2 className="w-5 h-5 text-green-700 dark:text-green-500" />
               </div>
-              <h1 className="text-3xl font-bold text-green-700 dark:text-green-500">
-                Products
-              </h1>
+              <h1 className="text-3xl font-bold text-green-700 dark:text-green-500">Products</h1>
             </div>
             {/* Right: Action Buttons */}
             <button
@@ -93,6 +83,7 @@ export default function ProductsPage() {
               search={search}
               onSearchChange={setSearch}
               onSelect={setSelectedProduct}
+              selectedProductId={selectedProduct?.id}
             />
           </div>
 
