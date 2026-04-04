@@ -193,9 +193,10 @@ The script automatically:
    npm run generate:types
    ```
 
-2. **Deploy Migration 025** to clear materialized view linter warning:
+2. **Deploy the relevant migration** to clear materialized view linter warnings:
    ```bash
-   psql -h db.wvqlpcraxorchrtpatph.supabase.co -U postgres -d postgres < sql/025-add-rls-to-materialized-view.sql
+   # Apply the required SQL file from supabase/migrations/ in timestamp order
+   # using your normal Supabase migration workflow.
    ```
 
 3. **Set up pg_cron** for automated timezone cache refresh (see Maintenance section above)
@@ -207,6 +208,6 @@ The script automatically:
 - **Full Optimization Journey:** [docs/SUPABASE_OPTIMIZATION_SUMMARY.md](docs/SUPABASE_OPTIMIZATION_SUMMARY.md)
 - **Timezone Caching Guide:** [docs/TIMEZONE_OPTIMIZATION.md](docs/TIMEZONE_OPTIMIZATION.md)
 - **Type Generation Setup:** [docs/TYPE_GENERATION.md](docs/TYPE_GENERATION.md)
-- **Migration Files:** See `sql/` directory (001-025)
+- **Migration Files:** See `supabase/migrations/` (timestamped SQL migrations)
 
 Your Supabase database is fully optimized, secure, and production-ready! 🚀

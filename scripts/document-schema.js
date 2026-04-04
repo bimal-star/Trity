@@ -133,7 +133,7 @@ async function documentSchema() {
   markdown += `- [\`types/database.ts\`](types/database.ts) - Auto-generated TypeScript types\n`;
   markdown += `- [\`lib/supabaseClient.ts\`](lib/supabaseClient.ts) - Typed Supabase client\n`;
   markdown += `- [\`DATABASE_SCHEMA.md\`](DATABASE_SCHEMA.md) - High-level schema overview\n`;
-  markdown += `- [\`sql/get_database_schema.sql\`](sql/get_database_schema.sql) - SQL schema queries\n`;
+  markdown += `- [\`supabase/migrations/\`](../supabase/migrations/) - Timestamped SQL migrations\n`;
 
   // Write to file
   const outputPath = path.join(__dirname, '..', 'docs', 'GENERATED_SCHEMA.md');

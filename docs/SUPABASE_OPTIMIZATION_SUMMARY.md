@@ -321,9 +321,10 @@ Materialized View: cached_timezones (<1ms)
 
 ## Next Steps (Optional)
 
-1. **Deploy Migration 025** (if you want to clear materialized_view_in_api warning)
+1. **Deploy the relevant migration** (if you want to clear materialized-view warnings)
    ```bash
-   psql -h db.xxx.supabase.co -U postgres -d postgres < sql/025-add-rls-to-materialized-view.sql
+   # Apply the required SQL file from supabase/migrations/
+   # in timestamp order via your normal migration workflow.
    ```
 
 2. **Set up pg_cron** for automated timezone refresh

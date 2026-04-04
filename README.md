@@ -26,10 +26,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_DSUbUfO9Dsyg3v6FzKLnCg_oyIYJeCC
 
 3. **Set up the database:**
 
-Run the navigation table migration in your Supabase SQL editor:
-```bash
-# See sql/create_navigation_table.sql for the migration script
-```
+Apply the SQL migrations from `supabase/migrations` in timestamp order using your Supabase migration workflow.
 
 4. **Generate database types:**
 ```bash
@@ -149,8 +146,8 @@ trity/
 ├── providers/                    # Context providers
 │   └── AppProviders.tsx          # App-level providers
 │
-├── sql/                          # SQL migrations
-│   └── ... (migration files)
+├── supabase/
+│   └── migrations/              # SQL migrations (timestamped)
 │
 ├── scripts/                      # Build & utility scripts
 │   ├── generate-types.js         # Generate DB types
@@ -158,6 +155,7 @@ trity/
 │   └── discover-tables.js        # Table discovery
 │
 ├── docs/                         # Documentation
+│   ├── reference/               # Reference and historical update notes
 │   ├── SUPABASE_OPTIMIZATION_SUMMARY.md
 │   └── TYPE_GENERATION.md
 │
@@ -369,6 +367,10 @@ npm run lint
 For detailed technical documentation, architecture details, development guidelines, and design system patterns, see:
 
 **→ [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)**
+
+For indexed reference material and historical reference-update notes, see:
+
+**→ [docs/reference/README.md](docs/reference/README.md)**
 
 This comprehensive guide includes:
 - Complete system architecture

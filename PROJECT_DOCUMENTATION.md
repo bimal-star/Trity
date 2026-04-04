@@ -204,8 +204,8 @@ trity/
 │   ├── profile.ts               # User profile interfaces
 │   └── Supabase Snippet Public Schema Column Catalog.csv  # 📍 SCHEMA SOURCE OF TRUTH
 │
-├── sql/                          # SQL migrations
-│   └── ... (migration files)
+├── supabase/
+│   └── migrations/              # SQL migrations (timestamped)
 │
 ├── scripts/                      # Build & utility scripts
 │   ├── generate-types.js        # 📍 DB type generation

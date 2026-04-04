@@ -544,8 +544,8 @@ trity/
 ├── providers/               # Context providers
 │   └── AppProviders.tsx     # Application-level providers
 │
-├── sql/                     # SQL migrations & queries
-│   └── ... (migration files)
+├── supabase/
+│   └── migrations/         # SQL migrations (timestamped)
 │
 ├── scripts/                 # Build & utility scripts
 │   ├── generate-types.js    # ⚠️ Type generation from Supabase
@@ -566,7 +566,7 @@ trity/
 ├── README.md                # ✅ Quick-start guide
 ├── PROJECT_DOCUMENTATION.md # ✅ Complete technical docs
 ├── TRITY_CONTEXT.md         # ← This file (Updated Jan 31, 2026)
-├── REFERENCE_FILES_INDEX.md # ✅ Master reference index
+├── docs/reference/REFERENCE_FILES_INDEX.md # ✅ Master reference index
 └── ... (other documentation)
 ```
 
