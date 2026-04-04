@@ -48,8 +48,8 @@ types/profile.ts           - Updated imports
 
 ### Documentation (2 files)
 ```
-ACCESS_CONTROL_IMPLEMENTATION.md  - Detailed guide
-IMPLEMENTATION_GUIDE.md           - Quick start guide
+access-control-implementation.md  - Detailed guide
+access-control-guide.md           - Quick start guide
 ```
 
 ---
@@ -286,8 +286,8 @@ When user lacks permission, they see:
 ## 📞 Questions?
 
 Refer to:
-- **Implementation Details**: `ACCESS_CONTROL_IMPLEMENTATION.md`
-- **Integration Examples**: `IMPLEMENTATION_GUIDE.md`
+- **Implementation Details**: `access-control-implementation.md`
+- **Integration Examples**: `access-control-guide.md`
 - **Type Definitions**: `types/access.ts`
 - **Hook Source**: `hooks/usePermissions.ts`
 - **Live Pages**: `/users`, `/groups`, `/admin/tenants`

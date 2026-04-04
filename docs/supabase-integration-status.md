@@ -27,10 +27,9 @@
 ### Files Created/Modified
 
 #### Documentation
-1. [docs/TIMEZONE_OPTIMIZATION.md](docs/TIMEZONE_OPTIMIZATION.md) - Usage guide for timezone caching
-2. [docs/SUPABASE_OPTIMIZATION_SUMMARY.md](docs/SUPABASE_OPTIMIZATION_SUMMARY.md) - Complete optimization journey
-3. [docs/TYPE_GENERATION.md](docs/TYPE_GENERATION.md) - Type generation setup and usage
-4. [SUPABASE_INTEGRATION_STATUS.md](SUPABASE_INTEGRATION_STATUS.md) - This file
+1. [supabase-optimization-summary.md](supabase-optimization-summary.md) - Complete optimization journey
+3. [type-generation.md](type-generation.md) - Type generation setup and usage
+4. [supabase-integration-status.md](supabase-integration-status.md) - This file
 
 #### Code Updates
 1. [scripts/generate-types.js](scripts/generate-types.js) - Updated to use Supabase CLI with fallback
@@ -118,7 +117,7 @@ supabase link --project-ref wvqlpcraxorchrtpatph
 npm run generate:types
 ```
 
-See [docs/TYPE_GENERATION.md](docs/TYPE_GENERATION.md) for detailed setup instructions.
+See [type-generation.md](type-generation.md) for detailed setup instructions.
 
 ---
 
@@ -204,9 +203,8 @@ The script automatically:
 
 ## Documentation
 
-- **Full Optimization Journey:** [docs/SUPABASE_OPTIMIZATION_SUMMARY.md](docs/SUPABASE_OPTIMIZATION_SUMMARY.md)
-- **Timezone Caching Guide:** [docs/TIMEZONE_OPTIMIZATION.md](docs/TIMEZONE_OPTIMIZATION.md)
-- **Type Generation Setup:** [docs/TYPE_GENERATION.md](docs/TYPE_GENERATION.md)
+- **Full Optimization Journey:** [supabase-optimization-summary.md](supabase-optimization-summary.md)
+- **Type Generation Setup:** [type-generation.md](type-generation.md)
 - **Migration Files:** See `sql/` directory (001-025)
 
 Your Supabase database is fully optimized, secure, and production-ready! 🚀

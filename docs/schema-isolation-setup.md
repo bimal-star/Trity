@@ -1,4 +1,4 @@
-<!-- docs/SCHEMA_ISOLATION_SETUP.md -->
+<!-- docs/schema-isolation-setup.md -->
 
 # Schema Isolation Setup - Manual Steps
 
@@ -239,13 +239,13 @@ If you get stuck:
 1. Check the migration was applied: `supabase migration list`
 2. Check schema exists: `SELECT * FROM public.tenant_schemas;`
 3. Check tables exist: `SELECT * FROM pg_tables WHERE schemaname LIKE 'tenant_%';`
-4. Review the full docs: See [SCHEMA_ISOLATION_IMPLEMENTATION.md](./SCHEMA_ISOLATION_IMPLEMENTATION.md)
+4. Review the full docs: See [schema-isolation-implementation.md](./schema-isolation-implementation.md)
 
 ---
 
 ## Questions?
 
 Refer to:
-- Implementation docs: [SCHEMA_ISOLATION_IMPLEMENTATION.md](./SCHEMA_ISOLATION_IMPLEMENTATION.md)
+- Implementation docs: [schema-isolation-implementation.md](./schema-isolation-implementation.md)
 - Code: `lib/supabaseSchemaClient.ts`
 - Context: `contexts/TenantContext.tsx`

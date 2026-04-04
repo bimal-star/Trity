@@ -314,8 +314,8 @@ Materialized View: cached_timezones (<1ms)
 
 - `TIMEZONE_OPTIMIZATION.md` - Timezone caching usage guide
 - `SUPABASE_OPTIMIZATION_SUMMARY.md` - This file
-- `schema_analysis_report.md` - Original security audit
-- `supabase-multi-tenant-audit-report.md` - Multi-tenant audit findings
+- `schema-analysis-report.md` - Original security audit
+- `multi-tenant-audit-report.md` - Multi-tenant audit findings
 
 ---
 

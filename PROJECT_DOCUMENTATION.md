@@ -202,7 +202,7 @@ trity/
 │   ├── workstream.ts            # Workstream interfaces
 │   ├── okr.ts                   # OKR interfaces
 │   ├── profile.ts               # User profile interfaces
-│   └── Supabase Snippet Public Schema Column Catalog.csv  # 📍 SCHEMA SOURCE OF TRUTH
+│   └── ... (other types)
 │
 ├── sql/                          # SQL migrations
 │   └── ... (migration files)
@@ -213,9 +213,9 @@ trity/
 │   └── discover-tables.js       # Table discovery utility
 │
 ├── docs/                         # Project documentation
-│   ├── AI_PROMPT.md             # AI assistant guidelines
-│   ├── SUPABASE_OPTIMIZATION_SUMMARY.md
-│   ├── TYPE_GENERATION.md       # Type generation guide
+│   ├── ai-prompt.md                        # AI assistant guidelines
+│   ├── supabase-optimization-summary.md    # DB optimization details
+│   ├── type-generation.md                  # Type generation guide
 │   └── adr/                     # Architecture decision records
 │
 └── Configuration Files
@@ -1073,7 +1073,7 @@ className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
 ## Database Schema
 
 ### Schema Documentation Source
-**Authoritative Source:** `types/Supabase Snippet Public Schema Column Catalog.csv`
+**Authoritative Source:** `docs/supabase-public-schema-catalog.csv`
 
 This CSV file contains the complete, authoritative schema definition exported directly from Supabase. It includes:
 - Table names
