@@ -6,6 +6,10 @@
 **Last Reviewed:** January 31, 2026  
 **Cleanup Strategy:** Option D - Complete Cleanup
 
+> Historical note: this summary mentions a one-off `sql/cleanup_projects.sql`
+> script from the original cleanup effort. The current repository stores live
+> database changes in `../../supabase/migrations/`.
+
 ---
 
 ## ✅ Files Deleted (20 files)

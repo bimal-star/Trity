@@ -26,9 +26,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_DSUbUfO9Dsyg3v6FzKLnCg_oyIYJeCC
 
 3. **Set up the database:**
 
-Run the navigation table migration in your Supabase SQL editor:
+This repository keeps versioned database changes in `supabase/migrations/`.
+Apply the relevant migration from that folder using the Supabase CLI or the
+Supabase SQL editor.
 ```bash
-# See sql/create_navigation_table.sql for the migration script
+# Example workflow
+supabase db push
 ```
 
 4. **Generate database types:**
@@ -149,16 +152,21 @@ trity/
 ├── providers/                    # Context providers
 │   └── AppProviders.tsx          # App-level providers
 │
-├── sql/                          # SQL migrations
-│   └── ... (migration files)
+├── supabase/
+│   └── migrations/              # Versioned SQL migrations
 │
 ├── scripts/                      # Build & utility scripts
 │   ├── generate-types.js         # Generate DB types
 │   ├── document-schema.js        # Generate schema docs
 │   └── discover-tables.js        # Table discovery
 │
-├── docs/                         # Documentation
-│   ├── SUPABASE_OPTIMIZATION_SUMMARY.md
+├── docs/                         # Organized project documentation
+│   ├── access-control/          # RBAC guides and quick references
+│   ├── database/                # Supabase and schema notes
+│   ├── design/                  # UI/design references
+│   ├── project-history/         # Historical summaries and audits
+│   ├── schema-isolation/        # Schema isolation implementation notes
+│   ├── AI_PROMPT.md
 │   └── TYPE_GENERATION.md
 │
 └── Configuration Files

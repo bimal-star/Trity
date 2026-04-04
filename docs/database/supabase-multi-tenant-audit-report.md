@@ -4,6 +4,10 @@
 **Source:** Supabase Snippet Public Schema Column Catalog.csv  
 **Status:** Complete Analysis with SQL Fixes Provided
 
+> Historical note: this report references ad-hoc `sql/*.sql` scripts that are not
+> present in the current repository. Active database changes in this codebase are
+> tracked as timestamped migrations under `../../supabase/migrations/`.
+
 ---
 
 ## Executive Summary

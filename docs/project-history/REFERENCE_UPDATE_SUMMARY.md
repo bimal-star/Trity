@@ -18,15 +18,15 @@
 | File | Update |
 |------|--------|
 | README.md | Updated project description with RBAC & multi-tenant capabilities |
-| QUICK_REFERENCE.md | Added "Last Updated: January 31, 2026" |
-| IMPLEMENTATION_GUIDE.md | Enhanced core features section with current details |
-| ACCESS_CONTROL_IMPLEMENTATION.md | Added "Last Updated: January 31, 2026" |
+| ../access-control/QUICK_REFERENCE.md | Added "Last Updated: January 31, 2026" |
+| ../access-control/IMPLEMENTATION_GUIDE.md | Enhanced core features section with current details |
+| ../access-control/ACCESS_CONTROL_IMPLEMENTATION.md | Added "Last Updated: January 31, 2026" |
 
 ### 3. **Status & Integration Files** (Date Updated)
 
 | File | Update |
 |------|--------|
-| SUPABASE_INTEGRATION_STATUS.md | Added "Last Updated: January 31, 2026" |
+| ../database/SUPABASE_INTEGRATION_STATUS.md | Added "Last Updated: January 31, 2026" |
 | CLEANUP_SUMMARY.md | Added "Last Reviewed: January 31, 2026" |
 | HOUSEKEEPING_AUDIT_SUMMARY.md | Fixed date format, added "Last Updated: January 31, 2026" |
 
@@ -40,7 +40,7 @@
 
 ## 📋 What the New Master Index Provides
 
-The [REFERENCE_FILES_INDEX.md](REFERENCE_FILES_INDEX.md) is a comprehensive guide that includes:
+The [REFERENCE_FILES_INDEX.md](../../REFERENCE_FILES_INDEX.md) is a comprehensive guide that includes:
 
 1. **Quick Navigation** - Links to all 20+ documentation files
 2. **File Categorization** - Organized by purpose:
@@ -131,21 +131,21 @@ The [REFERENCE_FILES_INDEX.md](REFERENCE_FILES_INDEX.md) is a comprehensive guid
 ## 🚀 Next Steps
 
 ### For Development Teams:
-1. Use [REFERENCE_FILES_INDEX.md](REFERENCE_FILES_INDEX.md) to find the right documentation
-2. Start with [README.md](README.md) for quick setup
-3. Reference [TRITY_CONTEXT.md](TRITY_CONTEXT.md) for architecture decisions
-4. Use [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for code examples
+1. Use [REFERENCE_FILES_INDEX.md](../../REFERENCE_FILES_INDEX.md) to find the right documentation
+2. Start with [README.md](../../README.md) for quick setup
+3. Reference [TRITY_CONTEXT.md](../../TRITY_CONTEXT.md) for architecture decisions
+4. Use [../access-control/QUICK_REFERENCE.md](../access-control/QUICK_REFERENCE.md) for code examples
 
 ### For New Features:
-1. Check [IMPLEMENTATION_GUIDE.md](IMPLEMENTATION_GUIDE.md) for patterns
-2. Follow conventions in [TRITY_CONTEXT.md](TRITY_CONTEXT.md)
+1. Check [../access-control/IMPLEMENTATION_GUIDE.md](../access-control/IMPLEMENTATION_GUIDE.md) for patterns
+2. Follow conventions in [TRITY_CONTEXT.md](../../TRITY_CONTEXT.md)
 3. Update relevant documentation files with date/version
-4. Add new feature details to [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)
+4. Add new feature details to [PROJECT_DOCUMENTATION.md](../../PROJECT_DOCUMENTATION.md)
 
 ### For Maintenance:
 1. Update "Last Updated" dates when making changes
 2. Increment version numbers in main context files
-3. Keep [REFERENCE_FILES_INDEX.md](REFERENCE_FILES_INDEX.md) current with new files
+3. Keep [REFERENCE_FILES_INDEX.md](../../REFERENCE_FILES_INDEX.md) current with new files
 4. Review [HOUSEKEEPING_AUDIT_SUMMARY.md](HOUSEKEEPING_AUDIT_SUMMARY.md) quarterly
 
 ---

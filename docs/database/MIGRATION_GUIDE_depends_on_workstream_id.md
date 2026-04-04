@@ -3,6 +3,10 @@
 ## Overview
 This migration changes the `depends_on_workstream_id` column in the `workstreams` table from a UUID foreign key reference to a free-text field.
 
+> Note: the original write-up referenced one-off SQL files that are not stored in
+> this repository. Current database changes should be captured as timestamped
+> migrations under `../../supabase/migrations/`.
+
 ## Current State
 - **Column Type**: UUID (foreign key to `workstreams.id`)
 - **Form Input**: Dropdown select with workstream options
@@ -16,7 +20,8 @@ This migration changes the `depends_on_workstream_id` column in the `workstreams
 ## Migration Steps
 
 ### 1. Check Current Schema
-Run the SQL in `supabase/migrations/check_workstream_dependency_schema.sql` to verify:
+Run a verification query in the Supabase SQL editor, or create a small helper
+migration under `../../supabase/migrations/`, to verify:
 - Current column data type
 - Existing foreign key constraints
 - Current values in the database
@@ -25,7 +30,8 @@ Run the SQL in `supabase/migrations/check_workstream_dependency_schema.sql` to v
 **IMPORTANT**: Backup your database before proceeding!
 
 ### 3. Run Migration
-Execute the SQL in `supabase/migrations/change_depends_on_to_text.sql` which will:
+Create and apply a new timestamped migration in `../../supabase/migrations/`
+that:
 1. Drop the foreign key constraint (if it exists)
 2. Convert the column from UUID to TEXT
 3. Preserve existing UUID values as text strings

@@ -89,7 +89,7 @@
 
 ## Documentation Files Created (3)
 
-### 1. `docs/SCHEMA_ISOLATION_IMPLEMENTATION.md`
+### 1. `SCHEMA_ISOLATION_IMPLEMENTATION.md`
 - **Purpose:** Complete implementation guide
 - **Size:** ~500 lines
 - **Contains:**
@@ -102,7 +102,7 @@
   - Troubleshooting guide
   - Performance impact analysis
 
-### 2. `docs/SCHEMA_ISOLATION_SETUP.md`
+### 2. `SCHEMA_ISOLATION_SETUP.md`
 - **Purpose:** Step-by-step setup guide
 - **Size:** ~300 lines
 - **Contains:**
@@ -180,7 +180,7 @@ These files need manual updates by you:
 
 ### Supabase SQL Editor
 1. Run: `SELECT create_tenant_schema('YOUR_TENANT_ID', 'Name')`
-2. Run: Copy table SQL from docs/SCHEMA_ISOLATION_SETUP.md
+2. Run: Copy table SQL from SCHEMA_ISOLATION_SETUP.md
 
 ### Git Commit
 ```bash

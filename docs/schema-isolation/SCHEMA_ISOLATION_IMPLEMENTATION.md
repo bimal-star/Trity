@@ -1,4 +1,4 @@
-<!-- docs/SCHEMA_ISOLATION_IMPLEMENTATION.md -->
+<!-- SCHEMA_ISOLATION_IMPLEMENTATION.md -->
 
 # Schema Isolation Implementation Guide
 

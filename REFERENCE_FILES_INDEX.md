@@ -9,6 +9,13 @@
 
 This document serves as a master index for all reference documentation in the Trity project. Use this to find the right file for your needs.
 
+Documentation is now grouped by topic under `docs/`:
+- `docs/access-control/` for RBAC and permission docs
+- `docs/database/` for Supabase, migrations, and schema notes
+- `docs/design/` for UI reference material
+- `docs/project-history/` for historical summaries and audits
+- `docs/schema-isolation/` for schema isolation workstreams
+
 ---
 
 ## 🏠 Core Documentation
@@ -34,7 +41,7 @@ This document serves as a master index for all reference documentation in the Tr
 
 ## 🔐 Access Control & Security
 
-### [IMPLEMENTATION_GUIDE.md](IMPLEMENTATION_GUIDE.md)
+### [docs/access-control/IMPLEMENTATION_GUIDE.md](docs/access-control/IMPLEMENTATION_GUIDE.md)
 - **Last Updated:** January 31, 2026
 - **Purpose:** Access Control System implementation details
 - **Contains:** 
@@ -45,7 +52,7 @@ This document serves as a master index for all reference documentation in the Tr
   - Security features and privilege escalation prevention
 - **Best for:** Understanding the RBAC system and how to use it
 
-### [ACCESS_CONTROL_IMPLEMENTATION.md](ACCESS_CONTROL_IMPLEMENTATION.md)
+### [docs/access-control/ACCESS_CONTROL_IMPLEMENTATION.md](docs/access-control/ACCESS_CONTROL_IMPLEMENTATION.md)
 - **Last Updated:** January 31, 2026
 - **Purpose:** Detailed implementation summary of access control
 - **Contains:**
@@ -58,7 +65,7 @@ This document serves as a master index for all reference documentation in the Tr
   - Type safety and security features
 - **Best for:** Implementation details and integration patterns
 
-### [QUICK_REFERENCE.md](QUICK_REFERENCE.md)
+### [docs/access-control/QUICK_REFERENCE.md](docs/access-control/QUICK_REFERENCE.md)
 - **Last Updated:** January 31, 2026
 - **Purpose:** Quick reference for access control features
 - **Contains:**
@@ -78,7 +85,7 @@ This document serves as a master index for all reference documentation in the Tr
 
 ## 🗄️ Database & Schema
 
-### [SUPABASE_INTEGRATION_STATUS.md](SUPABASE_INTEGRATION_STATUS.md)
+### [docs/database/SUPABASE_INTEGRATION_STATUS.md](docs/database/SUPABASE_INTEGRATION_STATUS.md)
 - **Last Updated:** January 31, 2026
 - **Purpose:** Supabase integration and optimization status
 - **Contains:**
@@ -89,16 +96,16 @@ This document serves as a master index for all reference documentation in the Tr
   - Index optimization details
 - **Best for:** Understanding database setup and optimizations
 
-### [MIGRATION_GUIDE_depends_on_workstream_id.md](MIGRATION_GUIDE_depends_on_workstream_id.md)
+### [docs/database/MIGRATION_GUIDE_depends_on_workstream_id.md](docs/database/MIGRATION_GUIDE_depends_on_workstream_id.md)
 - **Purpose:** Migration guide for converting depends_on_workstream_id
 - **Contains:** Schema migration steps, backup procedures, conversion details
 - **Best for:** Performing specific schema migrations
 
-### [schema_analysis_report.md](schema_analysis_report.md)
+### [docs/database/schema_analysis_report.md](docs/database/schema_analysis_report.md)
 - **Purpose:** Database schema analysis and documentation
 - **Best for:** Understanding the database structure
 
-### [supabase-multi-tenant-audit-report.md](supabase-multi-tenant-audit-report.md)
+### [docs/database/supabase-multi-tenant-audit-report.md](docs/database/supabase-multi-tenant-audit-report.md)
 - **Purpose:** Multi-tenant architecture audit report
 - **Best for:** Understanding multi-tenant implementation details
 
@@ -106,7 +113,7 @@ This document serves as a master index for all reference documentation in the Tr
 
 ## 🎨 UI & Design
 
-### [PAGE_HEADERS_COLOR_THEME.md](PAGE_HEADERS_COLOR_THEME.md)
+### [docs/design/PAGE_HEADERS_COLOR_THEME.md](docs/design/PAGE_HEADERS_COLOR_THEME.md)
 - **Purpose:** Color theme configuration for page headers
 - **Contains:** Color scheme definitions and usage guidelines
 - **Best for:** UI styling and color consistency
@@ -115,7 +122,7 @@ This document serves as a master index for all reference documentation in the Tr
 
 ## 📊 Project Status & History
 
-### [CLEANUP_SUMMARY.md](CLEANUP_SUMMARY.md)
+### [docs/project-history/CLEANUP_SUMMARY.md](docs/project-history/CLEANUP_SUMMARY.md)
 - **Date:** January 26, 2026 (Last Reviewed: Jan 31, 2026)
 - **Purpose:** Project cleanup summary
 - **Contains:**
@@ -124,7 +131,7 @@ This document serves as a master index for all reference documentation in the Tr
   - Impact analysis
 - **Best for:** Understanding what was removed and why
 
-### [HOUSEKEEPING_AUDIT_SUMMARY.md](HOUSEKEEPING_AUDIT_SUMMARY.md)
+### [docs/project-history/HOUSEKEEPING_AUDIT_SUMMARY.md](docs/project-history/HOUSEKEEPING_AUDIT_SUMMARY.md)
 - **Date:** January 26, 2025 (Last Updated: Jan 31, 2026)
 - **Purpose:** Code housekeeping audit
 - **Contains:**
@@ -133,7 +140,7 @@ This document serves as a master index for all reference documentation in the Tr
   - Verified conventions
 - **Best for:** Code quality assurance overview
 
-### [CUSTOMER_SCHEMA_FIX.md](CUSTOMER_SCHEMA_FIX.md)
+### [docs/database/CUSTOMER_SCHEMA_FIX.md](docs/database/CUSTOMER_SCHEMA_FIX.md)
 - **Purpose:** Customer schema fixes and updates
 - **Best for:** Understanding customer module updates
 
@@ -144,7 +151,7 @@ This document serves as a master index for all reference documentation in the Tr
 ### In `/docs/` directory:
 
 - **[docs/AI_PROMPT.md](docs/AI_PROMPT.md)** - AI assistant prompt and guidelines
-- **[docs/SUPABASE_OPTIMIZATION_SUMMARY.md](docs/SUPABASE_OPTIMIZATION_SUMMARY.md)** - Complete optimization journey
+- **[docs/database/SUPABASE_OPTIMIZATION_SUMMARY.md](docs/database/SUPABASE_OPTIMIZATION_SUMMARY.md)** - Complete optimization journey
 - **[docs/TYPE_GENERATION.md](docs/TYPE_GENERATION.md)** - Type generation setup and usage
 
 ---
@@ -154,21 +161,21 @@ This document serves as a master index for all reference documentation in the Tr
 ### For New Developers:
 1. Start with [README.md](README.md) for quick start
 2. Read [TRITY_CONTEXT.md](TRITY_CONTEXT.md) for architecture overview
-3. Check [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for feature overview
+3. Check [docs/access-control/QUICK_REFERENCE.md](docs/access-control/QUICK_REFERENCE.md) for feature overview
 
 ### For Access Control/Security:
-1. Read [IMPLEMENTATION_GUIDE.md](IMPLEMENTATION_GUIDE.md) first
-2. Reference [ACCESS_CONTROL_IMPLEMENTATION.md](ACCESS_CONTROL_IMPLEMENTATION.md) for details
-3. Use [QUICK_REFERENCE.md](QUICK_REFERENCE.md) for code examples
+1. Read [docs/access-control/IMPLEMENTATION_GUIDE.md](docs/access-control/IMPLEMENTATION_GUIDE.md) first
+2. Reference [docs/access-control/ACCESS_CONTROL_IMPLEMENTATION.md](docs/access-control/ACCESS_CONTROL_IMPLEMENTATION.md) for details
+3. Use [docs/access-control/QUICK_REFERENCE.md](docs/access-control/QUICK_REFERENCE.md) for code examples
 
 ### For Database Work:
-1. Check [SUPABASE_INTEGRATION_STATUS.md](SUPABASE_INTEGRATION_STATUS.md) for current state
+1. Check [docs/database/SUPABASE_INTEGRATION_STATUS.md](docs/database/SUPABASE_INTEGRATION_STATUS.md) for current state
 2. Review [docs/TYPE_GENERATION.md](docs/TYPE_GENERATION.md) for type updates
 3. Use migration guides as needed
 
 ### For Code Review:
 1. Verify against [TRITY_CONTEXT.md](TRITY_CONTEXT.md) conventions
-2. Check [HOUSEKEEPING_AUDIT_SUMMARY.md](HOUSEKEEPING_AUDIT_SUMMARY.md) for standards
+2. Check [docs/project-history/HOUSEKEEPING_AUDIT_SUMMARY.md](docs/project-history/HOUSEKEEPING_AUDIT_SUMMARY.md) for standards
 3. Reference [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) for architecture
 
 ---
@@ -243,22 +250,22 @@ This document serves as a master index for all reference documentation in the Tr
 
 ### Product Manager
 - [README.md](README.md) - Feature overview
-- [QUICK_REFERENCE.md](QUICK_REFERENCE.md) - Capabilities list
+- [docs/access-control/QUICK_REFERENCE.md](docs/access-control/QUICK_REFERENCE.md) - Capabilities list
 
 ### Developer
 - [TRITY_CONTEXT.md](TRITY_CONTEXT.md) - Architecture & conventions
 - [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) - Technical details
-- [IMPLEMENTATION_GUIDE.md](IMPLEMENTATION_GUIDE.md) - Implementation patterns
+- [docs/access-control/IMPLEMENTATION_GUIDE.md](docs/access-control/IMPLEMENTATION_GUIDE.md) - Implementation patterns
 
 ### DevOps/Database Administrator
-- [SUPABASE_INTEGRATION_STATUS.md](SUPABASE_INTEGRATION_STATUS.md) - DB status
+- [docs/database/SUPABASE_INTEGRATION_STATUS.md](docs/database/SUPABASE_INTEGRATION_STATUS.md) - DB status
 - [docs/TYPE_GENERATION.md](docs/TYPE_GENERATION.md) - Type generation
 - Migration guides as needed
 
 ### Security Reviewer
-- [ACCESS_CONTROL_IMPLEMENTATION.md](ACCESS_CONTROL_IMPLEMENTATION.md) - RBAC details
-- [IMPLEMENTATION_GUIDE.md](IMPLEMENTATION_GUIDE.md) - Security features
-- [QUICK_REFERENCE.md](QUICK_REFERENCE.md) - Security rules
+- [docs/access-control/ACCESS_CONTROL_IMPLEMENTATION.md](docs/access-control/ACCESS_CONTROL_IMPLEMENTATION.md) - RBAC details
+- [docs/access-control/IMPLEMENTATION_GUIDE.md](docs/access-control/IMPLEMENTATION_GUIDE.md) - Security features
+- [docs/access-control/QUICK_REFERENCE.md](docs/access-control/QUICK_REFERENCE.md) - Security rules
 
 ---
 

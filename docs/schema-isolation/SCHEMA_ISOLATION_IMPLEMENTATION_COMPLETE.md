@@ -54,13 +54,13 @@
    - Version bumped: 0.2.1 → 1.1.0
 
 **Documentation Created:**
-1. ✅ `docs/SCHEMA_ISOLATION_IMPLEMENTATION.md`
+1. ✅ `SCHEMA_ISOLATION_IMPLEMENTATION.md`
    - Complete implementation guide
    - Architecture explanation
    - How to add new features
    - Troubleshooting guide
 
-2. ✅ `docs/SCHEMA_ISOLATION_SETUP.md`
+2. ✅ `SCHEMA_ISOLATION_SETUP.md`
    - Step-by-step setup instructions
    - SQL commands to run
    - Verification steps
@@ -76,7 +76,7 @@ You must run SQL commands in Supabase SQL Editor to:
 1. Create tenant schema
 2. Copy existing tables to tenant schema
 
-**See:** `docs/SCHEMA_ISOLATION_SETUP.md` for detailed instructions
+**See:** `SCHEMA_ISOLATION_SETUP.md` for detailed instructions
 
 **Quick Steps:**
 ```sql
@@ -274,8 +274,8 @@ Currently manual. Can be automated with Edge Functions:
 
 ## Questions or Issues?
 
-1. **Setup Guide:** See `docs/SCHEMA_ISOLATION_SETUP.md`
-2. **Implementation Details:** See `docs/SCHEMA_ISOLATION_IMPLEMENTATION.md`
+1. **Setup Guide:** See `SCHEMA_ISOLATION_SETUP.md`
+2. **Implementation Details:** See `SCHEMA_ISOLATION_IMPLEMENTATION.md`
 3. **Code Examples:** Check `lib/supabaseSchemaClient.ts` and hooks
 
 ---
@@ -285,8 +285,8 @@ Currently manual. Can be automated with Edge Functions:
 When this is reviewed:
 - [ ] Reviewed `lib/supabaseSchemaClient.ts`
 - [ ] Reviewed `contexts/TenantContext.tsx` changes
-- [ ] Reviewed `docs/SCHEMA_ISOLATION_IMPLEMENTATION.md`
-- [ ] Ran SQL commands from `docs/SCHEMA_ISOLATION_SETUP.md`
+- [ ] Reviewed `SCHEMA_ISOLATION_IMPLEMENTATION.md`
+- [ ] Ran SQL commands from `SCHEMA_ISOLATION_SETUP.md`
 - [ ] Tested app loads calendar/navigation
 - [ ] Verified no console errors
 - [ ] Committed changes with message

@@ -204,8 +204,8 @@ trity/
 │   ├── profile.ts               # User profile interfaces
 │   └── Supabase Snippet Public Schema Column Catalog.csv  # 📍 SCHEMA SOURCE OF TRUTH
 │
-├── sql/                          # SQL migrations
-│   └── ... (migration files)
+├── supabase/
+│   └── migrations/              # Versioned SQL migrations
 │
 ├── scripts/                      # Build & utility scripts
 │   ├── generate-types.js        # 📍 DB type generation
@@ -213,10 +213,13 @@ trity/
 │   └── discover-tables.js       # Table discovery utility
 │
 ├── docs/                         # Project documentation
+│   ├── access-control/          # RBAC guides and references
+│   ├── database/                # Supabase and schema documentation
+│   ├── design/                  # UI/design notes
+│   ├── project-history/         # Historical summaries and audits
+│   ├── schema-isolation/        # Schema isolation implementation notes
 │   ├── AI_PROMPT.md             # AI assistant guidelines
-│   ├── SUPABASE_OPTIMIZATION_SUMMARY.md
-│   ├── TYPE_GENERATION.md       # Type generation guide
-│   └── adr/                     # Architecture decision records
+│   └── TYPE_GENERATION.md       # Type generation guide
 │
 └── Configuration Files
     ├── .env.credentials         # Environment variables
