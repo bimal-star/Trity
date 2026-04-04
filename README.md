@@ -26,10 +26,13 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_DSUbUfO9Dsyg3v6FzKLnCg_oyIYJeCC
 
 3. **Set up the database:**
 
-Run the navigation table migration in your Supabase SQL editor:
+Apply SQL migrations from:
+
 ```bash
-# See sql/create_navigation_table.sql for the migration script
+supabase/migrations/
 ```
+
+See [`supabase/migrations/README.md`](supabase/migrations/README.md) for migration conventions.
 
 4. **Generate database types:**
 ```bash
