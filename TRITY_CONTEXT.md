@@ -544,8 +544,8 @@ trity/
 ├── providers/               # Context providers
 │   └── AppProviders.tsx     # Application-level providers
 │
-├── sql/                     # SQL migrations & queries
-│   └── ... (migration files)
+├── supabase/
+│   └── migrations/         # SQL migrations
 │
 ├── scripts/                 # Build & utility scripts
 │   ├── generate-types.js    # ⚠️ Type generation from Supabase
@@ -553,9 +553,13 @@ trity/
 │   └── discover-tables.js   # Table discovery utility
 │
 ├── docs/                    # Documentation
+│   ├── README.md            # Documentation guide
 │   ├── AI_PROMPT.md         # AI assistant guidelines
 │   ├── SUPABASE_OPTIMIZATION_SUMMARY.md  # DB optimization details
-│   └── TYPE_GENERATION.md   # Type generation guide
+│   ├── TYPE_GENERATION.md   # Type generation guide
+│   ├── reference/           # Active reference material
+│   ├── reports/             # Audit and analysis outputs
+│   └── archive/             # Historical summaries
 │
 ├── .env.credentials         # ⚠️ Template with hardcoded dev credentials
 ├── package.json             # Version 0.2.0+

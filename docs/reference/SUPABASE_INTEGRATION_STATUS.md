@@ -6,7 +6,7 @@
 
 ### What Was Done
 
-#### 1. Database Optimizations (25 Migrations)
+#### 1. Database Optimizations (Tracked Supabase Migrations)
 - ✅ Security: RLS on 25+ tables, hardened functions
 - ✅ Performance: 99.99% query improvement (97s → 0.01s)  
 - ✅ Materialized view: `cached_timezones` for timezone data
@@ -27,14 +27,13 @@
 ### Files Created/Modified
 
 #### Documentation
-1. [docs/TIMEZONE_OPTIMIZATION.md](docs/TIMEZONE_OPTIMIZATION.md) - Usage guide for timezone caching
-2. [docs/SUPABASE_OPTIMIZATION_SUMMARY.md](docs/SUPABASE_OPTIMIZATION_SUMMARY.md) - Complete optimization journey
-3. [docs/TYPE_GENERATION.md](docs/TYPE_GENERATION.md) - Type generation setup and usage
-4. [SUPABASE_INTEGRATION_STATUS.md](SUPABASE_INTEGRATION_STATUS.md) - This file
+1. [../SUPABASE_OPTIMIZATION_SUMMARY.md](../SUPABASE_OPTIMIZATION_SUMMARY.md) - Complete optimization journey
+2. [../TYPE_GENERATION.md](../TYPE_GENERATION.md) - Type generation setup and usage
+3. [SUPABASE_INTEGRATION_STATUS.md](SUPABASE_INTEGRATION_STATUS.md) - This file
 
 #### Code Updates
-1. [scripts/generate-types.js](scripts/generate-types.js) - Updated to use Supabase CLI with fallback
-2. [types/database.ts](types/database.ts) - Generated TypeScript types (auto-generated)
+1. [../../scripts/generate-types.js](../../scripts/generate-types.js) - Updated to use Supabase CLI with fallback
+2. [../../types/database.ts](../../types/database.ts) - Generated TypeScript types (auto-generated)
 
 ### No Breaking Changes ✅
 
@@ -118,7 +117,7 @@ supabase link --project-ref wvqlpcraxorchrtpatph
 npm run generate:types
 ```
 
-See [docs/TYPE_GENERATION.md](docs/TYPE_GENERATION.md) for detailed setup instructions.
+See [../TYPE_GENERATION.md](../TYPE_GENERATION.md) for detailed setup instructions.
 
 ---
 
@@ -168,7 +167,7 @@ The script automatically:
 - Security: 100% compliant with RLS on all tables
 - Performance: 99.99% faster queries with optimized indexes
 - Caching: Materialized views for expensive queries
-- All 25 migrations successfully deployed
+- Migration history is tracked under `supabase/migrations/`
 
 ### ✅ Application Layer  
 - Type safety: Full TypeScript coverage with generated types
@@ -193,9 +192,9 @@ The script automatically:
    npm run generate:types
    ```
 
-2. **Deploy Migration 025** to clear materialized view linter warning:
+2. **Apply the checked-in migration set** to your target Supabase project if it is behind:
    ```bash
-   psql -h db.wvqlpcraxorchrtpatph.supabase.co -U postgres -d postgres < sql/025-add-rls-to-materialized-view.sql
+   supabase db push
    ```
 
 3. **Set up pg_cron** for automated timezone cache refresh (see Maintenance section above)
@@ -204,9 +203,8 @@ The script automatically:
 
 ## Documentation
 
-- **Full Optimization Journey:** [docs/SUPABASE_OPTIMIZATION_SUMMARY.md](docs/SUPABASE_OPTIMIZATION_SUMMARY.md)
-- **Timezone Caching Guide:** [docs/TIMEZONE_OPTIMIZATION.md](docs/TIMEZONE_OPTIMIZATION.md)
-- **Type Generation Setup:** [docs/TYPE_GENERATION.md](docs/TYPE_GENERATION.md)
-- **Migration Files:** See `sql/` directory (001-025)
+- **Full Optimization Journey:** [../SUPABASE_OPTIMIZATION_SUMMARY.md](../SUPABASE_OPTIMIZATION_SUMMARY.md)
+- **Type Generation Setup:** [../TYPE_GENERATION.md](../TYPE_GENERATION.md)
+- **Migration Files:** [../../supabase/migrations/](../../supabase/migrations/)
 
 Your Supabase database is fully optimized, secure, and production-ready! 🚀

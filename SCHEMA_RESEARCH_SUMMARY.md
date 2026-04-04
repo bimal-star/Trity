@@ -417,7 +417,7 @@ const ROLE_PERMISSIONS: Record<TenantRole, PermissionAction[]> = {
 
 **Documentation:**
 - [TRITY_CONTEXT.md](TRITY_CONTEXT.md) - Project context
-- [supabase-multi-tenant-audit-report.md](supabase-multi-tenant-audit-report.md) - Schema audit
+- [docs/reports/supabase-multi-tenant-audit-report.md](docs/reports/supabase-multi-tenant-audit-report.md) - Schema audit
 
 ---
 

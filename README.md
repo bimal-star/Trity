@@ -26,9 +26,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_DSUbUfO9Dsyg3v6FzKLnCg_oyIYJeCC
 
 3. **Set up the database:**
 
-Run the navigation table migration in your Supabase SQL editor:
+Apply the checked-in Supabase migrations to your project:
 ```bash
-# See sql/create_navigation_table.sql for the migration script
+# Review the timestamped SQL files in supabase/migrations/
+# Then apply them with the Supabase CLI or in the Supabase SQL editor
 ```
 
 4. **Generate database types:**
@@ -149,17 +150,19 @@ trity/
 ├── providers/                    # Context providers
 │   └── AppProviders.tsx          # App-level providers
 │
-├── sql/                          # SQL migrations
-│   └── ... (migration files)
+├── supabase/
+│   └── migrations/              # SQL migrations
 │
 ├── scripts/                      # Build & utility scripts
 │   ├── generate-types.js         # Generate DB types
 │   ├── document-schema.js        # Generate schema docs
 │   └── discover-tables.js        # Table discovery
 │
-├── docs/                         # Documentation
-│   ├── SUPABASE_OPTIMIZATION_SUMMARY.md
-│   └── TYPE_GENERATION.md
+├── docs/                         # Supporting documentation
+│   ├── README.md                # Documentation guide
+│   ├── reference/               # Active reference material
+│   ├── reports/                 # Audits and analysis
+│   └── archive/                 # Historical summaries
 │
 └── Configuration Files
     ├── .env.credentials          # Environment variables
@@ -370,6 +373,11 @@ For detailed technical documentation, architecture details, development guidelin
 
 **→ [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)**
 
+Need the full documentation map?
+
+**→ [REFERENCE_FILES_INDEX.md](REFERENCE_FILES_INDEX.md)**  
+**→ [docs/README.md](docs/README.md)**
+
 This comprehensive guide includes:
 - Complete system architecture
 - Detailed feature documentation
@@ -419,4 +427,4 @@ MIT
 
 ---
 
-**Need Help?** Check [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) for comprehensive technical documentation and development guidelines.
+**Need Help?** Start with [REFERENCE_FILES_INDEX.md](REFERENCE_FILES_INDEX.md) for the full doc map, then use [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) for the technical deep dive.

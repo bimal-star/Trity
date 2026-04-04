@@ -153,7 +153,7 @@ const { data } = await supabase
 
 #### Updates Made:
 1. ✅ Added `cached_timezones` to type generation script
-2. ✅ Created `TIMEZONE_OPTIMIZATION.md` documentation
+2. ✅ Added timezone caching notes to the Supabase reference docs
 3. ✅ No breaking changes to existing code
 
 ---
@@ -312,18 +312,18 @@ Materialized View: cached_timezones (<1ms)
 
 ## Documentation Files
 
-- `TIMEZONE_OPTIMIZATION.md` - Timezone caching usage guide
+- `reference/SUPABASE_INTEGRATION_STATUS.md` - Current integration status
 - `SUPABASE_OPTIMIZATION_SUMMARY.md` - This file
-- `schema_analysis_report.md` - Original security audit
-- `supabase-multi-tenant-audit-report.md` - Multi-tenant audit findings
+- `reports/schema_analysis_report.md` - Original security audit
+- `reports/supabase-multi-tenant-audit-report.md` - Multi-tenant audit findings
 
 ---
 
 ## Next Steps (Optional)
 
-1. **Deploy Migration 025** (if you want to clear materialized_view_in_api warning)
+1. **Apply the current checked-in migrations** if your target environment is behind
    ```bash
-   psql -h db.xxx.supabase.co -U postgres -d postgres < sql/025-add-rls-to-materialized-view.sql
+   supabase db push
    ```
 
 2. **Set up pg_cron** for automated timezone refresh
