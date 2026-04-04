@@ -12,6 +12,7 @@ A modern enterprise SaaS platform with Role-Based Access Control (RBAC), dynamic
 ### Installation
 
 1. **Clone and install dependencies:**
+
 ```bash
 npm install
 ```
@@ -19,6 +20,7 @@ npm install
 2. **Set up environment variables:**
 
 Copy [.env.credentials](.env.credentials) to `.env.local` and configure your Supabase credentials:
+
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://wvqlpcraxorchrtpatph.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_DSUbUfO9Dsyg3v6FzKLnCg_oyIYJeCC
@@ -26,17 +28,21 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_DSUbUfO9Dsyg3v6FzKLnCg_oyIYJeCC
 
 3. **Set up the database:**
 
-Run the navigation table migration in your Supabase SQL editor:
+Apply database changes with Supabase migrations (or run equivalent SQL in the Supabase SQL editor):
+
 ```bash
-# See sql/create_navigation_table.sql for the migration script
+# Versioned migrations live in supabase/migrations/
+# Use: npx supabase db push   (or your team’s migration workflow)
 ```
 
 4. **Generate database types:**
+
 ```bash
 npm run generate:types
 ```
 
 5. **Start development server:**
+
 ```bash
 npm run dev
 ```
@@ -149,8 +155,8 @@ trity/
 ├── providers/                    # Context providers
 │   └── AppProviders.tsx          # App-level providers
 │
-├── sql/                          # SQL migrations
-│   └── ... (migration files)
+├── supabase/
+│   └── migrations/               # Timestamped SQL migrations (Supabase)
 │
 ├── scripts/                      # Build & utility scripts
 │   ├── generate-types.js         # Generate DB types
@@ -158,6 +164,7 @@ trity/
 │   └── discover-tables.js        # Table discovery
 │
 ├── docs/                         # Documentation
+│   ├── reference/                # Guides, audits, and reference indexes
 │   ├── SUPABASE_OPTIMIZATION_SUMMARY.md
 │   └── TYPE_GENERATION.md
 │
@@ -173,6 +180,7 @@ trity/
 ## Core Features
 
 ### Three-Pillar Navigation System
+
 - **Analytics Pillar (Blue)** - Reporting, forecasting, inventory insights
 - **Business Core Pillar (Green)** - Core business entities: products, customers, suppliers, inventory
 - **Execution Pillar (Orange)** - Planning & execution: calendar, workstreams, OKRs, scheduler
@@ -180,6 +188,7 @@ trity/
 - **Account** - Profile management
 
 ### Role-Based Access Control (RBAC)
+
 - **3-tier hierarchy**: Member → Admin → Super Admin
 - **15 granular permissions** covering all modules
 - **Feature flags** to enable/disable features per tenant
@@ -187,6 +196,7 @@ trity/
 - **Audit logging** of all changes
 
 ### Database Features
+
 - **Multi-tenant architecture** with full isolation
 - **Type-safe Supabase** integration with auto-generated types
 - **Audit trail system** tracking all user actions
@@ -195,10 +205,11 @@ trity/
 
 ## Database Schema (Authoritative Source)
 
-The file **`Supabase Snippet Public Schema Column Catalog.csv`** is the authoritative 
+The file **`Supabase Snippet Public Schema Column Catalog.csv`** is the authoritative
 source of truth for our Supabase database schema.
 
 **Core Tables:**
+
 - `tenants` - Multi-tenant organization data
 - `user_profiles` - User account information with roles
 - `calendar` - Calendar operations and planning
@@ -209,6 +220,7 @@ source of truth for our Supabase database schema.
 - And 40+ more tables for products, inventory, orders, etc.
 
 All INSERT and UPDATE operations must use the audit helpers:
+
 - `logAuditAction()` for tracking changes
 - `withAuditForInsert(user)` for new rows
 - `withAuditForUpdate(user)` for updates
@@ -240,12 +252,14 @@ The **Navigation Manager** page ([/navigation-manager](/navigation-manager)) pro
 ### Position-Based Hierarchy
 
 The navigation system uses dot-notation position strings for unlimited depth:
+
 - `1`, `2`, `3` - Root level items (Pillars)
 - `1.1`, `1.2`, `1.3` - Level 1 children
 - `1.1.1`, `1.1.2` - Level 2 grandchildren
 - And so on...
 
 This approach provides:
+
 - No foreign key constraints needed
 - Easy drag-and-drop reorganization
 - Efficient hierarchical queries
@@ -261,11 +275,13 @@ This approach provides:
 ### Installation
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Generate database types:
+
 ```bash
 npm run generate:types
 ```
@@ -294,6 +310,7 @@ npm run generate:types
 ### Styling
 
 The sidebar uses Tailwind CSS classes. Customize colors and spacing in:
+
 - [components/navigation/Sidebar.tsx](components/navigation/Sidebar.tsx)
 - [tailwind.config.js](tailwind.config.js)
 - [app/globals.css](app/globals.css)
@@ -316,37 +333,40 @@ When adding new UI, prefer `text-sm` for readable body text, reserve `text-xs` f
 The app uses a small/medium button scale with module-colored primaries and neutral secondary buttons.
 
 - **Primary (module-colored, small)**
-	- Usage: Toolbars, compact actions (e.g., calendar toolbar buttons).
-	- Classes: `px-3 py-1.5 text-xs font-medium rounded-lg shadow-sm bg-{module}-600 hover:bg-{module}-700 text-white transition-colors flex items-center gap-2`.
+  - Usage: Toolbars, compact actions (e.g., calendar toolbar buttons).
+  - Classes: `px-3 py-1.5 text-xs font-medium rounded-lg shadow-sm bg-{module}-600 hover:bg-{module}-700 text-white transition-colors flex items-center gap-2`.
 
 - **Primary (module-colored, medium)**
-	- Usage: Modal primary actions and key CTAs.
-	- Classes: `px-4 py-2.5 text-sm font-semibold rounded-lg shadow-sm bg-{module}-600 hover:bg-{module}-700 active:bg-{module}-800 text-white transition-colors flex items-center justify-center gap-2`.
+  - Usage: Modal primary actions and key CTAs.
+  - Classes: `px-4 py-2.5 text-sm font-semibold rounded-lg shadow-sm bg-{module}-600 hover:bg-{module}-700 active:bg-{module}-800 text-white transition-colors flex items-center justify-center gap-2`.
 
 - **Secondary (neutral)**
-	- Usage: Cancel / non-destructive actions next to primaries.
-	- Classes: `px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors shadow-sm`.
+  - Usage: Cancel / non-destructive actions next to primaries.
+  - Classes: `px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors shadow-sm`.
 
 - **Secondary (neutral, medium)**
-	- Usage: Modal cancel/close buttons.
-	- Classes: `px-4 py-2.5 text-sm font-semibold rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 active:bg-gray-100 dark:active:bg-gray-650 transition-colors flex items-center justify-center gap-2`.
+  - Usage: Modal cancel/close buttons.
+  - Classes: `px-4 py-2.5 text-sm font-semibold rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 active:bg-gray-100 dark:active:bg-gray-650 transition-colors flex items-center justify-center gap-2`.
 
 - **Icon buttons (small)**
-	- Usage: Compact icon-only controls inside tables and toolbars.
-	- Neutral icon: `p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors`.
-	- Module-colored icon: `p-1 text-{module}-600 hover:text-{module}-700 hover:bg-{module}-50 dark:hover:bg-{module}-900/20 rounded transition-colors`.
+  - Usage: Compact icon-only controls inside tables and toolbars.
+  - Neutral icon: `p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors`.
+  - Module-colored icon: `p-1 text-{module}-600 hover:text-{module}-700 hover:bg-{module}-50 dark:hover:bg-{module}-900/20 rounded transition-colors`.
 
 New pages and components should follow this typography and button scale to stay visually consistent with the existing Product and Calendar experiences.
 
 ## 🎨 Customization
 
 ### Module Color Theme
+
 The application uses a three-module color system:
+
 - **Integration**: Green (#16a34a / green-600) - Products, Navigation
-- **Analytics**: Blue (#2563eb / blue-600) - Analytics, Reporting  
+- **Analytics**: Blue (#2563eb / blue-600) - Analytics, Reporting
 - **Execution**: Purple (#9333ea / purple-600) - Calendar, Operations
 
 ### Styling Files
+
 - [components/navigation/Sidebar.tsx](components/navigation/Sidebar.tsx) - Sidebar component
 - [tailwind.config.js](tailwind.config.js) - Tailwind configuration
 - [app/globals.css](app/globals.css) - Global styles
@@ -370,7 +390,12 @@ For detailed technical documentation, architecture details, development guidelin
 
 **→ [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)**
 
+For audits, migration notes, and the full documentation index:
+
+**→ [docs/reference/REFERENCE_FILES_INDEX.md](docs/reference/REFERENCE_FILES_INDEX.md)**
+
 This comprehensive guide includes:
+
 - Complete system architecture
 - Detailed feature documentation
 - Database schema specifications
@@ -394,6 +419,7 @@ npm run document:schema  # Generate schema documentation
 ## 📖 Quick Reference
 
 ### Creating a New Page
+
 1. Create route in `app/[page-name]/page.tsx`
 2. Use `<PageContainer>` component with appropriate module color
 3. Define custom hook in `hooks/use[Resource].ts` if needed
@@ -401,12 +427,14 @@ npm run document:schema  # Generate schema documentation
 5. Follow existing patterns from Calendar or Products pages
 
 ### Working with Supabase
+
 1. Define your schema in Supabase dashboard
 2. Run `npm run generate:types` to update TypeScript types
 3. Use the typed `supabase` client from `lib/supabaseClient.ts`
 4. Always use audit helpers for INSERT/UPDATE operations
 
 ### Adding a New Feature
+
 1. Review [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) for architecture patterns
 2. Follow the module color system (Business Core/Analytics/Execution)
 3. Use existing component patterns from the design system

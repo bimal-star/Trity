@@ -8,9 +8,11 @@
 ## A. CRITICAL ISSUES (Must Fix)
 
 ### 1. Missing tenant_id on Calendar Table
+
 **Issue:** The `calendar` table has `tenant_id` as **nullable** (`is_nullable=YES`), which violates multi-tenant security requirements.
 
 **Location:** Line 74 in CSV
+
 ```
 calendar,tenant_id,uuid,YES,null,NO,null,null,null
 ```
@@ -18,23 +20,26 @@ calendar,tenant_id,uuid,YES,null,NO,null,null,null
 **Risk:** Users could potentially insert calendar entries without tenant_id, breaking tenant isolation.
 
 **SQL Fix:**
+
 ```sql
 -- Make tenant_id NOT NULL on calendar table
-ALTER TABLE public.calendar 
+ALTER TABLE public.calendar
   ALTER COLUMN tenant_id SET NOT NULL;
 
 -- Add constraint to prevent NULL values
-ALTER TABLE public.calendar 
-  ADD CONSTRAINT calendar_tenant_id_not_null 
+ALTER TABLE public.calendar
+  ADD CONSTRAINT calendar_tenant_id_not_null
   CHECK (tenant_id IS NOT NULL);
 ```
 
 ---
 
 ### 2. Missing RLS Policies on Multiple Tables
+
 **Issue:** The following tables have `tenant_id` columns but may not have RLS policies enabled or properly configured. Based on the SQL setup file, these tables should have RLS, but verification is needed:
 
 **Tables Requiring RLS Verification:**
+
 - `attribute_definitions` ✓ (has tenant_id, RLS mentioned in SQL)
 - `bom_headers` ✓ (has tenant_id, RLS mentioned in SQL)
 - `bom_lines` ✓ (has tenant_id, RLS mentioned in SQL)
@@ -56,6 +61,7 @@ ALTER TABLE public.calendar
 **Note:** The SQL setup file shows RLS should be enabled, but the CSV doesn't contain RLS policy information. **Manual verification required.**
 
 **SQL Fix (Example for one table - apply pattern to all):**
+
 ```sql
 -- Enable RLS if not already enabled
 ALTER TABLE public.attribute_definitions ENABLE ROW LEVEL SECURITY;
@@ -90,9 +96,11 @@ CREATE POLICY "Users can delete own tenant attribute_definitions"
 ---
 
 ### 3. Duplicate Foreign Key Relationships
+
 **Issue:** Several tables have duplicate foreign key relationships listed in the CSV, suggesting potential data quality issues or duplicate constraint definitions.
 
 **Tables with Duplicate FK Entries:**
+
 - `bom_headers`: `product_id` appears twice (lines 22-23)
 - `demand_forecasts`: `product_id` appears twice (lines 101-102)
 - `packing_configurations`: `product_id` appears twice (lines 134-135)
@@ -102,25 +110,27 @@ CREATE POLICY "Users can delete own tenant attribute_definitions"
 - `unit_conversions`: `from_unit_id` and `to_unit_id` each appear twice (lines 421-424)
 
 **Risk:** This may indicate:
+
 1. Duplicate constraint definitions in the database
 2. CSV export issues
 3. Composite foreign keys not properly represented
 
 **SQL Fix (Verification):**
+
 ```sql
 -- Check for duplicate foreign key constraints
-SELECT 
-  tc.table_name, 
-  kcu.column_name, 
+SELECT
+  tc.table_name,
+  kcu.column_name,
   ccu.table_name AS foreign_table_name,
   ccu.column_name AS foreign_column_name,
   COUNT(*) as constraint_count
-FROM information_schema.table_constraints AS tc 
+FROM information_schema.table_constraints AS tc
 JOIN information_schema.key_column_usage AS kcu
   ON tc.constraint_name = kcu.constraint_name
 JOIN information_schema.constraint_column_usage AS ccu
   ON ccu.constraint_name = tc.constraint_name
-WHERE tc.constraint_type = 'FOREIGN KEY' 
+WHERE tc.constraint_type = 'FOREIGN KEY'
   AND tc.table_schema = 'public'
 GROUP BY tc.table_name, kcu.column_name, ccu.table_name, ccu.column_name
 HAVING COUNT(*) > 1;
@@ -129,9 +139,11 @@ HAVING COUNT(*) > 1;
 ---
 
 ### 4. Missing Primary Keys on Views
+
 **Issue:** Views (`vw_bom_costing`, `vw_products_full`) are included in the CSV but views don't have primary keys by definition. This is expected but should be noted.
 
 **Tables/Views:**
+
 - `vw_bom_costing` (lines 452-460) - View, no primary key expected
 - `vw_products_full` (lines 461-517) - View, no primary key expected
 
@@ -142,6 +154,7 @@ HAVING COUNT(*) > 1;
 ## B. WARNINGS (Should Fix)
 
 ### 1. tenant_id Without Default Values
+
 **Issue:** All `tenant_id` columns have `column_default=null`, meaning they must be explicitly provided on INSERT. While this is secure, it requires application code to always include tenant_id.
 
 **Tables Affected:** All tenant-scoped tables
@@ -149,6 +162,7 @@ HAVING COUNT(*) > 1;
 **Recommendation:** Consider adding a trigger or application-level enforcement to ensure tenant_id is always set. The current approach (requiring explicit tenant_id) is actually more secure, but ensure application code always provides it.
 
 **SQL Fix (Optional - Application-level is preferred):**
+
 ```sql
 -- Example trigger to ensure tenant_id is set (NOT RECOMMENDED - use application logic instead)
 CREATE OR REPLACE FUNCTION public.ensure_tenant_id()
@@ -165,23 +179,26 @@ $$ LANGUAGE plpgsql;
 ---
 
 ### 2. Missing Foreign Key to Tenants Table
+
 **Issue:** No `tenants` table is present in the CSV, and `tenant_id` columns don't have foreign key relationships to a tenants table.
 
 **Current State:** All `tenant_id` columns have `foreign_table=null` and `foreign_column=null`
 
-**Risk:** 
+**Risk:**
+
 - No referential integrity for tenant_id values
 - Orphaned tenant_id values possible
 - No cascade delete behavior
 
 **SQL Fix (If tenants table exists):**
+
 ```sql
 -- If a tenants table exists, add foreign key constraints
 -- WARNING: Only run if tenants table exists and has id column
-ALTER TABLE public.products 
-  ADD CONSTRAINT fk_products_tenant_id 
-  FOREIGN KEY (tenant_id) 
-  REFERENCES public.tenants(id) 
+ALTER TABLE public.products
+  ADD CONSTRAINT fk_products_tenant_id
+  FOREIGN KEY (tenant_id)
+  REFERENCES public.tenants(id)
   ON DELETE CASCADE;
 
 -- Repeat for all tenant-scoped tables
@@ -192,9 +209,11 @@ ALTER TABLE public.products
 ---
 
 ### 3. Inconsistent Column Ordering
+
 **Issue:** `tenant_id` column position varies across tables. While not a functional issue, consistent ordering improves maintainability.
 
 **Current Pattern:**
+
 - Some tables: `tenant_id` appears early (after `id`, before business columns)
 - Some tables: `tenant_id` appears late (after business columns, before audit fields)
 - Some tables: `tenant_id` appears in audit section (with `created_by`, `updated_by`)
@@ -202,6 +221,7 @@ ALTER TABLE public.products
 **Recommendation:** Standardize `tenant_id` position. Best practice: place `tenant_id` immediately after `id` (primary key).
 
 **SQL Fix (Example):**
+
 ```sql
 -- PostgreSQL doesn't support column reordering easily
 -- This would require table recreation or using ALTER TABLE ... ALTER COLUMN ... SET STATISTICS
@@ -211,11 +231,13 @@ ALTER TABLE public.products
 ---
 
 ### 4. Missing Indexes on tenant_id
+
 **Issue:** The CSV doesn't show index information. `tenant_id` columns should have indexes for performance.
 
 **Recommendation:** Ensure all `tenant_id` columns have indexes.
 
 **SQL Fix:**
+
 ```sql
 -- Create indexes on tenant_id for all tables (if not exists)
 CREATE INDEX IF NOT EXISTS idx_attribute_definitions_tenant_id ON public.attribute_definitions(tenant_id);
@@ -248,6 +270,7 @@ CREATE INDEX IF NOT EXISTS idx_units_tenant_id ON public.units(tenant_id);
 ## C. OBSERVATIONS (Optional Improvements)
 
 ### 1. Views Don't Require tenant_id
+
 **Observation:** Views (`vw_bom_costing`, `vw_products_full`) don't have `tenant_id` columns, which is correct since views are read-only aggregations. RLS on underlying tables will filter view results.
 
 **Status:** ✅ Correct behavior
@@ -255,9 +278,11 @@ CREATE INDEX IF NOT EXISTS idx_units_tenant_id ON public.units(tenant_id);
 ---
 
 ### 2. All Tenant-Scoped Tables Have tenant_id
+
 **Observation:** All business tables (excluding views) have `tenant_id` columns with `is_nullable=NO` (except `calendar` which is nullable - see Critical Issue #1).
 
 **Tables Verified:**
+
 - ✅ `attribute_definitions` - tenant_id NOT NULL
 - ✅ `bom_headers` - tenant_id NOT NULL
 - ✅ `bom_lines` - tenant_id NOT NULL
@@ -285,6 +310,7 @@ CREATE INDEX IF NOT EXISTS idx_units_tenant_id ON public.units(tenant_id);
 ---
 
 ### 3. All Tables Have Primary Keys
+
 **Observation:** All tables (excluding views) have primary keys defined.
 
 **Status:** ✅ Correct
@@ -292,7 +318,9 @@ CREATE INDEX IF NOT EXISTS idx_units_tenant_id ON public.units(tenant_id);
 ---
 
 ### 4. Consistent Audit Fields
+
 **Observation:** Most tables follow a consistent audit pattern:
+
 - `created_at` (timestamp with time zone)
 - `updated_at` (timestamp with time zone)
 - `created_by` (uuid, nullable)
@@ -306,6 +334,7 @@ CREATE INDEX IF NOT EXISTS idx_units_tenant_id ON public.units(tenant_id);
 ---
 
 ### 5. Foreign Key Relationships
+
 **Observation:** Foreign keys are properly defined for business relationships (products → categories, bom_lines → bom_headers, etc.). No orphaned relationships detected in the CSV.
 
 **Status:** ✅ Correct
@@ -315,15 +344,18 @@ CREATE INDEX IF NOT EXISTS idx_units_tenant_id ON public.units(tenant_id);
 ## SUMMARY
 
 ### Critical Issues: 2
+
 1. ❌ `calendar.tenant_id` is nullable (should be NOT NULL)
 2. ⚠️ RLS policies need verification (CSV doesn't contain RLS info, but SQL setup file indicates they should exist)
 
 ### Warnings: 3
+
 1. ⚠️ No foreign keys to a `tenants` table (if it exists)
 2. ⚠️ Duplicate foreign key entries in CSV (may indicate data quality issues)
 3. ⚠️ Missing index verification on `tenant_id` columns
 
 ### Observations: 5
+
 1. ✅ Views correctly excluded from tenant_id requirements
 2. ✅ All business tables have tenant_id (except calendar nullable issue)
 3. ✅ All tables have primary keys

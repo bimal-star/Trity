@@ -25,9 +25,11 @@
 ## Project Overview
 
 ### Mission Statement
+
 Trity is a modern enterprise SaaS platform designed to provide comprehensive product management, analytics, calendar operations, and dynamic navigation capabilities through a unified, enterprise-grade interface.
 
 ### Key Differentiators
+
 - **Dynamic Navigation System**: Database-driven navigation with real-time updates
 - **Hierarchical Organization**: Unlimited depth navigation with visual tree structure
 - **Enterprise-Grade UI**: Professional, minimalist design with full dark mode
@@ -35,6 +37,7 @@ Trity is a modern enterprise SaaS platform designed to provide comprehensive pro
 - **Real-Time Synchronization**: Instant updates across all connected clients
 
 ### Target Users
+
 - Enterprise teams managing complex product catalogs
 - Operations teams requiring calendar-based planning
 - Analytics-driven organizations
@@ -47,6 +50,7 @@ Trity is a modern enterprise SaaS platform designed to provide comprehensive pro
 ### Technology Stack
 
 #### Frontend
+
 ```json
 {
   "framework": "Next.js 14 (App Router)",
@@ -60,6 +64,7 @@ Trity is a modern enterprise SaaS platform designed to provide comprehensive pro
 ```
 
 #### Backend & Database
+
 ```json
 {
   "database": "Supabase (PostgreSQL)",
@@ -72,6 +77,7 @@ Trity is a modern enterprise SaaS platform designed to provide comprehensive pro
 ```
 
 #### Development Tools
+
 ```json
 {
   "package_manager": "npm",
@@ -96,7 +102,7 @@ trity/
 │   │
 │   ├── products/                # 📦 Business Core Pillar (Green)
 │   ├── customers/               # 👥 Customer management
-│   ├── suppliers/               # 🚚 Supplier management  
+│   ├── suppliers/               # 🚚 Supplier management
 │   ├── warehouse/               # 📦 Warehouse operations
 │   ├── stock-adjustments/       # 📊 Stock management
 │   ├── purchase-orders/         # 💳 Purchase management
@@ -204,8 +210,8 @@ trity/
 │   ├── profile.ts               # User profile interfaces
 │   └── Supabase Snippet Public Schema Column Catalog.csv  # 📍 SCHEMA SOURCE OF TRUTH
 │
-├── sql/                          # SQL migrations
-│   └── ... (migration files)
+├── supabase/
+│   └── migrations/               # Timestamped SQL migrations (Supabase)
 │
 ├── scripts/                      # Build & utility scripts
 │   ├── generate-types.js        # 📍 DB type generation
@@ -213,6 +219,7 @@ trity/
 │   └── discover-tables.js       # Table discovery utility
 │
 ├── docs/                         # Project documentation
+│   ├── reference/               # Guides, audits, reference index
 │   ├── AI_PROMPT.md             # AI assistant guidelines
 │   ├── SUPABASE_OPTIMIZATION_SUMMARY.md
 │   ├── TYPE_GENERATION.md       # Type generation guide
@@ -275,6 +282,7 @@ trity/
 **Status:** ✅ Production Ready
 
 #### Features
+
 - **Hierarchical Navigation Structure**
   - Unlimited depth nesting (position-based: "1", "1.1", "1.1.1")
   - Visual tree representation with L-shaped connectors
@@ -301,23 +309,25 @@ trity/
   - Real-time sidebar synchronization
 
 #### Technical Implementation
+
 ```typescript
 // Position-based hierarchy
 interface NavigationLabel {
   id: string;
   label: string;
-  position: string;        // "1.2.3" format
+  position: string; // "1.2.3" format
   is_enabled: boolean;
   path: string | null;
   is_deleted: boolean;
   // Virtual fields
-  parent_id: string | null;  // Calculated from position
-  level: number;             // Calculated from position
-  order: number;             // Calculated from position
+  parent_id: string | null; // Calculated from position
+  level: number; // Calculated from position
+  order: number; // Calculated from position
 }
 ```
 
 #### Database Table
+
 ```sql
 navigation:
 - id: uuid (PK)
@@ -339,6 +349,7 @@ navigation:
 **Status:** ✅ Production Ready
 
 #### Features
+
 - **Product Catalog**
   - Master product list with search
   - Product master card view
@@ -358,6 +369,7 @@ navigation:
   - Sorting options
 
 #### Technical Implementation
+
 ```typescript
 interface Product {
   id: string;
@@ -379,6 +391,7 @@ interface ProductFormData {
 ```
 
 #### Database Tables
+
 ```sql
 products:
 - id: uuid (PK)
@@ -423,6 +436,7 @@ price_list_items:
 **Status:** ✅ Production Ready
 
 #### Features
+
 - **Year-Based Calendar View**
   - Full year calendar display
   - Day-by-day entry rows
@@ -448,10 +462,11 @@ price_list_items:
   - Analytics view
 
 #### Technical Implementation
+
 ```typescript
 interface CalendarEntry {
   id: number;
-  date: string;           // YYYY-MM-DD format
+  date: string; // YYYY-MM-DD format
   day_of_week: string;
   week_number: number;
   is_weekend: boolean;
@@ -466,6 +481,7 @@ interface CalendarEntry {
 ```
 
 #### User Interactions
+
 - Inline cell editing with save/cancel
 - Quick update modal for batch edits
 - Keyboard navigation support
@@ -481,6 +497,7 @@ interface CalendarEntry {
 **Status:** 🚧 Placeholder (Ready for Implementation)
 
 #### Planned Features
+
 - **Dashboard Overview**
   - Key performance indicators (KPIs)
   - Real-time metrics
@@ -506,6 +523,7 @@ interface CalendarEntry {
   - Access frequency
 
 #### Recommended Implementation
+
 ```typescript
 interface AnalyticsDashboard {
   kpis: KeyPerformanceIndicator[];
@@ -518,7 +536,7 @@ interface KeyPerformanceIndicator {
   id: string;
   label: string;
   value: number;
-  change: number;        // % change
+  change: number; // % change
   trend: 'up' | 'down' | 'stable';
   period: string;
 }
@@ -533,6 +551,7 @@ interface KeyPerformanceIndicator {
 **Status:** ✅ Development Tool
 
 #### Features
+
 - **Connection Testing**
   - Supabase connectivity check
   - Database query validation
@@ -546,6 +565,7 @@ interface KeyPerformanceIndicator {
   - JSON response inspection
 
 #### Use Cases
+
 - Troubleshooting database connection issues
 - Verifying RLS configuration
 - Testing new table access
@@ -560,6 +580,7 @@ interface KeyPerformanceIndicator {
 **Status:** ✅ Development Tool
 
 #### Features
+
 - Comprehensive connection testing
 - Detailed error reporting
 - Common solution suggestions
@@ -617,17 +638,20 @@ Account (Gray #6b7280)
 #### Sidebar Styling & Icons
 
 **Dynamic Icon Mapping**: Each navigation item displays a context-specific icon based on its label:
+
 - **Analytics items**: Blue icons (TrendingUp, BarChart, Boxes, etc.)
 - **Integration items**: Green icons (Package, Users, Truck, Warehouse, etc.)
 - **Execution items**: Orange icons (Calendar, GitBranch, Zap, etc.)
 - **Admin items**: Gray icons (Users, Settings, Building, Navigation, etc.)
 
 **Active State Styling**:
+
 - Left accent border (4px) in pillar color
 - Highlighted text in white
 - Icon color matches pillar color
 
 **Responsive Behavior**:
+
 - Collapsed sidebar: 70px width (icons only)
 - Expanded sidebar: 246px width (full labels)
 - Toggle button in header
@@ -646,16 +670,19 @@ Execution:   Purple (#9333ea / purple-600) // Calendar, Workstreams, OKRs
 #### Color Application Guidelines
 
 **Page Headers**: Use gradient backgrounds with module color
+
 - Integration: `bg-gradient-to-r from-green-600/15 to-green-700/10`
 - Analytics: `bg-gradient-to-r from-blue-600/15 to-blue-700/10`
 - Execution: `bg-gradient-to-r from-purple-600/15 to-purple-700/10`
 
 **Border Accents**: Left border with module color
+
 - Integration: `border-l-4 border-green-600`
 - Analytics: `border-l-4 border-blue-600`
 - Execution: `border-l-4 border-purple-600`
 
 **Statistics Cards**: White cards with colored left borders
+
 ```tsx
 <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border-l-4 border-green-500">
   {/* Card content */}
@@ -663,10 +690,9 @@ Execution:   Purple (#9333ea / purple-600) // Calendar, Workstreams, OKRs
 ```
 
 **Modal Headers**: Full gradient backgrounds
+
 ```tsx
-<div className="bg-gradient-to-r from-green-600 to-green-700">
-  {/* Header content */}
-</div>
+<div className="bg-gradient-to-r from-green-600 to-green-700">{/* Header content */}</div>
 ```
 
 ---
@@ -676,6 +702,7 @@ Execution:   Purple (#9333ea / purple-600) // Calendar, Workstreams, OKRs
 **Font Family**: Inter (via `next/font/google`), applied globally in [app/layout.tsx](app/layout.tsx) using `inter.className`.
 
 **Text Sizing**:
+
 - **Base text**: `text-sm` for most body copy, inputs, and table cells
 - **Micro text**: `text-xs` for helper text, captions, badges, and uppercase labels (e.g., statistics labels, form hints)
 - **Page titles**: `text-3xl font-bold` for primary page headings in [components/PageContainer.tsx](components/PageContainer.tsx)
@@ -683,6 +710,7 @@ Execution:   Purple (#9333ea / purple-600) // Calendar, Workstreams, OKRs
 - **Numeric highlights**: `text-3xl font-bold` for key stat values in dashboard-style cards
 
 **Best Practices**:
+
 - Prefer `text-sm` for readable body text
 - Reserve `text-xs` for supporting metadata
 - Use `text-2xl`/`text-3xl` only for primary headings or key metrics
@@ -694,7 +722,9 @@ Execution:   Purple (#9333ea / purple-600) // Calendar, Workstreams, OKRs
 The app uses a small/medium button scale with module-colored primaries and neutral secondary buttons.
 
 #### Primary Buttons (Module-Colored, Small)
+
 **Usage**: Toolbars, compact actions (e.g., calendar toolbar buttons)
+
 ```tsx
 <button className="px-3 py-1.5 text-xs font-medium rounded-lg shadow-sm bg-green-600 hover:bg-green-700 text-white transition-colors flex items-center gap-2">
   Action
@@ -702,7 +732,9 @@ The app uses a small/medium button scale with module-colored primaries and neutr
 ```
 
 #### Primary Buttons (Module-Colored, Medium)
+
 **Usage**: Modal primary actions and key CTAs
+
 ```tsx
 <button className="px-4 py-2.5 text-sm font-semibold rounded-lg shadow-sm bg-green-600 hover:bg-green-700 active:bg-green-800 text-white transition-colors flex items-center justify-center gap-2">
   Submit
@@ -710,7 +742,9 @@ The app uses a small/medium button scale with module-colored primaries and neutr
 ```
 
 #### Secondary Buttons (Neutral)
+
 **Usage**: Cancel / non-destructive actions next to primaries
+
 ```tsx
 <button className="px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors shadow-sm">
   Cancel
@@ -718,7 +752,9 @@ The app uses a small/medium button scale with module-colored primaries and neutr
 ```
 
 #### Secondary Buttons (Neutral, Medium)
+
 **Usage**: Modal cancel/close buttons
+
 ```tsx
 <button className="px-4 py-2.5 text-sm font-semibold rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 active:bg-gray-100 dark:active:bg-gray-650 transition-colors flex items-center justify-center gap-2">
   Cancel
@@ -726,9 +762,11 @@ The app uses a small/medium button scale with module-colored primaries and neutr
 ```
 
 #### Icon Buttons (Small)
+
 **Usage**: Compact icon-only controls inside tables and toolbars
 
 **Neutral icon**:
+
 ```tsx
 <button className="p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
   <Icon size={18} />
@@ -736,6 +774,7 @@ The app uses a small/medium button scale with module-colored primaries and neutr
 ```
 
 **Module-colored icon**:
+
 ```tsx
 <button className="p-1 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 rounded transition-colors">
   <Icon size={18} />
@@ -743,6 +782,7 @@ The app uses a small/medium button scale with module-colored primaries and neutr
 ```
 
 #### Button with Icon
+
 ```tsx
 <button className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-xs font-medium shadow-sm">
   <Plus size={14} />
@@ -757,7 +797,7 @@ The app uses a small/medium button scale with module-colored primaries and neutr
 All pages should follow this standardized layout structure:
 
 ```tsx
-<PageContainer 
+<PageContainer
   title="Page Title"
   module="businessCore" // or "analytics" or "execution"
   headerContent={<CustomHeaderContent />} // optional
@@ -780,6 +820,7 @@ All pages should follow this standardized layout structure:
 ```
 
 #### Statistics Cards Pattern
+
 ```tsx
 <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border-l-4 border-green-500">
   <div className="flex items-center justify-between">
@@ -801,6 +842,7 @@ All pages should follow this standardized layout structure:
 ### 🎯 Form Input Patterns
 
 #### Text Input
+
 ```tsx
 <input
   type="text"
@@ -810,15 +852,15 @@ All pages should follow this standardized layout structure:
 ```
 
 #### Select Dropdown
+
 ```tsx
-<select
-  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
->
+<select className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all">
   <option value="value">Label</option>
 </select>
 ```
 
 #### Textarea
+
 ```tsx
 <textarea
   rows={4}
@@ -828,14 +870,15 @@ All pages should follow this standardized layout structure:
 ```
 
 #### Checkbox Group (Horizontal)
+
 ```tsx
 <div className="flex flex-wrap gap-x-4 gap-y-1">
-  {items.map(item => (
-    <label key={item.id} className="flex items-center gap-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 px-0.5 rounded">
-      <input
-        type="checkbox"
-        className="rounded text-green-600 focus:ring-green-500"
-      />
+  {items.map((item) => (
+    <label
+      key={item.id}
+      className="flex items-center gap-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 px-0.5 rounded"
+    >
+      <input type="checkbox" className="rounded text-green-600 focus:ring-green-500" />
       <span className="text-xs text-gray-700 dark:text-gray-300">{item.name}</span>
     </label>
   ))}
@@ -847,10 +890,10 @@ All pages should follow this standardized layout structure:
 ### 🎭 Modal Patterns
 
 #### Full Modal Structure
+
 ```tsx
 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 pl-20 animate-in fade-in duration-200">
   <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-hidden border border-gray-200 dark:border-gray-700">
-    
     {/* Header */}
     <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4 border-b border-green-700">
       <div className="flex items-center justify-between">
@@ -871,9 +914,7 @@ All pages should follow this standardized layout structure:
 
     {/* Content */}
     <div className="overflow-y-auto max-h-[calc(95vh-180px)]">
-      <div className="p-6 space-y-5 bg-gray-50 dark:bg-gray-900/50">
-        {/* Sections */}
-      </div>
+      <div className="p-6 space-y-5 bg-gray-50 dark:bg-gray-900/50">{/* Sections */}</div>
     </div>
 
     {/* Footer */}
@@ -896,15 +937,14 @@ All pages should follow this standardized layout structure:
 ```
 
 #### Section Pattern in Modals
+
 ```tsx
 <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
   <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
     <div className="w-1 h-4 bg-green-600 rounded-full"></div>
     Section Title
   </h3>
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-    {/* Form fields */}
-  </div>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">{/* Form fields */}</div>
 </div>
 ```
 
@@ -913,6 +953,7 @@ All pages should follow this standardized layout structure:
 ### 📋 Table Patterns
 
 #### Table Header
+
 ```tsx
 <thead className="bg-gray-100 dark:bg-gray-700 sticky top-0 z-10">
   <tr>
@@ -924,13 +965,12 @@ All pages should follow this standardized layout structure:
 ```
 
 #### Table Body with Hover
+
 ```tsx
 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-  {items.map(item => (
+  {items.map((item) => (
     <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-      <td className="px-4 py-2 text-sm text-gray-900 dark:text-white">
-        {item.value}
-      </td>
+      <td className="px-4 py-2 text-sm text-gray-900 dark:text-white">{item.value}</td>
     </tr>
   ))}
 </tbody>
@@ -941,6 +981,7 @@ All pages should follow this standardized layout structure:
 ### 🔧 Custom Hooks Pattern
 
 #### Standard Hook Structure
+
 All custom hooks should follow this pattern for consistency:
 
 ```typescript
@@ -953,9 +994,9 @@ export function useResourceName(filters?: Filters): UseResourceReturn {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       let query = supabase.from('table').select('*');
-      
+
       // Apply filters
       if (filters) {
         // ... filter logic
@@ -963,7 +1004,7 @@ export function useResourceName(filters?: Filters): UseResourceReturn {
 
       const { data, error: fetchError } = await query;
       if (fetchError) throw fetchError;
-      
+
       setData(data || []);
     } catch (err: any) {
       console.error('Error:', err);
@@ -992,6 +1033,7 @@ export function useResourceName(filters?: Filters): UseResourceReturn {
 ### 🎨 Component Naming & Organization
 
 #### File Structure
+
 ```
 app/
   [page-name]/
@@ -1009,6 +1051,7 @@ lib/
 ```
 
 #### Naming Conventions
+
 - **Pages**: `[Name]Page` (default export)
 - **Components**: `[Name]Component` (named export)
 - **Hooks**: `use[Name]` (named export)
@@ -1021,10 +1064,11 @@ lib/
 All components **must** support dark mode using Tailwind's `dark:` variant:
 
 ```tsx
-className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+className = 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white';
 ```
 
 #### Common Dark Mode Colors
+
 - **Background**: `dark:bg-gray-900` (page), `dark:bg-gray-800` (cards)
 - **Text**: `dark:text-white` (primary), `dark:text-gray-400` (secondary)
 - **Borders**: `dark:border-gray-700`, `dark:border-gray-600`
@@ -1050,6 +1094,7 @@ className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
 ### 🚀 Quick Implementation Guide
 
 #### Create New Resource Page
+
 1. Add route in `app/[resource]/page.tsx`
 2. Create hook in `hooks/use[Resource].ts`
 3. Define types in `types/[resource].ts`
@@ -1057,6 +1102,7 @@ className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
 5. Follow statistics cards → toolbar → content pattern
 
 #### Add New Supabase Table
+
 1. Define schema in Supabase dashboard or SQL editor
 2. Run migration if needed
 3. Create TypeScript interface in `types/`
@@ -1073,9 +1119,11 @@ className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
 ## Database Schema
 
 ### Schema Documentation Source
+
 **Authoritative Source:** `types/Supabase Snippet Public Schema Column Catalog.csv`
 
 This CSV file contains the complete, authoritative schema definition exported directly from Supabase. It includes:
+
 - Table names
 - Column names and types
 - Nullable constraints
@@ -1086,6 +1134,7 @@ This CSV file contains the complete, authoritative schema definition exported di
 ### Key Database Tables
 
 #### 1. Navigation System
+
 ```sql
 navigation (
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -1103,6 +1152,7 @@ CREATE INDEX idx_navigation_is_deleted ON navigation(is_deleted);
 ```
 
 #### 2. Product System
+
 ```sql
 products (
   id uuid PRIMARY KEY,
@@ -1143,6 +1193,7 @@ price_list_items (
 ```
 
 #### 3. Calendar System
+
 ```sql
 calendar_entries (
   id serial PRIMARY KEY,
@@ -1164,6 +1215,7 @@ CREATE INDEX idx_calendar_year ON calendar_entries(year);
 ```
 
 #### 4. Packing Configurations
+
 ```sql
 packing_configurations (
   id uuid PRIMARY KEY,
@@ -1207,6 +1259,7 @@ navigation (self-referential via position string)
 ### Minimum System Requirements
 
 #### Development Environment
+
 - **Node.js:** 18.0.0 or higher
 - **npm:** 8.0.0 or higher
 - **Operating System:** Windows 10+, macOS 11+, Linux (Ubuntu 20.04+)
@@ -1214,6 +1267,7 @@ navigation (self-referential via position string)
 - **Storage:** 500MB for project dependencies
 
 #### Production Environment
+
 - **Node.js Runtime:** 18.x LTS or 20.x LTS
 - **Memory:** 512MB minimum, 2GB recommended
 - **CPU:** 1 vCPU minimum, 2+ recommended
@@ -1223,12 +1277,14 @@ navigation (self-referential via position string)
 ### Browser Compatibility
 
 #### Supported Browsers
+
 - **Chrome:** 90+ (Primary development target)
 - **Firefox:** 88+
 - **Safari:** 14+
 - **Edge:** 90+
 
 #### Required Browser Features
+
 - ES6+ JavaScript support
 - Drag and Drop API
 - Fetch API
@@ -1239,6 +1295,7 @@ navigation (self-referential via position string)
 ### Dependencies
 
 #### Core Dependencies
+
 ```json
 {
   "@supabase/supabase-js": "^2.39.1",
@@ -1250,6 +1307,7 @@ navigation (self-referential via position string)
 ```
 
 #### Development Dependencies
+
 ```json
 {
   "typescript": "^5.3.3",
@@ -1264,6 +1322,7 @@ navigation (self-referential via position string)
 ### Environment Variables
 
 #### Required Configuration
+
 ```bash
 # Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -1291,6 +1350,7 @@ NEXT_PUBLIC_ENABLE_REALTIME=true
 #### ✅ Implemented Security Measures
 
 **1. Input Validation (Client-Side)**
+
 ```typescript
 // Character limits enforced
 - Navigation labels: 100 characters max
@@ -1309,12 +1369,14 @@ NEXT_PUBLIC_ENABLE_REALTIME=true
 ```
 
 **2. XSS Prevention**
+
 - React's built-in JSX escaping (automatic)
 - No use of `dangerouslySetInnerHTML`
 - All user input rendered through React components
 - URL encoding for path parameters
 
 **3. Error Handling**
+
 ```typescript
 // Standardized error handling pattern
 try {
@@ -1327,12 +1389,14 @@ try {
 ```
 
 **4. UI/UX Security Features**
+
 - Confirmation dialogs for destructive actions
 - Soft delete (is_deleted flag) for recoverability
 - Success/error toast notifications
 - Loading states prevent double-submission
 
 **5. Type Safety**
+
 - Complete TypeScript coverage
 - Auto-generated database types
 - Compile-time type checking
@@ -1341,12 +1405,14 @@ try {
 #### 🟡 Partially Implemented
 
 **1. Authentication & Authorization**
+
 - **Status:** Infrastructure ready, not implemented
 - **Supabase Auth:** Available but not configured
 - **Current State:** No user login/authentication
 - **Access Control:** No role-based permissions
 
 **2. Row Level Security (RLS)**
+
 - **Status:** Disabled in development
 - **Configuration:** Must be enabled per table
 - **Policies:** Need to be defined for production
@@ -1355,6 +1421,7 @@ try {
 #### ❌ Not Implemented (High Priority)
 
 **1. Server-Side Validation**
+
 ```typescript
 // Recommended: Supabase Database Functions
 CREATE OR REPLACE FUNCTION validate_navigation_label(label_text TEXT)
@@ -1369,24 +1436,28 @@ $$ LANGUAGE plpgsql;
 ```
 
 **2. Rate Limiting**
+
 - No request throttling
 - No abuse prevention
 - No DDoS protection
 - Recommendation: Implement via Supabase Edge Functions or API Gateway
 
 **3. Audit Logging**
+
 - No comprehensive audit trail
 - No user action tracking
 - No compliance logging
 - Recommendation: Implement audit table with triggers
 
 **4. Data Encryption**
+
 - Database at rest: ✅ Supabase default encryption
 - Data in transit: ✅ HTTPS/TLS
 - Sensitive fields: ❌ No field-level encryption
 - Recommendation: Encrypt PII if stored
 
 **5. CSRF Protection**
+
 - No CSRF tokens
 - No same-site cookie policies
 - Recommendation: Implement for forms with mutations
@@ -1396,6 +1467,7 @@ $$ LANGUAGE plpgsql;
 #### Critical (Implement Immediately)
 
 1. **Enable Row Level Security (RLS)**
+
 ```sql
 -- Enable RLS on all tables
 ALTER TABLE navigation ENABLE ROW LEVEL SECURITY;
@@ -1413,6 +1485,7 @@ CREATE POLICY "Authenticated users can manage navigation"
 ```
 
 2. **Implement Authentication**
+
 ```typescript
 // Add Supabase Auth
 import { Auth } from '@supabase/auth-ui-react';
@@ -1421,15 +1494,16 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 // Protected route wrapper
 export function ProtectedRoute({ children }) {
   const { user, isLoading } = useAuth();
-  
+
   if (isLoading) return <LoadingSpinner />;
   if (!user) return <Navigate to="/login" />;
-  
+
   return children;
 }
 ```
 
 3. **Add Server-Side Validation**
+
 - Database triggers for critical fields
 - Supabase Edge Functions for complex validation
 - Schema constraints (NOT NULL, CHECK, UNIQUE)
@@ -1437,6 +1511,7 @@ export function ProtectedRoute({ children }) {
 #### High Priority
 
 4. **Implement Audit Logging**
+
 ```sql
 CREATE TABLE audit_log (
   id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -1461,6 +1536,7 @@ $$ LANGUAGE plpgsql;
 ```
 
 5. **Add Rate Limiting**
+
 ```typescript
 // Using Supabase Edge Function
 import { serve } from 'https://deno.land/std/http/server.ts';
@@ -1468,23 +1544,25 @@ import { rateLimit } from './rate-limiter.ts';
 
 serve(async (req) => {
   const ip = req.headers.get('x-forwarded-for');
-  
-  if (!await rateLimit(ip, 100, 60000)) { // 100 requests per minute
+
+  if (!(await rateLimit(ip, 100, 60000))) {
+    // 100 requests per minute
     return new Response('Rate limit exceeded', { status: 429 });
   }
-  
+
   // Process request
 });
 ```
 
 6. **Implement CSRF Protection**
+
 ```typescript
 // Add CSRF token to forms
 import { generateCSRFToken, validateCSRFToken } from '@/lib/security';
 
 export function SecureForm({ onSubmit }) {
   const csrfToken = generateCSRFToken();
-  
+
   return (
     <form onSubmit={(e) => {
       e.preventDefault();
@@ -1502,6 +1580,7 @@ export function SecureForm({ onSubmit }) {
 #### Medium Priority
 
 7. **Content Security Policy (CSP)**
+
 ```typescript
 // next.config.js
 module.exports = {
@@ -1518,17 +1597,18 @@ module.exports = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self' data:",
-              "connect-src 'self' https://*.supabase.co"
-            ].join('; ')
-          }
-        ]
-      }
+              "connect-src 'self' https://*.supabase.co",
+            ].join('; '),
+          },
+        ],
+      },
     ];
-  }
+  },
 };
 ```
 
 8. **Implement Data Sanitization Library**
+
 ```bash
 npm install dompurify isomorphic-dompurify
 ```
@@ -1539,7 +1619,7 @@ import DOMPurify from 'isomorphic-dompurify';
 export function sanitizeInput(input: string): string {
   return DOMPurify.sanitize(input, {
     ALLOWED_TAGS: [],
-    ALLOWED_ATTR: []
+    ALLOWED_ATTR: [],
   });
 }
 ```
@@ -1548,22 +1628,23 @@ export function sanitizeInput(input: string): string {
 
 #### OWASP Top 10 Coverage
 
-| Threat | Status | Mitigation |
-|--------|--------|------------|
-| A01: Broken Access Control | 🟡 Partial | RLS ready, not enabled |
-| A02: Cryptographic Failures | ✅ Good | HTTPS + DB encryption |
-| A03: Injection | ✅ Good | Parameterized queries |
-| A04: Insecure Design | ✅ Good | Secure patterns used |
-| A05: Security Misconfiguration | 🟡 Partial | RLS needs configuration |
-| A06: Vulnerable Components | ✅ Good | Dependencies up-to-date |
-| A07: Authentication Failures | ❌ Critical | No auth implemented |
-| A08: Software/Data Integrity | ✅ Good | Audit logging planned |
-| A09: Logging/Monitoring | 🟡 Partial | Basic error logging |
-| A10: SSRF | ✅ Good | No external requests |
+| Threat                         | Status      | Mitigation              |
+| ------------------------------ | ----------- | ----------------------- |
+| A01: Broken Access Control     | 🟡 Partial  | RLS ready, not enabled  |
+| A02: Cryptographic Failures    | ✅ Good     | HTTPS + DB encryption   |
+| A03: Injection                 | ✅ Good     | Parameterized queries   |
+| A04: Insecure Design           | ✅ Good     | Secure patterns used    |
+| A05: Security Misconfiguration | 🟡 Partial  | RLS needs configuration |
+| A06: Vulnerable Components     | ✅ Good     | Dependencies up-to-date |
+| A07: Authentication Failures   | ❌ Critical | No auth implemented     |
+| A08: Software/Data Integrity   | ✅ Good     | Audit logging planned   |
+| A09: Logging/Monitoring        | 🟡 Partial  | Basic error logging     |
+| A10: SSRF                      | ✅ Good     | No external requests    |
 
 #### GDPR Compliance Requirements
 
 **For Production Deployment:**
+
 1. ✅ User consent management
 2. ❌ Right to erasure (delete user data)
 3. ❌ Data portability (export user data)
@@ -1590,22 +1671,22 @@ const { data, error } = await supabase
   .order('position', { ascending: true });
 
 // Create navigation item
-const { data, error } = await supabase
-  .from('navigation')
-  .insert([{
+const { data, error } = await supabase.from('navigation').insert([
+  {
     label: 'Products',
     position: '1',
     path: '/products',
     is_enabled: true,
-    is_deleted: false
-  }]);
+    is_deleted: false,
+  },
+]);
 
 // Update navigation item
 const { data, error } = await supabase
   .from('navigation')
   .update({
     label: 'Updated Label',
-    path: '/new-path'
+    path: '/new-path',
   })
   .eq('id', itemId);
 
@@ -1616,10 +1697,7 @@ const { data, error } = await supabase
   .eq('id', itemId);
 
 // Permanent delete
-const { data, error } = await supabase
-  .from('navigation')
-  .delete()
-  .eq('id', itemId);
+const { data, error } = await supabase.from('navigation').delete().eq('id', itemId);
 ```
 
 #### Product Operations
@@ -1628,36 +1706,32 @@ const { data, error } = await supabase
 // Fetch products with filters
 const { data, error } = await supabase
   .from('products')
-  .select(`
+  .select(
+    `
     *,
     category:categories(id, name)
-  `)
+  `
+  )
   .eq('is_active', true)
   .ilike('name', `%${searchQuery}%`)
   .order('created_at', { ascending: false });
 
 // Create product
-const { data, error } = await supabase
-  .from('products')
-  .insert([{
+const { data, error } = await supabase.from('products').insert([
+  {
     name: 'Product Name',
     description: 'Description',
     sku: 'SKU-001',
     category_id: categoryId,
-    is_active: true
-  }]);
+    is_active: true,
+  },
+]);
 
 // Update product
-const { data, error } = await supabase
-  .from('products')
-  .update(productData)
-  .eq('id', productId);
+const { data, error } = await supabase.from('products').update(productData).eq('id', productId);
 
 // Delete product
-const { data, error } = await supabase
-  .from('products')
-  .delete()
-  .eq('id', productId);
+const { data, error } = await supabase.from('products').delete().eq('id', productId);
 ```
 
 #### Calendar Operations
@@ -1676,7 +1750,7 @@ const { data, error } = await supabase
   .update({
     is_holiday: true,
     holiday_name: 'Holiday Name',
-    notes: 'Additional notes'
+    notes: 'Additional notes',
   })
   .eq('id', entryId);
 ```
@@ -1699,10 +1773,10 @@ interface NavigationItem {
 }
 
 const {
-  data,              // NavigationItem[]
-  isLoading,         // boolean
-  error,             // string | null
-  refetch            // () => Promise<void>
+  data, // NavigationItem[]
+  isLoading, // boolean
+  error, // string | null
+  refetch, // () => Promise<void>
 } = useNavigation();
 ```
 
@@ -1787,22 +1861,22 @@ export default function ComponentName({ title, onAction }: Props) {
   // 1. Hooks
   const [state, setState] = useState(initial);
   const { data, isLoading } = useCustomHook();
-  
+
   // 2. Effects
   useEffect(() => {
     // Side effects
   }, [dependencies]);
-  
+
   // 3. Handlers
   const handleClick = () => {
     // Event handler logic
   };
-  
+
   // 4. Derived state
   const derivedValue = useMemo(() => {
     return computeValue(data);
   }, [data]);
-  
+
   // 5. Render
   return (
     <div className="container">
@@ -1817,13 +1891,13 @@ export default function ComponentName({ title, onAction }: Props) {
 ```
 components/
   ComponentName.tsx        # PascalCase for components
-  
+
 hooks/
   useHookName.ts          # camelCase with 'use' prefix
 
 types/
   typeName.ts             # camelCase for files
-  
+
 lib/
   utilityName.ts          # camelCase for utilities
 
@@ -1864,24 +1938,25 @@ const moduleThemes = {
   integration: {
     gradient: 'from-green-500/10 to-emerald-500/10 dark:from-green-600/20 dark:to-emerald-600/20',
     border: 'border-green-200 dark:border-green-800',
-    icon: 'text-green-600 dark:text-green-400'
+    icon: 'text-green-600 dark:text-green-400',
   },
   analytics: {
     gradient: 'from-blue-500/10 to-cyan-500/10 dark:from-blue-600/20 dark:to-cyan-600/20',
     border: 'border-blue-200 dark:border-blue-800',
-    icon: 'text-blue-600 dark:text-blue-400'
+    icon: 'text-blue-600 dark:text-blue-400',
   },
   execution: {
     gradient: 'from-purple-500/10 to-pink-500/10 dark:from-purple-600/20 dark:to-pink-600/20',
     border: 'border-purple-200 dark:border-purple-800',
-    icon: 'text-purple-600 dark:text-purple-400'
-  }
+    icon: 'text-purple-600 dark:text-purple-400',
+  },
 };
 ```
 
 ### Best Practices
 
 #### Error Handling
+
 ```typescript
 // ✅ Good
 try {
@@ -1898,11 +1973,12 @@ const result = await apiCall(); // No error handling
 ```
 
 #### State Management
+
 ```typescript
 // ✅ Good - Single source of truth
 const [formData, setFormData] = useState({
   name: '',
-  email: ''
+  email: '',
 });
 
 // ❌ Bad - Multiple states
@@ -1911,9 +1987,10 @@ const [email, setEmail] = useState('');
 ```
 
 #### Performance Optimization
+
 ```typescript
 // ✅ Good - Memoization
-const expensiveValue = useMemo(() => 
+const expensiveValue = useMemo(() =>
   computeExpensive(data),
   [data]
 );
@@ -1928,6 +2005,7 @@ const handleClick = useCallback(() => {
 ```
 
 #### Accessibility
+
 ```typescript
 // ✅ Good
 <button
@@ -1967,6 +2045,7 @@ npm run start
 ### Environment Setup
 
 #### Development
+
 ```bash
 # .env.local
 NODE_ENV=development
@@ -1975,6 +2054,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-dev-anon-key
 ```
 
 #### Production
+
 ```bash
 # Environment variables (via hosting platform)
 NODE_ENV=production
@@ -1995,6 +2075,7 @@ vercel --prod
 ```
 
 **Configuration:**
+
 - Automatic builds on git push
 - Zero-configuration deployment
 - Edge network distribution
@@ -2044,12 +2125,14 @@ supabase db push
 ### Monitoring & Logging
 
 #### Recommended Tools
+
 - **Vercel Analytics**: Built-in performance monitoring
 - **Sentry**: Error tracking and reporting
 - **LogRocket**: Session replay and debugging
 - **Supabase Dashboard**: Database metrics and logs
 
 #### Basic Logging Setup
+
 ```typescript
 // lib/logger.ts
 export const logger = {
@@ -2063,13 +2146,14 @@ export const logger = {
   },
   warn: (message: string, data?: any) => {
     console.warn(`[WARN] ${message}`, data);
-  }
+  },
 };
 ```
 
 ### Backup Strategy
 
 #### Database Backups
+
 ```sql
 -- Supabase provides automatic backups
 -- Manual backup via SQL:
@@ -2080,6 +2164,7 @@ pg_dump -h db.your-project.supabase.co \
 ```
 
 #### Application Backups
+
 - Git repository as source control
 - Tag releases for rollback capability
 - Store environment variables securely (1Password, Vault)
@@ -2115,11 +2200,11 @@ import { useNavigation } from '@/hooks/useNavigation';
 describe('useNavigation', () => {
   it('should fetch navigation items', async () => {
     const { result } = renderHook(() => useNavigation());
-    
+
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
-    
+
     expect(result.current.data).toBeInstanceOf(Array);
   });
 });
@@ -2135,21 +2220,21 @@ import ProductsPage from '@/app/products/page';
 describe('Products Page', () => {
   it('should display product list', async () => {
     render(<ProductsPage />);
-    
+
     expect(screen.getByText('Products')).toBeInTheDocument();
-    
+
     // Wait for data to load
     await waitFor(() => {
       expect(screen.getByRole('list')).toBeInTheDocument();
     });
   });
-  
+
   it('should open create modal', () => {
     render(<ProductsPage />);
-    
+
     const createButton = screen.getByText('Add');
     fireEvent.click(createButton);
-    
+
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 });
@@ -2163,21 +2248,21 @@ import { test, expect } from '@playwright/test';
 
 test('should manage navigation items', async ({ page }) => {
   await page.goto('/navigation-manager');
-  
+
   // Add new label
   await page.fill('[name="label"]', 'Test Label');
   await page.fill('[name="path"]', '/test');
   await page.click('button:has-text("Add")');
-  
+
   // Verify label appears
   await expect(page.locator('text=Test Label')).toBeVisible();
-  
+
   // Edit label
   await page.hover('text=Test Label');
   await page.click('[title="Edit label"]');
   await page.fill('input[value="Test Label"]', 'Updated Label');
   await page.click('[title="Save changes"]');
-  
+
   // Verify update
   await expect(page.locator('text=Updated Label')).toBeVisible();
 });
@@ -2186,6 +2271,7 @@ test('should manage navigation items', async ({ page }) => {
 ### Manual Testing Checklist
 
 #### Navigation Manager
+
 - [ ] Create new label
 - [ ] Edit label (name and path)
 - [ ] Drag-and-drop reordering
@@ -2196,6 +2282,7 @@ test('should manage navigation items', async ({ page }) => {
 - [ ] Sidebar updates in real-time
 
 #### Products Module
+
 - [ ] View product list
 - [ ] Search products
 - [ ] Filter by category
@@ -2205,6 +2292,7 @@ test('should manage navigation items', async ({ page }) => {
 - [ ] View product details
 
 #### Calendar Module
+
 - [ ] Navigate between years
 - [ ] Edit calendar entries
 - [ ] Quick update modal
@@ -2214,6 +2302,7 @@ test('should manage navigation items', async ({ page }) => {
 - [ ] Scroll to today
 
 #### Dark Mode
+
 - [ ] Toggle dark mode
 - [ ] All pages render correctly
 - [ ] No contrast issues
@@ -2228,12 +2317,14 @@ test('should manage navigation items', async ({ page }) => {
 #### Common Issues
 
 **Issue: "Row Level Security" Error**
+
 ```sql
 -- Solution: Disable RLS for development
 ALTER TABLE navigation DISABLE ROW LEVEL SECURITY;
 ```
 
 **Issue: Type Generation Fails**
+
 ```bash
 # Check Supabase connection
 npm run generate:types
@@ -2243,6 +2334,7 @@ npm update @supabase/supabase-js
 ```
 
 **Issue: Drag-and-Drop Not Working**
+
 - Check browser compatibility (Chrome 90+)
 - Verify draggable attribute is set
 - Check console for JavaScript errors
@@ -2250,6 +2342,7 @@ npm update @supabase/supabase-js
 ### B. Performance Optimization Tips
 
 1. **Code Splitting**
+
 ```typescript
 // Use dynamic imports for large components
 const HeavyComponent = dynamic(() => import('./HeavyComponent'), {
@@ -2258,6 +2351,7 @@ const HeavyComponent = dynamic(() => import('./HeavyComponent'), {
 ```
 
 2. **Image Optimization**
+
 ```typescript
 import Image from 'next/image';
 
@@ -2271,6 +2365,7 @@ import Image from 'next/image';
 ```
 
 3. **Database Query Optimization**
+
 ```typescript
 // Use select to limit fields
 .select('id, name, category_id')
@@ -2285,6 +2380,7 @@ CREATE INDEX idx_products_category ON products(category_id);
 ### C. Migration Guide (Future Versions)
 
 **From 1.0 to 2.0:**
+
 1. Backup database
 2. Run migration scripts
 3. Update environment variables
@@ -2295,24 +2391,28 @@ CREATE INDEX idx_products_category ON products(category_id);
 ### D. API Rate Limits
 
 **Supabase Free Tier:**
+
 - 500 MB database space
 - 2 GB bandwidth/month
 - 50 MB file storage
 - 60 requests/minute
 
 **Recommended Upgrades:**
+
 - Pro: $25/month (8GB DB, 50GB bandwidth, 100GB storage)
 - Team: $599/month (unlimited everything)
 
 ### E. Support & Resources
 
 **Documentation:**
+
 - [Next.js Docs](https://nextjs.org/docs)
 - [Supabase Docs](https://supabase.com/docs)
 - [Tailwind CSS Docs](https://tailwindcss.com/docs)
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)
 
 **Community:**
+
 - GitHub Issues: Create issues for bugs
 - Discord: Join Supabase Discord for support
 - Stack Overflow: Tag questions with `next.js`, `supabase`
@@ -2324,6 +2424,7 @@ CREATE INDEX idx_products_category ON products(category_id);
 ### v1.0 (Current - January 1, 2026)
 
 #### Core Features
+
 - ✅ Navigation Manager with drag-and-drop
 - ✅ Product Management System
 - ✅ Calendar/Operations Module
@@ -2333,12 +2434,14 @@ CREATE INDEX idx_products_category ON products(category_id);
 - ✅ Supabase Integration
 
 #### Known Issues
+
 - Authentication not implemented
 - RLS disabled in development
 - No audit logging
 - Analytics dashboard placeholder only
 
 #### Planned for v1.1
+
 - [ ] User authentication
 - [ ] Role-based access control
 - [ ] Comprehensive audit logging
@@ -2364,7 +2467,7 @@ CREATE INDEX idx_products_category ON products(category_id);
 **Soft Delete:** Marking record as deleted without removing from DB  
 **Supabase:** Open-source Firebase alternative  
 **Toast Notification:** Temporary popup message  
-**Type Safety:** Compile-time checking of data types  
+**Type Safety:** Compile-time checking of data types
 
 ---
 
@@ -2375,4 +2478,4 @@ CREATE INDEX idx_products_category ON products(category_id);
 
 ---
 
-*End of Documentation*
+_End of Documentation_
