@@ -18,17 +18,18 @@ npm install
 
 2. **Set up environment variables:**
 
-Copy [.env.credentials](.env.credentials) to `.env.local` and configure your Supabase credentials:
+Create `.env.local` and configure your Supabase credentials:
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://wvqlpcraxorchrtpatph.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_DSUbUfO9Dsyg3v6FzKLnCg_oyIYJeCC
+NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 ```
 
 3. **Set up the database:**
 
-Run the navigation table migration in your Supabase SQL editor:
+Apply the migrations in your Supabase project using the Supabase CLI:
 ```bash
-# See sql/create_navigation_table.sql for the migration script
+supabase db push
+# Migrations are located in supabase/migrations/
 ```
 
 4. **Generate database types:**
@@ -59,115 +60,71 @@ Open [http://localhost:3000](http://localhost:3000) to see your application.
 
 ```
 trity/
-├── app/                           # Next.js 14 App Router
-│   ├── layout.tsx                # Root layout with Sidebar
-│   ├── page.tsx                  # Dashboard/Home
-│   │
-│   ├── analytics/                # Analytics Pillar (Blue)
-│   │   └── page.tsx
-│   ├── products/                 # Business Core Pillar (Green)
-│   │   └── page.tsx
+├── app/                           # Next.js App Router
+│   ├── layout.tsx                 # Root layout with Sidebar
+│   ├── page.tsx                   # Dashboard/Home
+│   ├── analytics/                 # Analytics Pillar (Blue)
+│   ├── products/                  # Business Core Pillar (Green)
 │   ├── customers/
-│   │   └── page.tsx
-│   ├── suppliers/ (and more...)
-│   │
-│   ├── calendar/                 # Execution Pillar (Orange)
-│   │   └── page.tsx
-│   ├── workstreams/
-│   │   └── page.tsx
-│   ├── okrs/
-│   │   └── page.tsx
-│   │
-│   ├── admin/                    # Administration (Gray)
-│   │   └── tenants/
+│   ├── calendar/                  # Execution Pillar (Orange)
+│   ├── admin/tenants/             # Administration (Gray)
 │   ├── users/
-│   │   └── page.tsx
-│   ├── groups/
-│   │   └── page.tsx
 │   ├── tenant-settings/
-│   │   └── page.tsx
-│   ├── navigation-manager/       # Navigation structure management
-│   │   └── page.tsx
+│   ├── navigation-manager/        # Navigation structure management
 │   ├── import-export/
-│   │   └── page.tsx
-│   │
-│   ├── profile/                  # Account
-│   │   └── page.tsx
+│   ├── profile/                   # Account
 │   ├── login/
-│   │   └── page.tsx
-│   ├── reset-password/
-│   │   └── page.tsx
-│   │
-│   └── diagnostics/              # Developer tools
-│       └── page.tsx
+│   └── reset-password/
 │
-├── components/                   # Reusable components
-│   ├── PageContainer.tsx         # Standard page wrapper with module colors
-│   ├── LayoutSkeleton.tsx        # Loading skeleton
-│   ├── LayoutWrapper.tsx         # Auth wrapper
-│   ├── ProtectedRoute.tsx        # Route protection
-│   ├── ProtectedAction.tsx       # Permission-aware actions
-│   ├── navigation/
-│   │   └── Sidebar.tsx           # Dynamic sidebar (3-pillar structure)
-│   ├── products/                 # Product components
-│   ├── ... (other groups)
+├── components/                    # Reusable components
+│   ├── PageContainer.tsx          # Standard page wrapper with module colors
+│   ├── LayoutSkeleton.tsx         # Loading skeleton
+│   ├── LayoutWrapper.tsx          # Auth wrapper
+│   ├── ProtectedRoute.tsx         # Route protection
+│   ├── ProtectedAction.tsx        # Permission-aware actions
+│   ├── navigation/Sidebar.tsx     # Dynamic sidebar (3-pillar structure)
+│   └── products/                  # Product-specific components
 │
-├── hooks/                        # Custom React hooks
-│   ├── usePermissions.ts         # RBAC permission checking
-│   ├── useFeatureFlags.ts        # Feature flag management
-│   ├── useTenantDetails.ts       # Tenant data
-│   ├── useTenantUsers.ts         # Tenant users
-│   ├── useUserGroups.ts          # User groups
-│   ├── useUsers.ts               # User management
-│   ├── useProducts.ts            # Product operations
-│   ├── useCalendar.ts            # Calendar data
-│   ├── useWorkstreams.ts         # Workstream operations
-│   ├── useOKRs.ts                # OKR tracking
-│   ├── useCustomers.ts           # Customer operations
-│   ├── useProfile.ts             # User profile
+├── hooks/                         # Custom React hooks
+│   ├── usePermissions.ts          # RBAC permission checking
+│   ├── useFeatureFlags.ts         # Feature flag management
+│   ├── useProducts.ts             # Product operations
+│   ├── useCustomers.ts            # Customer operations
+│   ├── useCalendar.ts             # Calendar data
 │   └── ... (other hooks)
 │
-├── lib/                          # Shared utilities
-│   ├── supabaseClient.ts         # Typed Supabase client
-│   ├── permissions.ts            # RBAC utilities
-│   ├── auditLog.ts               # Audit logging
-│   ├── featureFlags.ts           # Feature management
-│   ├── navigation-hierarchy.ts   # Position-based hierarchy algorithm
-│   ├── navigation-default.ts     # Default navigation structure
-│   ├── ... (other utilities)
+├── lib/                           # Shared utilities
+│   ├── supabaseClient.ts          # Typed Supabase client
+│   ├── permissions.ts             # RBAC utilities
+│   ├── auditLog.ts                # Audit logging
+│   ├── featureFlags.ts            # Feature management
+│   └── navigation-hierarchy.ts   # Position-based hierarchy algorithm
 │
-├── contexts/                     # React contexts
-│   └── TenantContext.tsx         # Multi-tenant context
+├── contexts/                      # React contexts
+│   └── TenantContext.tsx          # Multi-tenant context
 │
-├── types/                        # TypeScript definitions
-│   ├── database.ts               # Auto-generated Supabase types
-│   ├── navigation.ts             # Navigation interfaces
-│   ├── access.ts                 # RBAC types
-│   ├── product.ts                # Product types
-│   ├── ... (other types)
+├── providers/                     # Context providers
+│   └── AppProviders.tsx
 │
-├── providers/                    # Context providers
-│   └── AppProviders.tsx          # App-level providers
+├── types/                         # TypeScript definitions
+│   ├── database.ts                # Auto-generated Supabase types
+│   ├── access.ts                  # RBAC types
+│   ├── navigation.ts
+│   └── ... (other types)
 │
-├── sql/                          # SQL migrations
-│   └── ... (migration files)
+├── supabase/migrations/           # SQL migration files
 │
-├── scripts/                      # Build & utility scripts
-│   ├── generate-types.js         # Generate DB types
-│   ├── document-schema.js        # Generate schema docs
-│   └── discover-tables.js        # Table discovery
+├── scripts/                       # Build & utility scripts
+│   ├── generate-types.js          # Generate DB types
+│   ├── document-schema.js         # Generate schema docs
+│   └── discover-tables.js         # Table discovery
 │
-├── docs/                         # Documentation
-│   ├── SUPABASE_OPTIMIZATION_SUMMARY.md
-│   └── TYPE_GENERATION.md
-│
-└── Configuration Files
-    ├── .env.credentials          # Environment variables
-    ├── package.json
-    ├── tsconfig.json
-    ├── tailwind.config.js
-    ├── next.config.js
-    └── postcss.config.js
+└── docs/                          # All project documentation
+    ├── REFERENCE_FILES_INDEX.md   # Master documentation index
+    ├── TRITY_CONTEXT.md           # Architecture & conventions
+    ├── PROJECT_DOCUMENTATION.md   # Comprehensive technical docs
+    ├── archive/                   # Historical process documents
+    └── ...
 ```
 
 ## Core Features
@@ -195,7 +152,7 @@ trity/
 
 ## Database Schema (Authoritative Source)
 
-The file **`Supabase Snippet Public Schema Column Catalog.csv`** is the authoritative 
+The file **`docs/Supabase Schema Column Catalog.csv`** is the authoritative 
 source of truth for our Supabase database schema.
 
 **Core Tables:**
@@ -368,7 +325,7 @@ npm run lint
 
 For detailed technical documentation, architecture details, development guidelines, and design system patterns, see:
 
-**→ [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)**
+**→ [docs/PROJECT_DOCUMENTATION.md](docs/PROJECT_DOCUMENTATION.md)**
 
 This comprehensive guide includes:
 - Complete system architecture
@@ -379,6 +336,8 @@ This comprehensive guide includes:
 - API documentation
 - Testing strategy
 - Deployment procedures
+
+Browse all documentation via **[docs/REFERENCE_FILES_INDEX.md](docs/REFERENCE_FILES_INDEX.md)**.
 
 ## 🔧 Available Scripts
 
@@ -407,7 +366,7 @@ npm run document:schema  # Generate schema documentation
 4. Always use audit helpers for INSERT/UPDATE operations
 
 ### Adding a New Feature
-1. Review [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) for architecture patterns
+1. Review [docs/PROJECT_DOCUMENTATION.md](docs/PROJECT_DOCUMENTATION.md) for architecture patterns
 2. Follow the module color system (Business Core/Analytics/Execution)
 3. Use existing component patterns from the design system
 4. Maintain TypeScript type safety throughout
@@ -419,4 +378,4 @@ MIT
 
 ---
 
-**Need Help?** Check [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) for comprehensive technical documentation and development guidelines.
+**Need Help?** Check [docs/PROJECT_DOCUMENTATION.md](docs/PROJECT_DOCUMENTATION.md) for comprehensive technical documentation and development guidelines.
