@@ -7,7 +7,7 @@ import ProductMasterCard from '@/components/products/ProductMasterCard';
 import ProductDetailsTabs from '@/components/products/ProductDetailsTabs';
 import { useProducts } from '@/hooks/useProducts';
 import { Product, ProductFormData, ProductFilters } from '@/types/product';
-import { BarChart3, Package2, Plus } from 'lucide-react';
+import { Package2, Plus } from 'lucide-react';
 import ProductCreateModal from '../../components/products/ProductCreateModal';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { logProductCreated } from '@/lib/auditLog';
@@ -19,18 +19,10 @@ export default function ProductsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { tenant_id, user } = useTenant();
 
-  const filters: ProductFilters | undefined = search
-    ? { searchQuery: search }
-    : undefined;
+  const filters: ProductFilters | undefined = search ? { searchQuery: search } : undefined;
 
-  const {
-    products,
-    isLoading,
-    error,
-    availableCategories,
-    createProduct,
-    refreshProducts,
-  } = useProducts(filters, 'created_at', 'desc');
+  const { products, isLoading, error, availableCategories, createProduct, refreshProducts } =
+    useProducts(filters, 'created_at', 'desc');
 
   const handleCreateProduct = async (data: ProductFormData) => {
     const result = await createProduct(data);
@@ -62,9 +54,7 @@ export default function ProductsPage() {
               <div className="p-2">
                 <Package2 className="w-5 h-5 text-green-700 dark:text-green-500" />
               </div>
-              <h1 className="text-3xl font-bold text-green-700 dark:text-green-500">
-                Products
-              </h1>
+              <h1 className="text-3xl font-bold text-green-700 dark:text-green-500">Products</h1>
             </div>
             {/* Right: Action Buttons */}
             <button
@@ -93,10 +83,11 @@ export default function ProductsPage() {
               search={search}
               onSearchChange={setSearch}
               onSelect={setSelectedProduct}
+              selectedProductId={selectedProduct?.id ?? null}
             />
           </div>
 
-          <div className="lg:col-span-2 space-y-4 min-w-0 overflow-hidden max-h-[calc(100vh-200px)]">
+          <div className="lg:col-span-2 space-y-2 min-w-0 overflow-y-auto max-h-[calc(100vh-200px)]">
             <ProductMasterCard product={selectedProduct} />
             {selectedProduct && <ProductDetailsTabs product={selectedProduct} />}
           </div>
