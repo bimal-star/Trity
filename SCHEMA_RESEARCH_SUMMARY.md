@@ -82,7 +82,7 @@ CREATE POLICY "Users can update own profile" ON public.user_profiles
 ### Location
 - **TypeScript Interfaces:** [types/access.ts](types/access.ts#L86-L96)
 - **Hook Implementation:** [hooks/useUserGroups.ts](hooks/useUserGroups.ts)
-- **UI Usage:** [app/groups/page.tsx](app/groups/page.tsx)
+- **UI Usage:** [app/users/page.tsx](app/users/page.tsx)
 
 ### ⚠️ CRITICAL: Database Status
 **These tables are NOT in the Supabase schema CSV!**
@@ -271,7 +271,7 @@ is_deleted BOOLEAN DEFAULT false    -- Soft delete
 
 ### Where user_groups/group_members are used:
 1. [hooks/useUserGroups.ts](hooks/useUserGroups.ts) - CRUD operations
-2. [app/groups/page.tsx](app/groups/page.tsx) - Group management UI
+2. [app/users/page.tsx](app/users/page.tsx) - Group management UI
 3. [app/users/page.tsx](app/users/page.tsx) - Role assignment
 4. Expected in audit logs
 
@@ -407,7 +407,7 @@ const ROLE_PERMISSIONS: Record<TenantRole, PermissionAction[]> = {
 - [contexts/TenantContext.tsx](contexts/TenantContext.tsx) - User profile fetching
 
 **Pages:**
-- [app/groups/page.tsx](app/groups/page.tsx) - Group management UI
+- [app/users/page.tsx](app/users/page.tsx) - Group management UI
 - [app/users/page.tsx](app/users/page.tsx) - User management UI
 
 **Migrations:**
