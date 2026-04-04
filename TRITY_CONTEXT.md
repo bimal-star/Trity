@@ -544,8 +544,8 @@ trity/
 ├── providers/               # Context providers
 │   └── AppProviders.tsx     # Application-level providers
 │
-├── sql/                     # SQL migrations & queries
-│   └── ... (migration files)
+├── supabase/
+│   └── migrations/          # SQL migrations & queries
 │
 ├── scripts/                 # Build & utility scripts
 │   ├── generate-types.js    # ⚠️ Type generation from Supabase
@@ -557,7 +557,7 @@ trity/
 │   ├── SUPABASE_OPTIMIZATION_SUMMARY.md  # DB optimization details
 │   └── TYPE_GENERATION.md   # Type generation guide
 │
-├── .env.credentials         # ⚠️ Template with hardcoded dev credentials
+├── .env.local               # Local environment variables (not committed)
 ├── package.json             # Version 0.2.0+
 ├── tsconfig.json            # TypeScript config with @/* alias
 ├── tailwind.config.js       # Tailwind configuration

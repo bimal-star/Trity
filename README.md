@@ -18,7 +18,7 @@ npm install
 
 2. **Set up environment variables:**
 
-Copy [.env.credentials](.env.credentials) to `.env.local` and configure your Supabase credentials:
+Create `.env.local` and configure your Supabase credentials:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://wvqlpcraxorchrtpatph.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_DSUbUfO9Dsyg3v6FzKLnCg_oyIYJeCC
@@ -26,9 +26,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_DSUbUfO9Dsyg3v6FzKLnCg_oyIYJeCC
 
 3. **Set up the database:**
 
-Run the navigation table migration in your Supabase SQL editor:
+Apply the SQL migrations in `supabase/migrations/` (ordered by timestamp filename):
 ```bash
-# See sql/create_navigation_table.sql for the migration script
+# Example with Supabase CLI
+supabase db push
 ```
 
 4. **Generate database types:**
@@ -149,8 +150,8 @@ trity/
 ├── providers/                    # Context providers
 │   └── AppProviders.tsx          # App-level providers
 │
-├── sql/                          # SQL migrations
-│   └── ... (migration files)
+├── supabase/
+│   └── migrations/              # SQL migrations
 │
 ├── scripts/                      # Build & utility scripts
 │   ├── generate-types.js         # Generate DB types
@@ -162,7 +163,7 @@ trity/
 │   └── TYPE_GENERATION.md
 │
 └── Configuration Files
-    ├── .env.credentials          # Environment variables
+    ├── .env.local               # Local environment variables (create locally)
     ├── package.json
     ├── tsconfig.json
     ├── tailwind.config.js
@@ -368,7 +369,9 @@ npm run lint
 
 For detailed technical documentation, architecture details, development guidelines, and design system patterns, see:
 
-**→ [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)**
+- [docs/README.md](docs/README.md) - documentation map (best starting point)
+- [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) - full technical guide
+- [REFERENCE_FILES_INDEX.md](REFERENCE_FILES_INDEX.md) - legacy deep reference index
 
 This comprehensive guide includes:
 - Complete system architecture
