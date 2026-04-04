@@ -27,7 +27,7 @@
 ### Files Created/Modified
 
 #### Documentation
-1. [docs/TIMEZONE_OPTIMIZATION.md](docs/TIMEZONE_OPTIMIZATION.md) - Usage guide for timezone caching
+1. [docs/SUPABASE_OPTIMIZATION_SUMMARY.md](docs/SUPABASE_OPTIMIZATION_SUMMARY.md) - Usage guide for timezone caching
 2. [docs/SUPABASE_OPTIMIZATION_SUMMARY.md](docs/SUPABASE_OPTIMIZATION_SUMMARY.md) - Complete optimization journey
 3. [docs/TYPE_GENERATION.md](docs/TYPE_GENERATION.md) - Type generation setup and usage
 4. [SUPABASE_INTEGRATION_STATUS.md](SUPABASE_INTEGRATION_STATUS.md) - This file
@@ -206,7 +206,7 @@ The script automatically:
 ## Documentation
 
 - **Full Optimization Journey:** [docs/SUPABASE_OPTIMIZATION_SUMMARY.md](docs/SUPABASE_OPTIMIZATION_SUMMARY.md)
-- **Timezone Caching Guide:** [docs/TIMEZONE_OPTIMIZATION.md](docs/TIMEZONE_OPTIMIZATION.md)
+- **Timezone Caching Notes:** Included in [docs/SUPABASE_OPTIMIZATION_SUMMARY.md](docs/SUPABASE_OPTIMIZATION_SUMMARY.md)
 - **Type Generation Setup:** [docs/TYPE_GENERATION.md](docs/TYPE_GENERATION.md)
 - **Migration Files:** See `supabase/migrations/` (timestamped SQL migrations)
 
