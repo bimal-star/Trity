@@ -27,14 +27,14 @@
 ### Files Created/Modified
 
 #### Documentation
-1. [docs/TIMEZONE_OPTIMIZATION.md](docs/TIMEZONE_OPTIMIZATION.md) - Usage guide for timezone caching
-2. [docs/SUPABASE_OPTIMIZATION_SUMMARY.md](docs/SUPABASE_OPTIMIZATION_SUMMARY.md) - Complete optimization journey
-3. [docs/TYPE_GENERATION.md](docs/TYPE_GENERATION.md) - Type generation setup and usage
-4. [SUPABASE_INTEGRATION_STATUS.md](SUPABASE_INTEGRATION_STATUS.md) - This file
+1. [SUPABASE_OPTIMIZATION_SUMMARY.md](SUPABASE_OPTIMIZATION_SUMMARY.md) - Complete optimization journey
+2. [TYPE_GENERATION.md](TYPE_GENERATION.md) - Type generation setup and usage
+3. [SUPABASE_INTEGRATION_STATUS.md](SUPABASE_INTEGRATION_STATUS.md) - This file
+4. [../../supabase/migrations/](../../supabase/migrations) - Timestamped SQL migrations
 
 #### Code Updates
-1. [scripts/generate-types.js](scripts/generate-types.js) - Updated to use Supabase CLI with fallback
-2. [types/database.ts](types/database.ts) - Generated TypeScript types (auto-generated)
+1. [scripts/generate-types.js](../../scripts/generate-types.js) - Updated to use Supabase CLI with fallback
+2. [types/database.ts](../../types/database.ts) - Generated TypeScript types (auto-generated)
 
 ### No Breaking Changes ✅
 
@@ -118,7 +118,7 @@ supabase link --project-ref wvqlpcraxorchrtpatph
 npm run generate:types
 ```
 
-See [docs/TYPE_GENERATION.md](docs/TYPE_GENERATION.md) for detailed setup instructions.
+See [TYPE_GENERATION.md](TYPE_GENERATION.md) for detailed setup instructions.
 
 ---
 
@@ -193,10 +193,7 @@ The script automatically:
    npm run generate:types
    ```
 
-2. **Deploy Migration 025** to clear materialized view linter warning:
-   ```bash
-   psql -h db.wvqlpcraxorchrtpatph.supabase.co -U postgres -d postgres < sql/025-add-rls-to-materialized-view.sql
-   ```
+2. **Review the materialized-view RLS migration** in [../../supabase/migrations/](../../supabase/migrations) if you want to clear the remaining linter warning.
 
 3. **Set up pg_cron** for automated timezone cache refresh (see Maintenance section above)
 
@@ -204,9 +201,8 @@ The script automatically:
 
 ## Documentation
 
-- **Full Optimization Journey:** [docs/SUPABASE_OPTIMIZATION_SUMMARY.md](docs/SUPABASE_OPTIMIZATION_SUMMARY.md)
-- **Timezone Caching Guide:** [docs/TIMEZONE_OPTIMIZATION.md](docs/TIMEZONE_OPTIMIZATION.md)
-- **Type Generation Setup:** [docs/TYPE_GENERATION.md](docs/TYPE_GENERATION.md)
-- **Migration Files:** See `sql/` directory (001-025)
+- **Full Optimization Journey:** [SUPABASE_OPTIMIZATION_SUMMARY.md](SUPABASE_OPTIMIZATION_SUMMARY.md)
+- **Type Generation Setup:** [TYPE_GENERATION.md](TYPE_GENERATION.md)
+- **Migration Files:** [../../supabase/migrations/](../../supabase/migrations)
 
 Your Supabase database is fully optimized, secure, and production-ready! 🚀

@@ -544,8 +544,8 @@ trity/
 ├── providers/               # Context providers
 │   └── AppProviders.tsx     # Application-level providers
 │
-├── sql/                     # SQL migrations & queries
-│   └── ... (migration files)
+├── supabase/                # Supabase project assets
+│   └── migrations/          # Timestamped SQL migrations
 │
 ├── scripts/                 # Build & utility scripts
 │   ├── generate-types.js    # ⚠️ Type generation from Supabase
@@ -554,8 +554,9 @@ trity/
 │
 ├── docs/                    # Documentation
 │   ├── AI_PROMPT.md         # AI assistant guidelines
-│   ├── SUPABASE_OPTIMIZATION_SUMMARY.md  # DB optimization details
-│   └── TYPE_GENERATION.md   # Type generation guide
+│   ├── reference/           # Active implementation/reference docs
+│   ├── database/            # Schema, migration, and Supabase docs
+│   └── archive/             # Historical summaries and audits
 │
 ├── .env.credentials         # ⚠️ Template with hardcoded dev credentials
 ├── package.json             # Version 0.2.0+

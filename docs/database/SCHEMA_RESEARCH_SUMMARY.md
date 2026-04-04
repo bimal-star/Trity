@@ -13,8 +13,8 @@ The schema includes foundational structures for multi-tenant user and group mana
 ## 1. Current User_Profiles Structure
 
 ### Location
-- **Definition:** [types/access.ts](types/access.ts) (TypeScript interfaces)
-- **Database Types:** [types/database.ts](types/database.ts) (auto-generated)
+- **Definition:** [types/access.ts](../../types/access.ts) (TypeScript interfaces)
+- **Database Types:** [types/database.ts](../../types/database.ts) (auto-generated)
 - **Authoritative Schema:** NOT in CSV export
 
 ### Columns & Types
@@ -58,7 +58,7 @@ user_profiles: {
 
 ### Row Level Security (RLS) Policies
 
-From [supabase/migrations/20260131000000_optimize_rls_auth_calls.sql](supabase/migrations/20260131000000_optimize_rls_auth_calls.sql):
+From [supabase/migrations/20260131000000_optimize_rls_auth_calls.sql](../../supabase/migrations/20260131000000_optimize_rls_auth_calls.sql):
 
 ```sql
 -- SELECT: Users can read own profile
@@ -80,8 +80,8 @@ CREATE POLICY "Users can update own profile" ON public.user_profiles
 ## 2. Current User_Groups Structure
 
 ### Location
-- **TypeScript Interfaces:** [types/access.ts](types/access.ts#L86-L96)
-- **Hook Implementation:** [hooks/useUserGroups.ts](hooks/useUserGroups.ts)
+- **TypeScript Interfaces:** [types/access.ts](../../types/access.ts#L86-L96)
+- **Hook Implementation:** [hooks/useUserGroups.ts](../../hooks/useUserGroups.ts)
 - **UI Usage:** [app/groups/page.tsx](app/groups/page.tsx)
 
 ### ⚠️ CRITICAL: Database Status
@@ -129,8 +129,8 @@ export interface UserGroup {
 ## 3. Junction Table: group_members (Expected)
 
 ### Location
-- **TypeScript Interfaces:** [types/access.ts](types/access.ts#L98-L106)
-- **Hook Implementation:** [hooks/useUserGroups.ts](hooks/useUserGroups.ts#L183-L233)
+- **TypeScript Interfaces:** [types/access.ts](../../types/access.ts#L98-L106)
+- **Hook Implementation:** [hooks/useUserGroups.ts](../../hooks/useUserGroups.ts#L183-L233)
 
 ### ⚠️ CRITICAL: Database Status
 **This table is NOT in the Supabase schema CSV!**
@@ -169,7 +169,7 @@ export type GroupMemberRole = 'member' | 'admin';
 
 ### Application Usage
 
-[hooks/useUserGroups.ts](hooks/useUserGroups.ts#L90-L110) - Creating groups with members:
+[hooks/useUserGroups.ts](../../hooks/useUserGroups.ts#L90-L110) - Creating groups with members:
 ```typescript
 // Add members if provided
 if (data.member_ids && data.member_ids.length > 0) {
@@ -221,7 +221,7 @@ group_members (MISSING - needs creation)
 ## 5. RLS Policies - Current Implementation
 
 ### user_profiles RLS (Enabled)
-From [supabase/migrations/20260131110000_consolidate_duplicate_policies.sql](supabase/migrations/20260131110000_consolidate_duplicate_policies.sql#L409):
+From [supabase/migrations/20260131110000_consolidate_duplicate_policies.sql](../../supabase/migrations/20260131110000_consolidate_duplicate_policies.sql#L409):
 
 ```sql
 -- SELECT: Users can view own profile
@@ -264,19 +264,19 @@ is_deleted BOOLEAN DEFAULT false    -- Soft delete
 ## 7. Schema Dependencies & Usage
 
 ### Where user_profiles is used:
-1. [contexts/TenantContext.tsx](contexts/TenantContext.tsx#L232-L260) - Fetch user profile
-2. [hooks/useTenantUsers.ts](hooks/useTenantUsers.ts) - List tenant users
-3. [app/users/page.tsx](app/users/page.tsx) - User management UI
+1. [contexts/TenantContext.tsx](../../contexts/TenantContext.tsx#L232-L260) - Fetch user profile
+2. [hooks/useTenantUsers.ts](../../hooks/useTenantUsers.ts) - List tenant users
+3. [app/users/page.tsx](../../app/users/page.tsx) - User management UI
 4. RLS policies in all migrations
 
 ### Where user_groups/group_members are used:
-1. [hooks/useUserGroups.ts](hooks/useUserGroups.ts) - CRUD operations
+1. [hooks/useUserGroups.ts](../../hooks/useUserGroups.ts) - CRUD operations
 2. [app/groups/page.tsx](app/groups/page.tsx) - Group management UI
-3. [app/users/page.tsx](app/users/page.tsx) - Role assignment
+3. [app/users/page.tsx](../../app/users/page.tsx) - Role assignment
 4. Expected in audit logs
 
 ### Example Query (useUserGroups)
-[hooks/useUserGroups.ts](hooks/useUserGroups.ts#L27-L50):
+[hooks/useUserGroups.ts](../../hooks/useUserGroups.ts#L27-L50):
 ```typescript
 const { data, error: fetchError } = await supabase
   .from('user_groups')
@@ -398,26 +398,26 @@ const ROLE_PERMISSIONS: Record<TenantRole, PermissionAction[]> = {
 ## 11. Files Referenced
 
 **Type Definitions:**
-- [types/access.ts](types/access.ts) - UserGroup, GroupMember interfaces
-- [types/database.ts](types/database.ts) - Database types (auto-generated)
+- [types/access.ts](../../types/access.ts) - UserGroup, GroupMember interfaces
+- [types/database.ts](../../types/database.ts) - Database types (auto-generated)
 
 **Hooks & Context:**
-- [hooks/useUserGroups.ts](hooks/useUserGroups.ts) - Group CRUD operations
-- [hooks/useTenantUsers.ts](hooks/useTenantUsers.ts) - User management
-- [contexts/TenantContext.tsx](contexts/TenantContext.tsx) - User profile fetching
+- [hooks/useUserGroups.ts](../../hooks/useUserGroups.ts) - Group CRUD operations
+- [hooks/useTenantUsers.ts](../../hooks/useTenantUsers.ts) - User management
+- [contexts/TenantContext.tsx](../../contexts/TenantContext.tsx) - User profile fetching
 
 **Pages:**
 - [app/groups/page.tsx](app/groups/page.tsx) - Group management UI
-- [app/users/page.tsx](app/users/page.tsx) - User management UI
+- [app/users/page.tsx](../../app/users/page.tsx) - User management UI
 
 **Migrations:**
-- [supabase/migrations/20260131000000_optimize_rls_auth_calls.sql](supabase/migrations/20260131000000_optimize_rls_auth_calls.sql) - RLS optimization
-- [supabase/migrations/20260131110000_consolidate_duplicate_policies.sql](supabase/migrations/20260131110000_consolidate_duplicate_policies.sql) - Policy consolidation
-- [supabase/migrations/20260131150000_create_user_module_access.sql](supabase/migrations/20260131150000_create_user_module_access.sql) - Module access table
+- [supabase/migrations/20260131000000_optimize_rls_auth_calls.sql](../../supabase/migrations/20260131000000_optimize_rls_auth_calls.sql) - RLS optimization
+- [supabase/migrations/20260131110000_consolidate_duplicate_policies.sql](../../supabase/migrations/20260131110000_consolidate_duplicate_policies.sql) - Policy consolidation
+- [supabase/migrations/20260131150000_create_user_module_access.sql](../../supabase/migrations/20260131150000_create_user_module_access.sql) - Module access table
 
 **Documentation:**
-- [TRITY_CONTEXT.md](TRITY_CONTEXT.md) - Project context
-- [supabase-multi-tenant-audit-report.md](supabase-multi-tenant-audit-report.md) - Schema audit
+- [TRITY_CONTEXT.md](../../TRITY_CONTEXT.md) - Project context
+- [supabase-multi-tenant-audit-report.md](../archive/supabase-multi-tenant-audit-report.md) - Schema audit
 
 ---
 

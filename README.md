@@ -26,9 +26,12 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_DSUbUfO9Dsyg3v6FzKLnCg_oyIYJeCC
 
 3. **Set up the database:**
 
-Run the navigation table migration in your Supabase SQL editor:
+Apply the SQL migrations in [`supabase/migrations/`](supabase/migrations) using your normal Supabase workflow.
 ```bash
-# See sql/create_navigation_table.sql for the migration script
+# Supabase CLI
+supabase db push
+
+# Or review/apply individual files from supabase/migrations/ in the SQL editor
 ```
 
 4. **Generate database types:**
@@ -149,8 +152,8 @@ trity/
 ├── providers/                    # Context providers
 │   └── AppProviders.tsx          # App-level providers
 │
-├── sql/                          # SQL migrations
-│   └── ... (migration files)
+├── supabase/                     # Supabase project assets
+│   └── migrations/               # Timestamped SQL migrations
 │
 ├── scripts/                      # Build & utility scripts
 │   ├── generate-types.js         # Generate DB types
@@ -158,8 +161,10 @@ trity/
 │   └── discover-tables.js        # Table discovery
 │
 ├── docs/                         # Documentation
-│   ├── SUPABASE_OPTIMIZATION_SUMMARY.md
-│   └── TYPE_GENERATION.md
+│   ├── AI_PROMPT.md              # AI assistant guidelines
+│   ├── reference/                # Active implementation/reference guides
+│   ├── database/                 # Schema, migration, and Supabase docs
+│   └── archive/                  # Historical summaries and audits
 │
 └── Configuration Files
     ├── .env.credentials          # Environment variables
@@ -366,9 +371,11 @@ npm run lint
 
 ## 📚 Documentation
 
-For detailed technical documentation, architecture details, development guidelines, and design system patterns, see:
+For detailed technical documentation, architecture details, development guidelines, and historical notes, start with:
 
-**→ [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md)**
+- [REFERENCE_FILES_INDEX.md](REFERENCE_FILES_INDEX.md) - documentation map and file index
+- [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) - comprehensive technical guide
+- [docs/database/TYPE_GENERATION.md](docs/database/TYPE_GENERATION.md) - Supabase type generation workflow
 
 This comprehensive guide includes:
 - Complete system architecture
@@ -419,4 +426,4 @@ MIT
 
 ---
 
-**Need Help?** Check [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) for comprehensive technical documentation and development guidelines.
+**Need Help?** Start with [REFERENCE_FILES_INDEX.md](REFERENCE_FILES_INDEX.md) and then jump to [PROJECT_DOCUMENTATION.md](PROJECT_DOCUMENTATION.md) for the deeper technical guide.
