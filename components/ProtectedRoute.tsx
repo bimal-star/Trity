@@ -30,7 +30,7 @@ interface ProtectedRouteProps {
 /**
  * ProtectedRoute Component
  * Wraps pages that require authentication and tenant context
- * 
+ *
  * @param {ReactNode} children - The protected content
  * @param {string} redirectTo - Where to redirect unauthenticated users (default: '/login')
  * @param {string} requiredRole - Optional role requirement
@@ -43,7 +43,7 @@ export function ProtectedRoute({
   loadingComponent,
 }: ProtectedRouteProps) {
   const router = useRouter();
-  const { tenant_id, user, ready, error: tenantError } = useTenant();
+  const { tenant_id, user, profile, ready, error: tenantError } = useTenant();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
@@ -83,8 +83,8 @@ export function ProtectedRoute({
     );
   }
 
-  // Show error if tenant_id is missing (after loading is complete)
-  if (tenantError || (!tenant_id && user)) {
+  // Super admins may have no home tenant until they impersonate; admin UI still loads.
+  if (tenantError || (!tenant_id && user && profile?.role !== 'super_admin')) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-900">
         <div className="text-center max-w-md p-6">
@@ -93,7 +93,8 @@ export function ProtectedRoute({
               Account Configuration Error
             </h2>
             <p className="text-red-600 dark:text-red-300 mb-4">
-              {tenantError || 'Your account is not associated with a tenant. Please contact support.'}
+              {tenantError ||
+                'Your account is not associated with a tenant. Please contact support.'}
             </p>
             <button
               onClick={() => {

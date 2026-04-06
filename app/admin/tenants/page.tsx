@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import PageContainer from '@/components/PageContainer';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
@@ -9,7 +9,8 @@ import { useProfile } from '@/hooks/useProfile';
 import { usePermissions } from '@/hooks/usePermissions';
 import { supabase } from '@/lib/supabaseClient';
 import { logTenantCreated, logTenantUpdated } from '@/lib/auditLog';
-import { Building2, Plus, Loader2, AlertCircle, Check, X, Edit2, Trash2 } from 'lucide-react';
+import { Building2, Plus, Loader2, AlertCircle, Check, X, Eye } from 'lucide-react';
+import { isDevAutoImpersonateEnabled } from '@/lib/impersonation';
 
 interface Tenant {
   id: string;
@@ -36,7 +37,7 @@ interface Tenant {
 
 export default function AdminTenantsPage() {
   const router = useRouter();
-  const { user, tenant_id } = useTenant();
+  const { user, startTenantImpersonation, impersonation } = useTenant();
   const { profile, isLoading: profileLoading } = useProfile(user?.id);
   const { can, isSuperAdmin } = usePermissions();
   const [tenants, setTenants] = useState<Tenant[]>([]);
@@ -46,6 +47,8 @@ export default function AdminTenantsPage() {
   const [showTenantModal, setShowTenantModal] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [impersonateTenantId, setImpersonateTenantId] = useState<string | null>(null);
+  const [impersonateError, setImpersonateError] = useState<string | null>(null);
 
   const canManageTenants = can('manage_features') && isSuperAdmin;
 
@@ -58,9 +61,9 @@ export default function AdminTenantsPage() {
   }, [profileLoading, user, profile, canManageTenants, router]);
 
   // Fetch all tenants
-  const fetchTenants = async () => {
+  const fetchTenants = useCallback(async () => {
     if (!canManageTenants) return;
-    
+
     try {
       setIsLoading(true);
       setError(null);
@@ -80,7 +83,7 @@ export default function AdminTenantsPage() {
             .from('user_profiles')
             .select('*', { count: 'exact', head: true })
             .eq('tenant_id', tenant.id);
-          
+
           return { ...tenant, user_count: count || 0 };
         })
       );
@@ -92,13 +95,13 @@ export default function AdminTenantsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [canManageTenants]);
 
   useEffect(() => {
     if (canManageTenants) {
-      fetchTenants();
+      void fetchTenants();
     }
-  }, [canManageTenants]);
+  }, [canManageTenants, fetchTenants]);
 
   const handleSaveTenant = async (data: Partial<Tenant>) => {
     setIsSaving(true);
@@ -129,13 +132,9 @@ export default function AdminTenantsPage() {
           .update(tenantData)
           .eq('id', selectedTenant.id);
         if (error) throw error;
-        
+
         // Log the update
-        await logTenantUpdated(
-          selectedTenant.id,
-          tenantData,
-          user?.id ?? null
-        );
+        await logTenantUpdated(selectedTenant.id, tenantData, user?.id ?? null);
       } else {
         const { data: newTenant, error } = await supabase
           .from('tenants')
@@ -143,10 +142,17 @@ export default function AdminTenantsPage() {
           .select()
           .single();
         if (error) throw error;
-        
+
         // Log the creation
         if (newTenant) {
           await logTenantCreated(newTenant.id, newTenant.name, user?.id ?? null);
+          if (isDevAutoImpersonateEnabled()) {
+            try {
+              await startTenantImpersonation(newTenant.id, { readOnly: false });
+            } catch (e) {
+              console.warn('Dev auto-impersonate failed:', e);
+            }
+          }
         }
       }
 
@@ -169,10 +175,10 @@ export default function AdminTenantsPage() {
         .eq('id', tenantId);
 
       if (error) throw error;
-      
+
       // Log the status change
       await logTenantUpdated(tenantId, { is_active: !currentActive }, user?.id ?? null);
-      
+
       await fetchTenants();
     } catch (err) {
       console.error('Error toggling tenant:', err);
@@ -180,8 +186,19 @@ export default function AdminTenantsPage() {
     }
   };
 
+  const handleViewAsTenant = async (id: string) => {
+    setImpersonateTenantId(id);
+    setImpersonateError(null);
+    try {
+      await startTenantImpersonation(id, { readOnly: !isDevAutoImpersonateEnabled() });
+    } catch (e) {
+      setImpersonateError(e instanceof Error ? e.message : 'Impersonation failed');
+    } finally {
+      setImpersonateTenantId(null);
+    }
+  };
+
   const isSuperAdminReady = profileLoading === false && canManageTenants;
-  const isRedirecting = profileLoading === false && !canManageTenants;
 
   if (!isSuperAdminReady) {
     return (
@@ -197,8 +214,8 @@ export default function AdminTenantsPage() {
 
   return (
     <ProtectedRoute>
-      <PageContainer 
-        title="Tenant Management" 
+      <PageContainer
+        title="Tenant Management"
         description="Super Admin: Manage all tenants (clients)"
       >
         <div className="space-y-6">
@@ -232,6 +249,22 @@ export default function AdminTenantsPage() {
                 <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
               </div>
             </div>
+          )}
+
+          {impersonateError && (
+            <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-300">
+              {impersonateError}
+            </div>
+          )}
+
+          {isDevAutoImpersonateEnabled() && (
+            <p className="text-xs text-amber-700 dark:text-amber-300/90">
+              Dev: new tenants auto-open in read/write impersonation (
+              <code className="rounded bg-amber-100/20 px-1">
+                NEXT_PUBLIC_DEV_AUTO_IMPERSONATE=true
+              </code>
+              ).
+            </p>
           )}
 
           {/* Tenants List */}
@@ -279,8 +312,12 @@ export default function AdminTenantsPage() {
                         <div className="flex items-center gap-3">
                           <Building2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                           <div>
-                            <div className="font-medium text-gray-900 dark:text-white">{tenant.name}</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 font-mono">{tenant.id.slice(0, 8)}...</div>
+                            <div className="font-medium text-gray-900 dark:text-white">
+                              {tenant.name}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                              {tenant.id.slice(0, 8)}...
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -302,7 +339,11 @@ export default function AdminTenantsPage() {
                               : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                           }`}
                         >
-                          {tenant.is_active ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                          {tenant.is_active ? (
+                            <Check className="w-3 h-3" />
+                          ) : (
+                            <X className="w-3 h-3" />
+                          )}
                           {tenant.is_active ? 'Active' : 'Inactive'}
                         </button>
                       </td>
@@ -310,16 +351,34 @@ export default function AdminTenantsPage() {
                         {new Date(tenant.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => {
-                            setSelectedTenant(tenant);
-                            setShowTenantModal(true);
-                            setModalError(null);
-                          }}
-                          className="text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300"
-                        >
-                          Edit Details
-                        </button>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleViewAsTenant(tenant.id)}
+                            disabled={
+                              impersonateTenantId === tenant.id ||
+                              impersonation?.targetTenantId === tenant.id
+                            }
+                            className="inline-flex items-center gap-1 text-amber-700 hover:text-amber-900 dark:text-amber-400 dark:hover:text-amber-200 disabled:opacity-50"
+                          >
+                            {impersonateTenantId === tenant.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Eye className="h-3.5 w-3.5" />
+                            )}
+                            View as tenant
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedTenant(tenant);
+                              setShowTenantModal(true);
+                              setModalError(null);
+                            }}
+                            className="text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300"
+                          >
+                            Edit Details
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -409,7 +468,9 @@ function TenantFormModal({
               {tenant ? 'Edit Tenant' : 'Create New Tenant'}
             </h3>
             {tenant && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">ID: {tenant.id}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">
+                ID: {tenant.id}
+              </p>
             )}
           </div>
           <button
@@ -433,7 +494,7 @@ function TenantFormModal({
               <h4 className="text-sm font-semibold text-gray-900 dark:text-white pb-2 border-b border-gray-200 dark:border-gray-700">
                 Basic Information
               </h4>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
                   Tenant Name <span className="text-red-500">*</span>
@@ -508,7 +569,9 @@ function TenantFormModal({
                     onChange={(e) => setIsActive(e.target.checked)}
                     className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
                   />
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Active</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Active
+                  </span>
                 </label>
               </div>
             </div>
