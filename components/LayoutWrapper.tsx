@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/navigation/Sidebar';
 import { LayoutSkeleton } from '@/components/LayoutSkeleton';
+import { ImpersonationBanner } from '@/components/ImpersonationBanner';
 import { useTenant } from '@/contexts/TenantContext';
 
 /**
@@ -53,13 +54,13 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
   /**
    * Redirect effect - ONLY handles routing, never fetches data
-   * 
+   *
    * This effect:
    * - Checks if user is authenticated (using cached value from TenantContext)
    * - Redirects to login if not authenticated
    * - Does NOT trigger any data fetching
    * - Does NOT cause TenantContext to re-validate
-   * 
+   *
    * The user value comes from TenantContext's cached state, which was loaded
    * once on app mount. This is just a read operation.
    */
@@ -88,18 +89,19 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
         <div className="flex flex-col items-center gap-3">
           <div className="h-10 w-10 border-2 border-gray-300 dark:border-gray-600 border-t-blue-500 rounded-full animate-spin" />
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Redirecting to login...
-          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Redirecting to login...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
-      <Sidebar />
-      <Main>{children}</Main>
+    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-950">
+      <ImpersonationBanner />
+      <div className="flex flex-1">
+        <Sidebar />
+        <Main>{children}</Main>
+      </div>
     </div>
   );
 }
