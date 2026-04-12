@@ -1,9 +1,13 @@
 /**
  * Security Utilities - CSRF Protection
- * 
- * This module provides CSRF token generation and validation helpers.
- * These are isolated utilities that can be integrated into forms as needed.
- * 
+ *
+ * Helpers for classic form POST + cookie-session flows. They are not wired into
+ * the JSON App Router APIs (`/api/ai/*`, `/api/access/*`), which authenticate
+ * via `Authorization: Bearer <Supabase JWT>` from the same-origin SPA. That
+ * pattern is not subject to the same cross-site cookie CSRF class as
+ * cookie-based sessions; if you add cookie-only auth or form POST endpoints,
+ * validate CSRF there or adopt double-submit / SameSite cookies as appropriate.
+ *
  * @module lib/security
  */
 
@@ -18,7 +22,7 @@ export function generateCSRFToken(): string {
     // Client-side: Use Web Crypto API
     const array = new Uint8Array(32);
     crypto.getRandomValues(array);
-    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join('');
   } else {
     // Server-side: Use Node.js crypto
     return randomBytes(32).toString('hex');
