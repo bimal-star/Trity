@@ -1,6 +1,6 @@
 {
   "name": "trity",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Trity app — local dev: npm run dev (Turbopack, :3100). If EADDRINUSE, stop the other process or npm run dev:3101. dev:webpack = webpack on :3100.",
   "scripts": {
@@ -19,6 +19,9 @@
     "predev:3000:webpack": "node scripts/check-dev-port.cjs 3000 && node scripts/ensure-next-dev-static.cjs",
     "dev:3000:webpack": "next dev -p 3000",
     "build": "next build",
+    "analyze": "cross-env ANALYZE=true npm run build",
+    "analyze:win": "powershell -NoProfile -Command \"$env:ANALYZE='true'; npm run build\"",
+    "check:bundle": "echo Run npm run analyze, then open .next/analyze/client.html for chunks over 200KB parsed (and edge.html for middleware).",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
@@ -45,10 +48,10 @@
     "openai": "^4.77.0",
     "papaparse": "^5.5.3",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "xlsx": "^0.18.5"
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^14.0.4",
     "@types/node": "^20.10.6",
     "@types/papaparse": "^5.5.2",
     "@types/react": "^18.2.46",
@@ -56,6 +59,7 @@
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "autoprefixer": "^10.4.16",
+    "cross-env": "^7.0.3",
     "eslint": "^8.56.0",
     "eslint-config-next": "14.0.4",
     "eslint-config-prettier": "^10.1.8",

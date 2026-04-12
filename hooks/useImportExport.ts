@@ -3,21 +3,34 @@
 import { useState } from 'react';
 import {
   getTables,
-  exportTable,
-  parseImportFile,
   validateAndClassifyRows,
   applyImportChanges,
   TableMetadata,
   ImportRow,
 } from '@/lib/importExportUtils';
 
+type ApplyImportResult = Awaited<ReturnType<typeof applyImportChanges>>;
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 interface UseImportExportReturn {
   tables: TableMetadata[];
   loadTables: (tenantId: string) => Promise<void>;
-  exportData: (tableName: string, tenantId: string, format: 'csv' | 'xlsx') => Promise<Blob>;
-  parseFile: (file: File) => Promise<Record<string, any>[]>;
-  classifyRows: (tableName: string, tenantId: string, rows: Record<string, any>[]) => Promise<ImportRow[]>;
-  applyChanges: (tableName: string, tenantId: string, rows: ImportRow[], userId: string) => Promise<any>;
+  exportData: (tableName: string, tenantId: string) => Promise<Blob>;
+  parseFile: (file: File) => Promise<Record<string, unknown>[]>;
+  classifyRows: (
+    tableName: string,
+    tenantId: string,
+    rows: Record<string, unknown>[]
+  ) => Promise<ImportRow[]>;
+  applyChanges: (
+    tableName: string,
+    tenantId: string,
+    rows: ImportRow[],
+    userId: string
+  ) => Promise<ApplyImportResult>;
   isLoading: boolean;
   error: string | null;
 }
@@ -33,19 +46,20 @@ export function useImportExport(): UseImportExportReturn {
       setError(null);
       const result = await getTables(tenantId);
       setTables(result);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(errorMessage(err));
     } finally {
       setIsLoading(false);
     }
   };
 
-  const exportData = async (tableName: string, tenantId: string, format: 'csv' | 'xlsx') => {
+  const exportData = async (tableName: string, tenantId: string) => {
     try {
       setError(null);
-      return await exportTable(tableName, tenantId, format);
-    } catch (err: any) {
-      setError(err.message);
+      const { exportTable } = await import('@/lib/importExport/io');
+      return await exportTable(tableName, tenantId);
+    } catch (err: unknown) {
+      setError(errorMessage(err));
       throw err;
     }
   };
@@ -53,29 +67,44 @@ export function useImportExport(): UseImportExportReturn {
   const parseFile = async (file: File) => {
     try {
       setError(null);
+      const { parseImportFile } = await import('@/lib/importExport/io');
       return await parseImportFile(file);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(errorMessage(err));
       throw err;
     }
   };
 
-  const classifyRows = async (tableName: string, tenantId: string, rows: Record<string, any>[]) => {
+  const classifyRows = async (
+    tableName: string,
+    tenantId: string,
+    rows: Record<string, unknown>[]
+  ) => {
     try {
       setError(null);
-      return await validateAndClassifyRows(tableName, tenantId, rows);
-    } catch (err: any) {
-      setError(err.message);
+      return await validateAndClassifyRows(
+        tableName,
+        tenantId,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- validateAndClassifyRows expects parsed CSV shape
+        rows as Record<string, any>[]
+      );
+    } catch (err: unknown) {
+      setError(errorMessage(err));
       throw err;
     }
   };
 
-  const applyChanges = async (tableName: string, tenantId: string, rows: ImportRow[], userId: string) => {
+  const applyChanges = async (
+    tableName: string,
+    tenantId: string,
+    rows: ImportRow[],
+    userId: string
+  ) => {
     try {
       setError(null);
       return await applyImportChanges(tableName, tenantId, rows, userId);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(errorMessage(err));
       throw err;
     }
   };

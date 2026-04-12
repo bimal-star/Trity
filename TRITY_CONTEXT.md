@@ -20,6 +20,7 @@
 9. [Do Not Touch Areas](#do-not-touch-areas)
 10. [AI Usage Rules](#ai-usage-rules)
 11. [Known Gaps & TODOs](#known-gaps--todos)
+12. [Bundle Rules](#bundle-rules)
 
 ---
 
@@ -190,6 +191,42 @@ Current rules (`.eslintrc.json`):
 - `@typescript-eslint/no-explicit-any`: WARN
 - `react-hooks/exhaustive-deps`: WARN
 - `react/no-unescaped-entities`: WARN
+- **`no-restricted-imports` (bundle guardrails):** `xlsx` is forbidden everywhere. Static `papaparse` imports are forbidden outside `lib/csvDownload.ts` and `lib/importExport/io.ts` (see [Bundle Rules](#bundle-rules)).
+
+---
+
+## Bundle Rules
+
+### Libraries that must stay lazy loaded
+
+- **papaparse** — use **dynamic** `import('papaparse')` inside `lib/importExport/io.ts` for import/export CSV parsing. Do **not** add static `import … from 'papaparse'` in pages, hooks, or components (ESLint enforces this except for the two allowlisted files).
+- **xlsx** — **REMOVED.** Do not re-add as a client-side dependency. If Excel export is needed in the future, implement it as a **server-only** API route (and keep binaries off the default client graph).
+
+### Middleware rules
+
+- **`middleware.ts`** must stay **minimal** (edge runtime). See the header comment in that file.
+- **Target:** under **~50KB parsed** for the middleware / edge chunk when `matcher` includes real routes.
+- **Do not import:** `openai`, `@opentelemetry`, `xlsx`, `papaparse`, heavy Supabase server clients, or Node-only modules.
+- **Verify:** run `npm run analyze` (or PowerShell: `$env:ANALYZE="true"; npm run build`) and inspect **`.next/analyze/edge.html`**.
+
+### How to run the bundle analyzer
+
+- **Cross-platform:** `npm run analyze` (uses `cross-env`).
+- **Windows PowerShell:** `$env:ANALYZE="true"; npm run build` or `npm run analyze:win`
+- **Output:** `.next/analyze/client.html` (client), `.next/analyze/edge.html` (middleware / edge), `.next/analyze/nodejs.html` (server)
+
+### When to run the analyzer
+
+- Before every **version bump**
+- After adding any **new npm dependency**
+- After adding a **new page** or **heavy** component
+
+### Red flags to watch for
+
+- Any **single client chunk** over **~200KB parsed**
+- **`xlsx`** (or other spreadsheet binaries) appearing in **client.html**
+- **Middleware / edge** chunk over **~50KB parsed** when middleware is active on real routes
+- A heavy library duplicated into **every page chunk** — prefer **dynamic `import()`** or server-only usage
 
 ---
 
