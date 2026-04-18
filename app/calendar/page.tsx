@@ -4,17 +4,30 @@ import { useState, useRef, useEffect } from 'react';
 import { useCalendar } from '@/hooks/useCalendar';
 import { CalendarEntry } from '@/types/calendar';
 import { Search, Download, BarChart2, Calendar, Eye, EyeOff, Printer, Edit2, Check, X, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, Send, MessageCircle } from 'lucide-react';
+import PremiumStickyHeader from '@/components/layout/premium/PremiumStickyHeader';
 import PageContainer from '@/components/PageContainer';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { ExportFormatDropdown } from '@/components/common/ExportFormatDropdown';
 import { logCalendarEventUpdated } from '@/lib/auditLog';
+import {
+  pillarAccent,
+  premiumPrimaryButton,
+  premiumTertiaryButton,
+  premiumSurfaces,
+  premiumTypography,
+} from '@/lib/premiumUi';
+import { useToast } from '@/lib/toast';
 import { useTenant } from '@/contexts/TenantContext';
+
+const businessCoreAccent = pillarAccent('businessCore');
 
 export default function CalendarPage() {
   const currentDate = new Date();
   const [year, setYear] = useState(currentDate.getFullYear());
-  const { tenant_id, user } = useTenant();
+  const { effectiveTenantId: tenant_id, user } = useTenant();
   
   const { data: calendarData, isLoading, error: calendarError, updateCalendarEntry } = useCalendar(year);
+  const { toast } = useToast();
   
   // State management
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -166,10 +179,12 @@ export default function CalendarPage() {
     });
     
     if (result.success === false) {
-      alert('Failed to save changes. Please try again.');
+      toast.error('Failed to save changes. Please try again.');
       return;
     }
-    
+
+    toast.success('Calendar entry updated.');
+
     // Log the calendar event update to audit trail
     if (tenant_id) {
       const originalEntry = calendarData?.find(e => e.id === id);
@@ -213,22 +228,24 @@ export default function CalendarPage() {
 
   const saveQuickUpdate = async () => {
     if (!quickUpdateDate || !calendarData) {
-      alert('Please select a date');
+      toast.error('Please select a date');
       return;
     }
     const entry = calendarData.find(e => e.date === quickUpdateDate);
     if (!entry) {
-      alert('Date not found in calendar');
+      toast.error('Date not found in calendar');
       return;
     }
-    
+
     // Update database
     const result = await updateCalendarEntry(entry.id, quickUpdateData);
-    
+
     if (result.success === false) {
-      alert('Failed to update database. Please try again.');
+      toast.error('Failed to update database. Please try again.');
       return;
     }
+
+    toast.success('Calendar entry updated.');
     
     // Log the calendar event update to audit trail
     if (tenant_id) {
@@ -369,41 +386,29 @@ export default function CalendarPage() {
         }
       }
 
-      alert(`Successfully imported ${updatedCount} bank holidays!${errors > 0 ? ` (${errors} errors)` : ''}`);
+      toast.success(`Successfully imported ${updatedCount} bank holidays!${errors > 0 ? ` (${errors} errors)` : ''}`);
       setShowImportModal(false);
     } catch (error) {
       console.error('Error importing holidays:', error);
-      alert('Failed to import holidays. Please try again.');
+      toast.error('Failed to import holidays. Please try again.');
     } finally {
       setIsImporting(false);
     }
   };
 
-  // Export to CSV
-  const exportToCSV = () => {
-    if (!filteredData) return;
-    const headers = ['Date', 'Day', 'Month', 'Year', 'Week', 'Bank Holiday', 'Events', 'Notes'];
-    const csv = [
-      headers.join(','),
-      ...filteredData.map(entry => [
-        formatDate(entry.date),
-        entry.day_name,
-        entry.month_name,
-        entry.year,
-        entry.week_iso,
-        entry.bank_holiday || '',
-        `"${(entry.events || '').replace(/"/g, '""')}"`,
-        `"${(entry.notes || '').replace(/"/g, '""')}"`
-      ].join(','))
-    ].join('\n');
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `calendar-${year}.csv`;
-    a.click();
-  };
+  const getCalendarExportData = () => ({
+    headers: ['Date', 'Day', 'Month', 'Year', 'Week', 'Bank Holiday', 'Events', 'Notes'],
+    rows: (filteredData || []).map((entry) => [
+      formatDate(entry.date),
+      entry.day_name,
+      entry.month_name,
+      entry.year,
+      entry.week_iso,
+      entry.bank_holiday || '',
+      entry.events || '',
+      entry.notes || '',
+    ]),
+  });
 
   // Jump to date
   const jumpToDate = () => {
@@ -446,7 +451,7 @@ export default function CalendarPage() {
 
   if (isLoading) {
     return (
-      <PageContainer>
+      <PageContainer module="businessCore">
         <div className="text-center text-gray-600 dark:text-gray-400">Loading calendar...</div>
       </PageContainer>
     );
@@ -454,53 +459,44 @@ export default function CalendarPage() {
 
   return (
     <ProtectedRoute>
-      <PageContainer module="execution">
-        {/* Two-Tier Header */}
-        <div className="sticky top-0 z-40 bg-gray-50 dark:bg-gray-900 mb-2 -mt-1 py-0.5">
-          {/* Primary Row - Title with Icon + Action Buttons */}
-          <div className="flex items-center justify-between gap-4 mb-2">
-            {/* Left: Icon + Title */}
-            <div className="flex items-center gap-3">
-              <div className="p-2">
-                <Calendar className="w-5 h-5 text-green-700 dark:text-green-500" />
-              </div>
-              <h1 className="text-3xl font-bold text-green-700 dark:text-green-500">
-                Calendar
-              </h1>
-            </div>
-            {/* Right: Action Buttons */}
-            <div className="flex items-center gap-3">
+      <PageContainer module="businessCore">
+        <PremiumStickyHeader
+          module="businessCore"
+          icon={Calendar}
+          title="Calendar"
+          subtitle="View and manage holiday schedules and important dates"
+          subtitleClassName={`${premiumTypography.pageSubtitle} ${businessCoreAccent.subtitleTint}`}
+          right={
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <button
+                type="button"
                 onClick={goToCurrentYear}
-                className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium transition-colors"
+                className={premiumPrimaryButton('businessCore', 'sm', 'standard')}
               >
                 Current Year
               </button>
               <button
+                type="button"
                 onClick={goToPreviousYear}
-                className="p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                className="rounded-lg p-2 text-gray-700 transition-colors hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                <ChevronLeft className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+                <ChevronLeft className="h-4 w-4 text-gray-700 dark:text-gray-300" />
               </button>
-              <h2 className="text-sm font-semibold text-gray-900 dark:text-white min-w-[80px] text-center">
+              <h2 className="min-w-[80px] text-center text-sm font-semibold text-gray-900 dark:text-white">
                 {year}
               </h2>
               <button
+                type="button"
                 onClick={goToNextYear}
-                className="p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                className="rounded-lg p-2 text-gray-700 transition-colors hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                <ChevronRight className="w-4 h-4 text-gray-700 dark:text-gray-300" />
+                <ChevronRight className="h-4 w-4 text-gray-700 dark:text-gray-300" />
               </button>
             </div>
-          </div>
-          {/* Secondary Row - Supporting Text */}
-          <p className="text-sm text-green-700 dark:text-green-500 ml-11">
-            View and manage holiday schedules and important dates
-          </p>
-        </div>
+          }
+        />
 
-        {/* Subtle Divider */}
-        <div className="h-px bg-gradient-to-r from-gray-200 dark:from-gray-700 to-transparent mb-4" />
+        <div className={`mb-4 ${premiumSurfaces.divider}`} />
 
       {calendarError && (
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-200">
@@ -508,26 +504,28 @@ export default function CalendarPage() {
         </div>
       )}
 
-      {/* Statistics Panel */}
+      {/* Statistics Panel — shell + cards aligned with components/products/ProductMasterCard.tsx */}
         {stats && (
-          <div className="mb-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-lg shadow-lg border border-green-200 dark:border-green-800">
-            <div className="grid grid-cols-4 gap-6">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border-l-4 border-green-500">
-                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Total Days</div>
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.totalDays}</div>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border-l-4 border-green-500">
-                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Bank Holidays</div>
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.bankHolidays}</div>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border-l-4 border-green-500">
-                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Days with Events</div>
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.eventsCount}</div>
-              </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm border-l-4 border-green-500">
-                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Days with Notes</div>
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.notesCount}</div>
-              </div>
+          <div className="mb-4 rounded-xl border border-gray-200 bg-gray-50/50 p-4 shadow-md ring-1 ring-black/5 dark:border-gray-700 dark:bg-gray-900/30 dark:ring-white/5">
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              {(
+                [
+                  { label: 'Total Days', value: stats.totalDays },
+                  { label: 'Bank Holidays', value: stats.bankHolidays },
+                  { label: 'Days with Events', value: stats.eventsCount },
+                  { label: 'Days with Notes', value: stats.notesCount },
+                ] as const
+              ).map(({ label, value }) => (
+                <div
+                  key={label}
+                  className="rounded-xl border border-gray-200 border-l-[5px] border-l-green-600 bg-gradient-to-r from-green-50/70 via-white to-white px-4 py-3 shadow-md ring-1 ring-black/5 dark:border-gray-700 dark:border-l-green-500 dark:from-green-950/25 dark:via-gray-800 dark:to-gray-800 dark:ring-white/5"
+                >
+                  <div className="mb-1 text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    {label}
+                  </div>
+                  <div className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">{value}</div>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -554,7 +552,7 @@ export default function CalendarPage() {
           {/* Primary Actions */}
           <button
             onClick={openQuickUpdate}
-            className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-xs font-medium flex items-center gap-2 shadow-sm"
+            className={premiumPrimaryButton('businessCore', 'sm', 'standard')}
           >
             <Edit2 className="w-3.5 h-3.5" />
             Quick Update
@@ -562,7 +560,7 @@ export default function CalendarPage() {
 
           <button
             onClick={() => setShowImportModal(true)}
-            className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-xs font-medium flex items-center gap-2 shadow-sm"
+            className={premiumPrimaryButton('businessCore', 'sm', 'standard')}
           >
             <Download className="w-3.5 h-3.5" />
             Import Holidays
@@ -582,7 +580,7 @@ export default function CalendarPage() {
             />
             <button
               onClick={jumpToDate}
-              className="px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-xs font-medium shadow-sm"
+              className={premiumTertiaryButton('sm', 'standard')}
             >
               Go
             </button>
@@ -592,17 +590,16 @@ export default function CalendarPage() {
           <div className="hidden lg:block h-8 w-px bg-gray-300 dark:bg-gray-600" />
 
           {/* Export/Output Actions */}
-          <button
-            onClick={exportToCSV}
-            className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-xs font-medium flex items-center gap-2 shadow-sm"
-          >
-            <Download className="w-3.5 h-3.5" />
-            Export
-          </button>
+          <ExportFormatDropdown
+            filenameBase={`calendar-${year}`}
+            title="Export calendar as CSV"
+            getData={getCalendarExportData}
+            buttonClassName={premiumTertiaryButton('sm', 'standard')}
+          />
 
           <button
             onClick={() => window.print()}
-            className="px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-xs font-medium flex items-center gap-2 shadow-sm"
+            className={premiumTertiaryButton('sm', 'standard')}
           >
             <Printer className="w-3.5 h-3.5" />
             Print
@@ -625,7 +622,7 @@ export default function CalendarPage() {
           <div className="relative" ref={columnMenuRef}>
             <button 
               onClick={() => setShowColumnMenu(!showColumnMenu)}
-              className="px-3 py-1.5 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors text-xs font-medium flex items-center gap-2 shadow-sm"
+              className={premiumTertiaryButton('sm', 'standard')}
             >
               <Eye className="w-3.5 h-3.5" />
               Columns
@@ -655,23 +652,25 @@ export default function CalendarPage() {
           >
             <table className="w-full">
               <thead 
-                className="bg-green-200 dark:bg-green-900 sticky top-0 z-10 select-none [user-drag:none] [-webkit-user-drag:none] border-b-2 border-green-400 dark:border-green-700" 
+                className="sticky top-0 z-10 bg-gray-100 dark:bg-gray-900/95 border-b border-gray-200 dark:border-gray-700 backdrop-blur-sm select-none [user-drag:none] [-webkit-user-drag:none]" 
                 draggable={false}
                 onDragStart={(e) => e.preventDefault()}
                 onMouseDown={(e) => e.preventDefault()}
               >
                 <tr>
-                  <th className="px-3 py-2 text-left text-xs font-bold text-gray-900 dark:text-white cursor-default uppercase tracking-wide w-36" draggable={false}>Date</th>
-                  {!hiddenColumns.has('day') && <th className="px-3 py-2 text-left text-xs font-bold text-gray-900 dark:text-white cursor-default uppercase tracking-wide w-24" draggable={false}>Day</th>}
-                  {!hiddenColumns.has('month') && <th className="px-3 py-2 text-left text-xs font-bold text-gray-900 dark:text-white cursor-default uppercase tracking-wide w-28" draggable={false}>Month</th>}
-                  {!hiddenColumns.has('year') && <th className="px-3 py-2 text-left text-xs font-bold text-gray-900 dark:text-white cursor-default uppercase tracking-wide w-20" draggable={false}>Year</th>}
-                  {!hiddenColumns.has('week') && <th className="px-3 py-2 text-left text-xs font-bold text-gray-900 dark:text-white cursor-default uppercase tracking-wide w-20" draggable={false}>Week</th>}
-                  {!hiddenColumns.has('bankHoliday') && <th className="px-3 py-2 text-left text-xs font-bold text-gray-900 dark:text-white cursor-default uppercase tracking-wide w-48" draggable={false}>Bank Holiday</th>}
-                  {!hiddenColumns.has('events') && <th className="px-3 py-2 text-left text-xs font-bold text-gray-900 dark:text-white cursor-default uppercase tracking-wide w-48" draggable={false}>Events</th>}
-                  {!hiddenColumns.has('notes') && <th className="px-3 py-2 text-left text-xs font-bold text-gray-900 dark:text-white cursor-default uppercase tracking-wide" draggable={false}>Notes</th>}
-                  <th className="py-2 text-center text-xs font-bold text-gray-900 dark:text-white cursor-default w-16" draggable={false}>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-300 cursor-default uppercase tracking-wide w-36" draggable={false}>Date</th>
+                  {!hiddenColumns.has('day') && <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-300 cursor-default uppercase tracking-wide w-24" draggable={false}>Day</th>}
+                  {!hiddenColumns.has('month') && <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-300 cursor-default uppercase tracking-wide w-28" draggable={false}>Month</th>}
+                  {!hiddenColumns.has('year') && <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-300 cursor-default uppercase tracking-wide w-20" draggable={false}>Year</th>}
+                  {!hiddenColumns.has('week') && <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-300 cursor-default uppercase tracking-wide w-20" draggable={false}>Week</th>}
+                  {!hiddenColumns.has('bankHoliday') && <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-300 cursor-default uppercase tracking-wide w-48" draggable={false}>Bank Holiday</th>}
+                  {!hiddenColumns.has('events') && <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-300 cursor-default uppercase tracking-wide w-48" draggable={false}>Events</th>}
+                  {!hiddenColumns.has('notes') && <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-300 cursor-default uppercase tracking-wide" draggable={false}>Notes</th>}
+                  <th className="py-2 text-center text-xs font-medium text-gray-600 dark:text-gray-300 cursor-default w-16" draggable={false}>
                     <div className="flex items-center justify-center">
-                      <Edit2 className="w-3.5 h-3.5" title="Actions" />
+                      <span title="Actions">
+                        <Edit2 className="w-3.5 h-3.5" aria-hidden />
+                      </span>
                     </div>
                   </th>
                 </tr>
@@ -690,9 +689,10 @@ export default function CalendarPage() {
                       ref={todayHighlight ? todayRowRef : null}
                       data-date={entry.date}
                       className={`
-                        ${isNewWeek ? 'border-t-2 border-green-400 dark:border-green-600' : 'border-t border-green-200 dark:border-green-800'}
-                        ${todayHighlight ? 'bg-green-200 dark:bg-green-800/50' : isEvenWeek ? 'bg-green-50 dark:bg-green-900/20' : 'bg-white dark:bg-gray-800'}
-                        hover:bg-green-100 dark:hover:bg-green-800/30 transition-colors
+                        ${isNewWeek ? 'border-t-2 border-gray-300 dark:border-gray-600' : 'border-t border-gray-200 dark:border-gray-700'}
+                        ${todayHighlight ? 'bg-green-50 dark:bg-green-900/25' : isEvenWeek ? 'bg-gray-50 dark:bg-gray-900/30' : 'bg-white dark:bg-gray-800'}
+                        ${todayHighlight ? 'hover:bg-green-100 dark:hover:bg-green-900/35' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'}
+                        transition-colors
                       `}
                     >
                       <td className={`${densityClasses[density]} text-xs text-gray-900 dark:text-gray-100`}>{formatDate(entry.date)}</td>

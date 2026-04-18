@@ -3,6 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import type { TenantDetails, TenantDetailsUpdate } from '@/types/profile';
+import type { Database } from '@/types/database';
+
+type TenantDbUpdate = Database['public']['Tables']['tenants']['Update'];
 
 interface UseTenantDetailsReturn {
   tenant: TenantDetails | null;
@@ -30,13 +33,15 @@ export function useTenantDetails(tenantId: string | null): UseTenantDetailsRetur
     try {
       setIsLoading(true);
       setError(null);
-      const { data, err } = await supabase
+      const { data, error: fetchErr } = await supabase
         .from('tenants')
-        .select('id, name, company_name, slug, is_active, logo_url, settings, created_at, updated_at')
+        .select(
+          'id, name, company_name, slug, is_active, logo_url, subscription_tier, subscription_package_id, catalogue_mode, settings, created_at, updated_at'
+        )
         .eq('id', tenantId)
         .single();
 
-      if (err) throw err;
+      if (fetchErr) throw fetchErr;
       setTenant(data as TenantDetails);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to load tenant';
@@ -57,7 +62,7 @@ export function useTenantDetails(tenantId: string | null): UseTenantDetailsRetur
       try {
         const { error: err } = await supabase
           .from('tenants')
-          .update(updates)
+          .update(updates as TenantDbUpdate)
           .eq('id', tenantId);
 
         if (err) return { success: false, error: err.message };

@@ -2,6 +2,8 @@
 
 A modern enterprise SaaS platform with Role-Based Access Control (RBAC), dynamic navigation, and multi-tenant support powered by Supabase.
 
+**Founder:** Bimal Patel — see **`/about/founder`** in the app for more context.
+
 ## 🎯 Quick Start
 
 ### Prerequisites
@@ -18,10 +20,11 @@ npm install
 
 2. **Set up environment variables:**
 
-Copy [.env.credentials](.env.credentials) to `.env.local` and configure your Supabase credentials:
+Create `.env.local` in the project root (do not commit it) with your Supabase values:
+
 ```bash
-NEXT_PUBLIC_SUPABASE_URL=https://wvqlpcraxorchrtpatph.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_DSUbUfO9Dsyg3v6FzKLnCg_oyIYJeCC
+NEXT_PUBLIC_SUPABASE_URL=https://<your-project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 ```
 
 3. **Set up the database:**
@@ -41,7 +44,29 @@ npm run generate:types
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see your application.
+Open [http://localhost:3100](http://localhost:3100) after `npm run dev` (see `package.json` for other ports).
+
+## Release Version Flow
+
+Use version bump scripts to update package versions and generate release notes from git commit history.
+
+```bash
+# Preview without changing files
+npm run version:patch -- --dry-run
+
+# Apply bump + changelog update
+npm run version:patch
+npm run version:minor
+npm run version:major
+
+# Fully automated release (bump + changelog + commit + tag)
+npm run release:patch
+npm run release:minor
+npm run release:major
+```
+
+`release:*` commands require a clean git working tree and create `chore(release): vX.Y.Z` plus tag `vX.Y.Z`.
+Future bumps use the latest version tag as the changelog comparison baseline.
 
 ## Features
 
@@ -155,14 +180,15 @@ trity/
 ├── scripts/                      # Build & utility scripts
 │   ├── generate-types.js         # Generate DB types
 │   ├── document-schema.js        # Generate schema docs
-│   └── discover-tables.js        # Table discovery
+│   ├── discover-tables.js        # Table discovery
+│   └── release-version.js        # Version bump + changelog automation
 │
 ├── docs/                         # Documentation
 │   ├── SUPABASE_OPTIMIZATION_SUMMARY.md
 │   └── TYPE_GENERATION.md
 │
 └── Configuration Files
-    ├── .env.credentials          # Environment variables
+    ├── .env.local                # Local env (gitignored); Supabase keys
     ├── package.json
     ├── tsconfig.json
     ├── tailwind.config.js

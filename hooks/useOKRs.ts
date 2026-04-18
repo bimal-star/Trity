@@ -21,7 +21,7 @@ interface UseOKRsReturn {
 }
 
 export function useOKRs(filters?: OKRFilters): UseOKRsReturn {
-  const { user, tenant_id } = useTenant();
+  const { user, effectiveTenantId: tenant_id } = useTenant();
   const [okrs, setOKRs] = useState<OKR[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -150,10 +150,12 @@ export function useOKRs(filters?: OKRFilters): UseOKRsReturn {
 
       if (okrError) throw okrError;
 
+      const createdOkr = newOKR as { id: string };
+
       // Create key results if provided
       if (data.key_results && data.key_results.length > 0) {
         const keyResultsData = data.key_results.map(kr => ({
-          okr_id: newOKR.id,
+          okr_id: createdOkr.id,
           description: kr.description,
           target_value: kr.target_value || null,
           current_value: kr.current_value || 0,
@@ -162,15 +164,15 @@ export function useOKRs(filters?: OKRFilters): UseOKRsReturn {
           weight: kr.weight || 1.0,
         }));
 
-        const { error: krError } = await supabase
+        const { error: krError } = await tenantedSupabase
           .from('key_results')
           .insert(keyResultsData as any);
 
         if (krError) throw krError;
       }
 
-      await refreshOKRs();
-      return { success: true, data: newOKR };
+      await fetchOKRs();
+      return { success: true, data: newOKR as unknown as OKR };
     } catch (err: any) {
       const errorMessage = err.message || 'Failed to create OKR';
       setError(errorMessage);
@@ -224,7 +226,7 @@ export function useOKRs(filters?: OKRFilters): UseOKRsReturn {
             weight: kr.weight || 1.0,
           }));
 
-          const { error: krError } = await supabase
+          const { error: krError } = await tenantedSupabase
             .from('key_results')
             .insert(keyResultsData as any);
 
@@ -232,7 +234,7 @@ export function useOKRs(filters?: OKRFilters): UseOKRsReturn {
         }
       }
 
-      await refreshOKRs();
+      await fetchOKRs();
       return { success: true };
     } catch (err: any) {
       const errorMessage = err.message || 'Failed to update OKR';
@@ -259,7 +261,7 @@ export function useOKRs(filters?: OKRFilters): UseOKRsReturn {
 
       if (deleteError) throw deleteError;
 
-      await refreshOKRs();
+      await fetchOKRs();
       return { success: true };
     } catch (err: any) {
       const errorMessage = err.message || 'Failed to delete OKR';

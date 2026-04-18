@@ -4,6 +4,9 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useTenant } from '@/contexts/TenantContext';
 import type { UserProfile, UserProfileUpdate } from '@/types/profile';
+import type { Database } from '@/types/database';
+
+type UserProfileDbUpdate = Database['public']['Tables']['user_profiles']['Update'];
 
 interface UseProfileReturn {
   profile: UserProfile | null;
@@ -40,7 +43,7 @@ export function useProfile(userId?: string): UseProfileReturn {
         setError(null);
         const { error: err } = await supabase
           .from('user_profiles')
-          .update(updates)
+          .update(updates as UserProfileDbUpdate)
           .eq('user_id', currentUserId);
 
         if (err) {

@@ -7,7 +7,7 @@ interface PackingConfigurationsEditorProps {
 }
 
 const emptyConfig: PackingConfiguration = {
-  level: '',
+  level: 'unit',
   quantity: 1,
   length: 0,
   width: 0,

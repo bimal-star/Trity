@@ -47,6 +47,7 @@ export function ExportFormatDropdown({
       type="button"
       disabled={disabled}
       title={title}
+      aria-label={title}
       onClick={() => void runExport()}
       className={buttonClassName ?? DEFAULT_EXPORT_BUTTON_CLASS}
     >

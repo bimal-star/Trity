@@ -17,6 +17,7 @@ import {
   X,
   Loader2,
 } from 'lucide-react';
+import { useToast } from '@/lib/toast';
 import {
   comparePositions,
   enrichWithMetadata,
@@ -53,7 +54,7 @@ export default function NavigationManagerPage() {
   const [newPath, setNewPath] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const { toast } = useToast();
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dropZone, setDropZone] = useState<{
     index: number;
@@ -143,23 +144,20 @@ export default function NavigationManagerPage() {
   const handleSeedDefaults = async () => {
     if (!tenant_id || isSeeding) return;
     setIsSeeding(true);
-    setError(null);
-    setSuccess(null);
     try {
       const { inserted, error: seedErr } = await seedTenantDefaultNavigation(tenant_id);
       if (seedErr) {
         throw new Error(seedErr);
       }
       if (inserted === 0) {
-        setSuccess('Navigation already has items; nothing to seed.');
+        toast.info('Navigation already has items; nothing to seed.');
       } else {
-        setSuccess(`Added ${inserted} default navigation items.`);
+        toast.success(`Added ${inserted} default navigation items.`);
       }
-      setTimeout(() => setSuccess(null), 4000);
       await fetchLabels(true);
       window.dispatchEvent(new Event('navigation-updated'));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to seed default navigation');
+      toast.error(err instanceof Error ? err.message : 'Failed to seed default navigation');
     } finally {
       setIsSeeding(false);
     }
@@ -187,7 +185,6 @@ export default function NavigationManagerPage() {
 
     try {
       setError(null);
-      setSuccess(null);
 
       // Calculate next root position using the hierarchy algorithm
       const nextPosition = getNextRootPosition(labels);
@@ -214,14 +211,13 @@ export default function NavigationManagerPage() {
       await fetchLabels(true);
       setNewLabel('');
       setNewPath('');
-      setSuccess('Label added!');
-      setTimeout(() => setSuccess(null), 3000);
+      toast.success('Label added!');
 
       // Notify sidebar to refresh
       window.dispatchEvent(new Event('navigation-updated'));
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to add label';
-      setError(message);
+      toast.error(message);
       console.error('Navigation add label error:', err);
     }
   };
@@ -237,13 +233,12 @@ export default function NavigationManagerPage() {
       if (updateError) throw updateError;
 
       await fetchLabels(true);
-      setSuccess(`Label ${!currentStatus ? 'deleted' : 'restored'}!`);
-      setTimeout(() => setSuccess(null), 3000);
+      toast.success(`Label ${!currentStatus ? 'deleted' : 'restored'}!`);
 
       // Notify sidebar to refresh
       window.dispatchEvent(new Event('navigation-updated'));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update label');
+      toast.error(err instanceof Error ? err.message : 'Failed to update label');
     }
   };
 
@@ -257,13 +252,12 @@ export default function NavigationManagerPage() {
       if (deleteError) throw deleteError;
 
       await fetchLabels(true);
-      setSuccess('Label deleted!');
-      setTimeout(() => setSuccess(null), 3000);
+      toast.success('Label deleted!');
 
       // Notify sidebar to refresh
       window.dispatchEvent(new Event('navigation-updated'));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete label');
+      toast.error(err instanceof Error ? err.message : 'Failed to delete label');
     }
   };
 
@@ -304,8 +298,7 @@ export default function NavigationManagerPage() {
       if (updateError) throw updateError;
 
       await fetchLabels(true);
-      setSuccess('Label updated!');
-      setTimeout(() => setSuccess(null), 3000);
+      toast.success('Label updated!');
       setEditingId(null);
       setEditLabel('');
       setEditPath('');
@@ -313,7 +306,7 @@ export default function NavigationManagerPage() {
       // Notify sidebar to refresh
       window.dispatchEvent(new Event('navigation-updated'));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update label');
+      toast.error(err instanceof Error ? err.message : 'Failed to update label');
     }
   };
 
@@ -443,8 +436,7 @@ export default function NavigationManagerPage() {
         console.error(`🔄 Total updates queued: ${updates.length}`);
 
         if (updates.length === 0) {
-          setError('No position changes detected.');
-          setTimeout(() => setError(null), 3000);
+          toast.info('No position changes detected.');
           setDraggedIndex(null);
           setDropZone(null);
           return;
@@ -454,8 +446,7 @@ export default function NavigationManagerPage() {
           await Promise.all(updates);
         } catch (updateErr) {
           console.error('Update failed:', updateErr);
-          setError('Failed to update positions. Please try again.');
-          setTimeout(() => setError(null), 5000);
+          toast.error('Failed to update positions. Please try again.');
           setDraggedIndex(null);
           setDropZone(null);
           return;
@@ -465,8 +456,7 @@ export default function NavigationManagerPage() {
         await fetchLabels(true);
         setRefreshKey((prev) => prev + 1);
 
-        setSuccess('Position updated!');
-        setTimeout(() => setSuccess(null), 3000);
+        toast.success('Position updated!');
         setDraggedIndex(null);
         setDropZone(null);
 
@@ -504,14 +494,13 @@ export default function NavigationManagerPage() {
       await fetchLabels(true);
       setRefreshKey((prev) => prev + 1);
 
-      setSuccess('Position updated!');
-      setTimeout(() => setSuccess(null), 3000);
+      toast.success('Position updated!');
 
       // Notify sidebar to refresh
       window.dispatchEvent(new Event('navigation-updated'));
     } catch (err) {
       console.error('Drag error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to update position');
+      toast.error(err instanceof Error ? err.message : 'Failed to update position');
       await fetchLabels(true);
     } finally {
       setDraggedIndex(null);
@@ -670,13 +659,6 @@ export default function NavigationManagerPage() {
                     Please contact your administrator if you are experiencing access issues.
                   </p>
                 )}
-              </div>
-            )}
-
-            {success && (
-              <div className="absolute top-3 right-4 p-2.5 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md flex items-start gap-2 shadow-lg z-10 max-w-md">
-                <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                <p className="text-xs text-green-800 dark:text-green-300">{success}</p>
               </div>
             )}
 

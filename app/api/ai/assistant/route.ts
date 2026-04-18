@@ -1,20 +1,14 @@
 import { NextResponse } from 'next/server';
-import OpenAI, { APIError } from 'openai';
 import { createClient } from '@supabase/supabase-js';
+import { parseBearerToken } from '@/lib/api/requireBearer';
 import { fetchTenantIdForAiUser, insertAiUsageLog } from '@/lib/aiRouteContext';
 import { getErrorMessage } from '@/lib/getErrorMessage';
-import { createOpenAIClient } from '@/lib/openaiServer';
+import { createOpenAIClient, getOpenAIModule } from '@/lib/openaiServer';
+import type OpenAI from 'openai';
 import { getSupabaseUrlAndAnonKey } from '@/lib/supabasePublicEnv';
 import { enforceAiRateLimit } from '@/lib/upstashRateLimit';
 import type { Database } from '@/types/database';
 import type { SupabaseClient } from '@supabase/supabase-js';
-
-function getTokenFromHeader(headerValue: string | null): string | null {
-  if (!headerValue) return null;
-  const [type, token] = headerValue.split(' ');
-  if (type?.toLowerCase() !== 'bearer' || !token) return null;
-  return token.trim();
-}
 
 function extractAssistantText(content: OpenAI.Beta.Threads.Messages.MessageContent[]): string {
   const chunks: string[] = [];
@@ -110,7 +104,14 @@ async function resolveOrCreateOpenAiThreadId(
   return { error: insErr.message, status: 500 };
 }
 
+export async function OPTIONS() {
+  return new Response(null, { status: 204 });
+}
+
 export async function POST(request: Request) {
+  const auth = parseBearerToken(request);
+  if (!auth.ok) return auth.response;
+
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) {
     return NextResponse.json(
@@ -138,11 +139,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const token = getTokenFromHeader(request.headers.get('authorization'));
-  if (!token) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+  const { token } = auth;
   const supabase = createClient<Database>(supabaseEnv.url, supabaseEnv.anonKey, {
     global: { headers: { Authorization: `Bearer ${token}` } },
   });
@@ -180,7 +177,7 @@ export async function POST(request: Request) {
 
   const resetThread = body.reset_thread === true;
 
-  const openai = createOpenAIClient(apiKey);
+  const openai = await createOpenAIClient(apiKey);
 
   const resolved = await resolveOrCreateOpenAiThreadId(
     supabase,
@@ -275,6 +272,7 @@ export async function POST(request: Request) {
       run_status: run.status,
     });
   } catch (err) {
+    const { APIError } = await getOpenAIModule();
     const messageErr = getErrorMessage(err, 'OpenAI Assistants request failed');
     const isNotFound = err instanceof APIError && err.status === 404;
     const isScopeOrRole =

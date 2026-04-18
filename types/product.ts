@@ -20,18 +20,6 @@ export interface PackingConfiguration {
 
 // Product-related tables inferred from Supabase Snippet Public Schema Column Catalog.csv
 
-export interface ProductVariant {
-  id: string;
-  parent_product_id: string;
-  variant_name: string;
-  variant_sku: string;
-  attributes: any; // jsonb
-  cost_adjustment: number | null;
-  price_adjustment: number | null;
-  is_active: boolean | null;
-  created_at: string | null;
-}
-
 export interface ProductBarcode {
   id: string;
   product_id: string;
@@ -79,6 +67,12 @@ export interface PriceList {
   is_active: boolean | null;
   is_default: boolean | null;
   created_at: string | null;
+  /** From business_core_schema_consolidation migration. */
+  rounding_mode?: string | null;
+  tax_inclusive?: boolean | null;
+  tenant_id?: string;
+  is_deleted?: boolean;
+  updated_at?: string | null;
 }
 
 export interface PriceListItem {
@@ -243,7 +237,13 @@ export interface ProductActivityLog {
  */
 
 export type IndustryType = 'bakery' | 'ready_meals' | 'pizza' | 'construction' | 'manufacturing' | 'retail' | 'other';
-export type ProductType = 'raw_material' | 'semi_finished' | 'finished_good' | 'service' | 'assembly';
+export type ProductType =
+  | 'raw_material'
+  | 'semi_finished'
+  | 'finished_good'
+  | 'service'
+  | 'assembly'
+  | 'packaging';
 export type StatusType = 'active' | 'inactive' | 'discontinued' | 'planned' | 'development';
 
 export interface Product {
@@ -261,6 +261,8 @@ export interface Product {
   
   // Pricing
   cost_price: number | null;
+  /** Weighted-average inventory unit cost; null until costing updates it. */
+  weighted_avg_unit_cost?: number | null;
   sell_price: number | null;
   currency: string | null;
   
@@ -275,10 +277,14 @@ export interface Product {
   volume_unit_id: string | null;
   
   // Inventory
+  /** When false, SKU is non-stocked (e.g. service); defaults true when omitted. */
+  tracks_inventory?: boolean | null;
   min_stock_level: number | null;
   max_stock_level: number | null;
   reorder_point: number | null;
   reorder_quantity: number | null;
+  /** Aggregated from stock levels when loaded via `vw_products_full`. */
+  total_stock?: number | null;
   lead_time_days: number | null;
   
   // Quality & Safety
@@ -306,9 +312,17 @@ export interface Product {
   metadata: any | null;
   tags: string[] | null;
   categories: string[] | null;
+
+  /** Optional product group (grouped / matrix catalogue modes). */
+  product_group_id?: string | null;
+  variant_attributes?: Record<string, unknown> | null;
+  product_group_name?: string | null;
+  product_group_attribute_dimensions?: unknown | null;
   
   // Audit
   is_active: boolean | null;
+  /** Soft-delete flag when present in DB (non-deleted products are false or omitted). */
+  is_deleted?: boolean | null;
   created_at: string;
   updated_at: string;
   created_by: string | null;
@@ -331,6 +345,7 @@ export interface ProductFormData {
   sell_price?: number;
 
   // Inventory
+  tracks_inventory?: boolean | null;
   min_stock_level?: number;
   max_stock_level?: number;
   reorder_point?: number;
@@ -360,6 +375,7 @@ export interface ProductFormData {
   specifications_url?: string;
 
   // Media
+  image_url?: string | null;
   images?: any;
 
   // Metadata & Tags
@@ -372,6 +388,10 @@ export interface ProductFormData {
   updated_at?: string;
   updated_by?: string;
   user_id?: string;
+
+  product_group_id?: string | null;
+  /** Attribute map for variants in a group (e.g. { size: "M", colour: "Red" }). */
+  variant_attributes?: Record<string, unknown> | null;
 
   // Packing Configurations
   packing_configurations?: PackingConfiguration[];
@@ -386,7 +406,11 @@ export interface ProductFilters {
   lowStock?: boolean;
   searchQuery?: string;
   categories?: string[];
+  recordVisibility?: ProductRecordVisibility;
 }
 
 export type ProductSortField = 'name' | 'sku' | 'cost_price' | 'sell_price' | 'created_at';
 export type SortDirection = 'asc' | 'desc';
+
+/** Which product rows to load: active (default), archived only, or all. */
+export type ProductRecordVisibility = 'active' | 'archived' | 'all';

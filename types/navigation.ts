@@ -8,15 +8,15 @@
  * reorganization and flexible navigation structures.
  * 
  * POSITION FORMAT:
- * - "1", "2", "3" - Root level (Pillars: Analytics, Business Core, Execution, Admin, Account)
+ * - "1", "2", "3" - Root level product pillars (prefix map: 1 = Analytics, 2 = Business Core, 3 = Execution; UI narrative order is Business Core → Execution → Analytics). Other roots: Admin, Account.
  * - "1.1", "1.2", "2.3" - Level 1 (child of root)
  * - "1.1.1", "2.3.4" - Level 2 (grandchild)
  * - Unlimited depth: "1.1.1.1.1..."
  * 
- * PILLAR SYSTEM:
- * - Analytics (Blue #2563eb) - Reporting, forecasting, analytics
- * - Business Core (Green #16a34a) - Core business entities, products, customers, inventory
- * - Execution (Orange/Amber #b45309) - Planning, calendar, OKRs
+ * PILLAR SYSTEM (product order):
+ * - Business Core (Green #16a34a) - Core business entities, products, customers, inventory (position prefix 2)
+ * - Execution (Orange/Amber #b45309) - Planning, calendar, OKRs (position prefix 3)
+ * - Analytics (Blue #2563eb) - Reporting, forecasting, analytics (position prefix 1)
  * - Administration (Gray #6b7280) - Users, settings, management
  * - Account (Gray #6b7280) - Profile and user settings
  */

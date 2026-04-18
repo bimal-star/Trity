@@ -1,6 +1,6 @@
 # Reference Files Index
 
-**Last Updated:** January 31, 2026  
+**Last Updated:** April 12, 2026  
 **Status:** Complete and Current
 
 ---
@@ -14,9 +14,9 @@ This document serves as a master index for all reference documentation in the Tr
 ## 🏠 Core Documentation
 
 ### [TRITY_CONTEXT.md](TRITY_CONTEXT.md)
-- **Version:** 0.2.0 (Updated Jan 31, 2026)
+- **Version:** 0.2.1 (Updated Apr 12, 2026)
 - **Purpose:** Complete AI & developer context
-- **Contains:** Project overview, architecture, coding conventions, database conventions, multi-tenant architecture, module system, file structure, development workflow
+- **Contains:** Project overview, architecture, coding conventions, database conventions, multi-tenant architecture (**including platform super-admin RLS vs client `tenant_id` filtering**), module system, file structure, development workflow
 - **Best for:** Understanding the complete project structure and conventions
 
 ### [README.md](README.md)
@@ -59,7 +59,7 @@ This document serves as a master index for all reference documentation in the Tr
 - **Best for:** Implementation details and integration patterns
 
 ### [QUICK_REFERENCE.md](QUICK_REFERENCE.md)
-- **Last Updated:** January 31, 2026
+- **Last Updated:** April 12, 2026
 - **Purpose:** Quick reference for access control features
 - **Contains:**
   - New pages and enhanced pages
@@ -67,7 +67,7 @@ This document serves as a master index for all reference documentation in the Tr
   - Three-role system overview
   - Quick start examples
   - All 15 permissions listed
-  - Security rules
+  - Security rules (including Supabase tenant filter rule for super-admin RLS)
   - Role capabilities
   - Common tasks with code examples
   - Testing checklist

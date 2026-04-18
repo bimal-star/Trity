@@ -51,7 +51,7 @@ scoop install supabase
 #### 2. Link Your Project
 
 ```bash
-supabase link --project-ref wvqlpcraxorchrtpatph
+supabase link --project-ref <your-project-ref>
 ```
 
 When prompted:
@@ -147,7 +147,7 @@ Or better yet, set up the Supabase CLI for automatic generation.
 ### CLI Link Fails
 
 Make sure you have:
-- ✅ Correct project reference: `wvqlpcraxorchrtpatph`
+- ✅ Correct project reference from the Supabase dashboard (Settings → General → Reference ID)
 - ✅ Database password (from Supabase Dashboard)
 - ✅ Internet connection
 

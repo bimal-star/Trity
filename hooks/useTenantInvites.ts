@@ -28,14 +28,14 @@ export function useTenantInvites(tenantId: string | null, userId: string | undef
     }
     try {
       setError(null);
-      const { data, err } = await supabase
+      const { data, error: fetchErr } = await supabase
         .from('tenant_invites')
         .select('*')
         .eq('tenant_id', tid)
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false });
 
-      if (err) throw err;
+      if (fetchErr) throw fetchErr;
       setPendingInvites((data ?? []) as TenantInvite[]);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load invites');
@@ -49,7 +49,7 @@ export function useTenantInvites(tenantId: string | null, userId: string | undef
       setIsLoading(true);
       setError(null);
       try {
-        const { data, err } = await supabase
+        const { data, error: insertErr } = await supabase
           .from('tenant_invites')
           .insert({
             tenant_id: tenantId,
@@ -57,13 +57,13 @@ export function useTenantInvites(tenantId: string | null, userId: string | undef
             role: role || 'member',
             group_id: groupId ?? null,
             invited_by: userId,
-          } as Record<string, unknown>)
+          })
           .select('token')
           .single();
 
-        if (err) {
-          if (err.code === '23505') return { success: false, error: 'An invite for this email already exists.' };
-          throw err;
+        if (insertErr) {
+          if (insertErr.code === '23505') return { success: false, error: 'An invite for this email already exists.' };
+          throw insertErr;
         }
         const origin = typeof window !== 'undefined' ? window.location.origin : '';
         const inviteLink = `${origin}/signup?invite=${(data as { token: string }).token}`;

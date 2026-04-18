@@ -112,7 +112,7 @@ For full coverage of all product tables (BOM, pricing, inventory, etc.), install
 npm install -g supabase
 
 # Link your project
-supabase link --project-ref wvqlpcraxorchrtpatph
+supabase link --project-ref <your-project-ref>
 
 # Regenerate types (will use CLI automatically)
 npm run generate:types
@@ -189,13 +189,13 @@ The script automatically:
 1. **Install Supabase CLI** for complete type coverage of product tables:
    ```bash
    npm install -g supabase
-   supabase link --project-ref wvqlpcraxorchrtpatph
+   supabase link --project-ref <your-project-ref>
    npm run generate:types
    ```
 
 2. **Deploy Migration 025** to clear materialized view linter warning:
    ```bash
-   psql -h db.wvqlpcraxorchrtpatph.supabase.co -U postgres -d postgres < sql/025-add-rls-to-materialized-view.sql
+   psql -h db.<your-project-ref>.supabase.co -U postgres -d postgres < sql/025-add-rls-to-materialized-view.sql
    ```
 
 3. **Set up pg_cron** for automated timezone cache refresh (see Maintenance section above)

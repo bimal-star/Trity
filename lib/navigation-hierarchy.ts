@@ -235,7 +235,66 @@ export function organizeHierarchy<T extends PositionedItem>(
     }
   });
 
+  // Third pass: promote "orphan" items whose parent position is missing from the result
+  // (e.g. RLS returns children but not parent rows). Without this, the tree is empty and
+  // the sidebar shows nothing.
+  const markVisited = (nodes: HierarchicalItem<T>[], seen: Set<string>) => {
+    for (const n of nodes) {
+      seen.add(String(n.position));
+      if (n.children?.length) markVisited(n.children, seen);
+    }
+  };
+  const visited = new Set<string>();
+  markVisited(organized, visited);
+
+  const depthOf = (pos: string) => pos.split('.').length;
+  const unattached = sortedItems
+    .filter((i) => !visited.has(String(i.position)))
+    .sort((a, b) => depthOf(String(a.position)) - depthOf(String(b.position)));
+
+  for (const item of unattached) {
+    const posStr = String(item.position);
+    if (visited.has(posStr)) continue;
+    const parts = posStr.split('.');
+    const parentPos = parts.length > 1 ? parts.slice(0, -1).join('.') : '';
+    const parentInMap = Boolean(parentPos && itemsMap.has(parentPos));
+    const parentVisited = Boolean(parentPos && visited.has(parentPos));
+    const promote =
+      parts.length === 1 || !parentInMap || !parentVisited;
+    if (promote) {
+      const node = itemsMap.get(posStr);
+      if (node) {
+        organized.push(node);
+        markVisited([node], visited);
+      }
+    }
+  }
+
   return organized;
+}
+
+/**
+ * Depth-first flatten of navigation tree for module access UI (id, label, position only).
+ */
+export function flattenNavigationTreeForAccess(
+  items: HierarchicalItem<PositionedItem & { id?: string; label?: string }>[]
+): Array<{ id: string; label: string; position: string | number }> {
+  const results: Array<{ id: string; label: string; position: string | number }> = [];
+  const stack = [...items];
+  while (stack.length > 0) {
+    const current = stack.shift();
+    if (!current) continue;
+    const id = (current as { id?: string }).id;
+    const label = (current as { label?: string }).label;
+    if (id && label) {
+      results.push({ id, label, position: current.position });
+    }
+    const kids = current.children;
+    if (kids && kids.length > 0) {
+      stack.push(...kids);
+    }
+  }
+  return results;
 }
 
 /**

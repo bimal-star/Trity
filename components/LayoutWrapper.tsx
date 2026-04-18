@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { Menu } from 'lucide-react';
 import { Sidebar } from '@/components/navigation/Sidebar';
 import { LayoutSkeleton } from '@/components/LayoutSkeleton';
 import { useTenant } from '@/contexts/TenantContext';
+import { supabase } from '@/lib/supabaseClient';
 
 /**
  * Main content area. Stable across route changes – we avoid key={pathname} so the
@@ -12,10 +14,22 @@ import { useTenant } from '@/contexts/TenantContext';
  * Page-level hooks (useCalendar, useProducts, etc.) refetch when pathname changes.
  */
 function Main({ children }: { children: React.ReactNode }) {
+  // Start with margin applied (desktop default). Effect corrects to no-margin on mobile
+  // without a visible flash on desktop initial render.
+  const [showMargin, setShowMargin] = useState(true);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 640px)');
+    setShowMargin(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setShowMargin(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   return (
     <main
       className="flex-1 transition-all duration-500"
-      style={{ marginLeft: 'var(--sidebar-width, 246px)' }}
+      style={showMargin ? { marginLeft: 'var(--sidebar-width, 246px)' } : {}}
     >
       {children}
     </main>
@@ -31,9 +45,10 @@ function Main({ children }: { children: React.ReactNode }) {
  * Behavior:
  * - Login page: render children only (no sidebar)
  * - Non-login pages:
- *   - !ready: show LayoutSkeleton (waiting for TenantContext to load)
- *   - ready && !user: redirect to /login (read-only check, no fetching)
- *   - ready && user: render Sidebar + Main + children
+ *   - !ready: show LayoutSkeleton (waiting for session + tenant resolution)
+ *   - ready && !user: confirm with supabase.auth.getSession() before sending to /login — avoids
+ *     bouncing right after sign-in when React context has not applied SIGNED_IN yet.
+ *   - ready && user: render Sidebar + Main + children (Sidebar may still load menu items)
  *
  * Stability guarantees:
  * - Uses pathname ONLY for determining which layout to show
@@ -42,38 +57,48 @@ function Main({ children }: { children: React.ReactNode }) {
  * - All data comes from cached TenantContext values
  * - Navigation is instant because no async operations run
  *
- * The redirect logic is purely client-side routing - it doesn't fetch anything.
+ * Guest redirect uses getSession() so we do not treat "context not updated yet" as logged out.
  */
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { ready, user } = useTenant(); // Read-only access to cached values
+  const { ready, user } = useTenant();
   const publicPaths = ['/login', '/reset-password'];
   const isPublicPage = publicPaths.includes(pathname);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  /**
-   * Redirect effect - ONLY handles routing, never fetches data
-   * 
-   * This effect:
-   * - Checks if user is authenticated (using cached value from TenantContext)
-   * - Redirects to login if not authenticated
-   * - Does NOT trigger any data fetching
-   * - Does NOT cause TenantContext to re-validate
-   * 
-   * The user value comes from TenantContext's cached state, which was loaded
-   * once on app mount. This is just a read operation.
-   */
+  /** `absent` = getSession() returned null → safe to send to /login */
+  const [guestSession, setGuestSession] = useState<
+    'unset' | 'checking' | 'present' | 'absent'
+  >('unset');
+
+  // Close mobile sidebar on route change
   useEffect(() => {
-    if (!ready || isPublicPage) return;
-    if (!user) {
-      console.log('⚠️ No user found, redirecting to login after delay');
-      // Add a small delay to prevent redirect loops
-      const timeout = setTimeout(() => {
-        router.replace('/login');
-      }, 100);
-      return () => clearTimeout(timeout);
+    setMobileSidebarOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!ready || isPublicPage || user) {
+      setGuestSession('unset');
+      return;
     }
-  }, [ready, user, isPublicPage, router]);
+    let cancelled = false;
+    setGuestSession('checking');
+    void supabase.auth.getSession().then(({ data }) => {
+      if (cancelled) return;
+      const has = Boolean(data.session);
+      setGuestSession(has ? 'present' : 'absent');
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, isPublicPage, user, pathname]);
+
+  useEffect(() => {
+    if (!ready || isPublicPage || user) return;
+    if (guestSession !== 'absent') return;
+    router.replace('/login');
+  }, [ready, user, isPublicPage, router, pathname, guestSession]);
 
   if (isPublicPage) {
     return <div key="public">{children}</div>;
@@ -84,22 +109,28 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-950">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 border-2 border-gray-300 dark:border-gray-600 border-t-blue-500 rounded-full animate-spin" />
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Redirecting to login...
-          </p>
-        </div>
-      </div>
-    );
+    return <LayoutSkeleton />;
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
-      <Sidebar />
-      <Main>{children}</Main>
+    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-950">
+      <div className="flex min-h-0 flex-1">
+        <Sidebar
+          mobileOpen={mobileSidebarOpen}
+          onMobileClose={() => setMobileSidebarOpen(false)}
+        />
+        {/* Hamburger button — visible only below sm: breakpoint when sidebar is closed */}
+        {!mobileSidebarOpen && (
+          <button
+            className="fixed left-3 top-3 z-50 flex h-9 w-9 items-center justify-center rounded-lg bg-gray-900 text-white shadow-lg sm:hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="Open navigation"
+            onClick={() => setMobileSidebarOpen(true)}
+          >
+            <Menu size={18} aria-hidden />
+          </button>
+        )}
+        <Main>{children}</Main>
+      </div>
     </div>
   );
 }

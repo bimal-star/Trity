@@ -5,7 +5,7 @@
  * Make sure you have the Supabase CLI installed and configured.
  * 
  * To install: npm install -g supabase
- * To link project: supabase link --project-ref wvqlpcraxorchrtpatph
+ * To link project: supabase link --project-ref <your-project-ref>
  * 
  * This approach bypasses RLS issues by using the service role key
  * that the CLI uses internally.
@@ -41,7 +41,7 @@ try {
   console.error('❌ Error generating types with Supabase CLI');
   console.error('Make sure you have:');
   console.error('1. Supabase CLI installed: npm install -g supabase');
-  console.error('2. Project linked: supabase link --project-ref wvqlpcraxorchrtpatph');
+  console.error('2. Project linked: supabase link --project-ref <your-project-ref>');
   console.error('\nFalling back to manual type generation...\n');
   
   // Fallback: Generate basic types manually

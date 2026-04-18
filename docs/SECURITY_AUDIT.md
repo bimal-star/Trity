@@ -148,7 +148,7 @@ Example (chat):
 
 ### 2.4 Next.js `middleware`
 
-- **No `middleware.ts` / `middleware.js`** was found at the project root. Edge middleware is **not** used for auth, rate limits, or route gating.
+- **`middleware.ts` exists** at the project root but uses a **placeholder `matcher`** (`/__trity_middleware_disabled__`) so **no application routes** run through it. It performs no auth, rate limits, or route gating; it exists for bundle/documentation guardrails only.
 
 ### 2.5 “Unprotected” API surface
 
@@ -306,7 +306,7 @@ Pattern: `createClient(url, anonKey, { global: { headers: { Authorization: Beare
 
 ### 7.1 Next.js middleware
 
-- **None** — no root `middleware.ts` / `middleware.js`.
+- **`middleware.ts`** is present but **does not match real routes** (placeholder path only). **No** edge auth or gating.
 
 ### 7.2 Auth checks
 
@@ -360,7 +360,7 @@ Pattern: `createClient(url, anonKey, { global: { headers: { Authorization: Beare
 | API authorization               | **Mixed** — access update is admin/tenant-aware; AI routes are not.                                                             |
 | Data to OpenAI                  | **Controlled docs path** for optional context; user/chat content is client-driven; model not allowlisted.                       |
 | RLS / tenancy                   | **Database layer** — migrations show tenant-aware policies; app `tenantedSupabase` still uses public tables + RLS per comments. |
-| Middleware / rate limits / CORS | **Gaps** — no middleware, no rate limits, no explicit CORS config in reviewed files.                                            |
+| Middleware / rate limits / CORS | **Gaps** — no active middleware on app routes; no rate limits; no explicit CORS config in reviewed files.                      |
 
 ---
 

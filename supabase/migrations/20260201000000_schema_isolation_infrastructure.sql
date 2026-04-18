@@ -84,7 +84,10 @@ CREATE OR REPLACE FUNCTION public.create_tenant_schema(
   p_tenant_id uuid,
   p_tenant_name text DEFAULT NULL
 )
-RETURNS text AS $$
+RETURNS text
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
 DECLARE
   v_schema_name text;
   v_tenant_name text;
@@ -125,7 +128,7 @@ BEGIN
   
   RETURN v_schema_name;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 COMMENT ON FUNCTION public.create_tenant_schema(uuid, text) IS 'Creates a new tenant schema and logs the action';
 

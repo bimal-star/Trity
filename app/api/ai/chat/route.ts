@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { parseBearerToken } from '@/lib/api/requireBearer';
 import { fetchTenantIdForAiUser, insertAiUsageLog } from '@/lib/aiRouteContext';
 import { getErrorMessage } from '@/lib/getErrorMessage';
 import { createOpenAIClient } from '@/lib/openaiServer';
@@ -12,13 +13,6 @@ const DEFAULT_MODEL = 'gpt-4o-mini';
 const ALLOWED_MODELS = ['gpt-4o-mini', 'gpt-4o'] as const;
 const MAX_MESSAGES = 30;
 const MAX_MESSAGE_CHARS = 12000;
-
-function getTokenFromHeader(headerValue: string | null): string | null {
-  if (!headerValue) return null;
-  const [type, token] = headerValue.split(' ');
-  if (type?.toLowerCase() !== 'bearer' || !token) return null;
-  return token.trim();
-}
 
 type ChatRole = 'user' | 'assistant' | 'system';
 
@@ -75,7 +69,26 @@ function resolveModel(requested: unknown): string {
   return (ALLOWED_MODELS as readonly string[]).includes(t) ? t : DEFAULT_MODEL;
 }
 
+function encodeSse(event: string, data: unknown): Uint8Array {
+  const encoder = new TextEncoder();
+  const payload = JSON.stringify(data);
+  return encoder.encode(`event: ${event}\ndata: ${payload}\n\n`);
+}
+
+type ParsedBody = {
+  messages?: unknown;
+  model?: unknown;
+  include_project_docs?: unknown;
+} | null;
+
+export async function OPTIONS() {
+  return new Response(null, { status: 204 });
+}
+
 export async function POST(request: Request) {
+  const auth = parseBearerToken(request);
+  if (!auth.ok) return auth.response;
+
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) {
     return NextResponse.json(
@@ -92,11 +105,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const token = getTokenFromHeader(request.headers.get('authorization'));
-  if (!token) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+  const { token } = auth;
   const supabase = createClient<Database>(supabaseEnv.url, supabaseEnv.anonKey, {
     global: { headers: { Authorization: `Bearer ${token}` } },
   });
@@ -113,20 +122,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: rate.message }, { status: rate.status });
   }
 
-  const tenantResult = await fetchTenantIdForAiUser(supabase, userId);
+  const bodyPromise: Promise<ParsedBody> = request
+    .json()
+    .then((b) => b as ParsedBody)
+    .catch(() => null);
+
+  const [tenantResult, body] = await Promise.all([
+    fetchTenantIdForAiUser(supabase, userId),
+    bodyPromise,
+  ]);
+
   if ('error' in tenantResult) {
     return NextResponse.json({ error: tenantResult.error }, { status: tenantResult.status });
   }
   const { tenantId } = tenantResult;
 
-  let body: { messages?: unknown; model?: unknown; include_project_docs?: unknown };
-  try {
-    body = (await request.json()) as {
-      messages?: unknown;
-      model?: unknown;
-      include_project_docs?: unknown;
-    };
-  } catch {
+  if (body === null) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
@@ -149,40 +160,64 @@ export async function POST(request: Request) {
   }
 
   const model = resolveModel(body.model);
+  const openai = await createOpenAIClient(apiKey);
 
-  const openai = createOpenAIClient(apiKey);
+  const stream = new ReadableStream({
+    async start(controller) {
+      const push = (event: string, data: unknown) => controller.enqueue(encodeSse(event, data));
+      try {
+        const streamResp = await openai.chat.completions.create({
+          model,
+          messages: messagesForModel,
+          max_tokens: 1024,
+          stream: true,
+          stream_options: { include_usage: true },
+        });
 
-  try {
-    const completion = await openai.chat.completions.create({
-      model,
-      messages: messagesForModel,
-      max_tokens: 1024,
-    });
+        let finalModel = model;
+        let usage: unknown = null;
 
-    const text = completion.choices[0]?.message?.content ?? '';
+        for await (const chunk of streamResp) {
+          if (chunk.model) finalModel = chunk.model;
+          const delta = chunk.choices[0]?.delta?.content;
+          if (typeof delta === 'string' && delta.length > 0) {
+            push('delta', { text: delta });
+          }
+          if (chunk.usage) {
+            usage = chunk.usage;
+          }
+        }
 
-    await insertAiUsageLog(supabase, {
-      userId,
-      tenantId,
-      route: 'chat',
-      model: completion.model ?? model,
-      messageCount: messages.length,
-    });
+        push('done', { model: finalModel, usage });
+        await insertAiUsageLog(supabase, {
+          userId,
+          tenantId,
+          route: 'chat',
+          model: finalModel,
+          messageCount: messages.length,
+        });
+      } catch (err) {
+        const message = getErrorMessage(err, 'OpenAI request failed');
+        push('error', { message });
+        await insertAiUsageLog(supabase, {
+          userId,
+          tenantId,
+          route: 'chat',
+          model,
+          messageCount: messages.length,
+        });
+      } finally {
+        controller.close();
+      }
+    },
+  });
 
-    return NextResponse.json({
-      text,
-      model: completion.model,
-      usage: completion.usage,
-    });
-  } catch (err) {
-    const message = getErrorMessage(err, 'OpenAI request failed');
-    await insertAiUsageLog(supabase, {
-      userId,
-      tenantId,
-      route: 'chat',
-      model,
-      messageCount: messages.length,
-    });
-    return NextResponse.json({ error: message }, { status: 502 });
-  }
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    },
+  });
 }

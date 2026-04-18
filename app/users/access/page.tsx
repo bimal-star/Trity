@@ -1,30 +1,71 @@
 ﻿'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import PremiumStickyHeader from '@/components/layout/premium/PremiumStickyHeader';
 import PageContainer from '@/components/PageContainer';
 import { useTenant } from '@/contexts/TenantContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useUserGroups } from '@/hooks/useUserGroups';
 import { supabase } from '@/lib/supabaseClient';
-import { defaultNavigationItems } from '@/lib/navigation-default';
-import { NavigationItem } from '@/types/navigation';
-import { Users, Save, AlertCircle, Loader2, CheckCircle, Search } from 'lucide-react';
+import { comparePositions } from '@/lib/navigation-hierarchy';
+import {
+  isRoutableNavRow,
+  PILLAR_ROOT_LABEL_ORDER,
+  routableIdsOutsideThreePillars,
+  routableRowsInPillarSubtreeByLabel,
+  premiumModuleForPillarLabel,
+  type NavPillarRow,
+  type PillarRootLabel,
+} from '@/lib/navigationPillars';
+import { pillarAccent, premiumPrimaryButton, premiumSurfaces } from '@/lib/premiumUi';
+import { useToast } from '@/lib/toast';
+import { Users, Save, AlertCircle, Loader2, Search } from 'lucide-react';
 
 interface UserAccess {
   [key: string]: boolean;
 }
 
-const PILLAR_COLORS = {
-  'Analytics': { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-300', icon: 'text-blue-600' },
-  'Business Core': { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-300', icon: 'text-green-600' },
-  'Execution': { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-300', icon: 'text-orange-600' },
-};
+function accessTriState(ids: string[], userAccess: UserAccess): 'all' | 'some' | 'none' {
+  if (ids.length === 0) return 'none';
+  const allowed = ids.filter((id) => userAccess[id] !== false).length;
+  if (allowed === 0) return 'none';
+  if (allowed === ids.length) return 'all';
+  return 'some';
+}
+
+function PillarAccessMasterCheckbox({
+  triState,
+  disabled,
+  onToggle,
+}: {
+  triState: 'all' | 'some' | 'none';
+  disabled?: boolean;
+  onToggle: () => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = triState === 'some';
+  }, [triState]);
+
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      disabled={disabled}
+      checked={triState === 'all'}
+      onChange={onToggle}
+      className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-2 focus:ring-green-500 dark:border-gray-600"
+      aria-label="Toggle all modules in this pillar"
+    />
+  );
+}
 
 export default function UserAccessPage() {
   const router = useRouter();
-  const { tenant_id } = useTenant();
+  const { effectiveTenantId: tenant_id } = useTenant();
   const { can } = usePermissions();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [accessScope, setAccessScope] = useState<'user' | 'group'>('user');
   const [selectedUserId, setSelectedUserId] = useState('');
@@ -34,10 +75,10 @@ export default function UserAccessPage() {
   const [userAccess, setUserAccess] = useState<UserAccess>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
-  // Check permissions
+  const [navRows, setNavRows] = useState<NavPillarRow[]>([]);
+  const [navLoading, setNavLoading] = useState(false);
+
   useEffect(() => {
     if (!can('manage_users')) {
       router.replace('/');
@@ -46,8 +87,6 @@ export default function UserAccessPage() {
 
   useEffect(() => {
     setUserAccess({});
-    setError(null);
-    setSuccess(null);
     if (accessScope === 'user') {
       setSelectedGroupId('');
     } else {
@@ -55,7 +94,6 @@ export default function UserAccessPage() {
     }
   }, [accessScope]);
 
-  // Load users
   useEffect(() => {
     if (!tenant_id) return;
 
@@ -70,17 +108,41 @@ export default function UserAccessPage() {
 
         if (err) throw err;
         setUsers(data || []);
-      } catch (err: any) {
-        setError('Failed to load users');
+      } catch {
+        toast.error('Failed to load users');
       } finally {
         setIsLoading(false);
       }
     };
 
     loadUsers();
-  }, [tenant_id]);
+  }, [tenant_id, toast]);
 
-  // Load access for selected user or group
+  useEffect(() => {
+    if (!tenant_id) return;
+
+    const loadNav = async () => {
+      setNavLoading(true);
+      try {
+        const { data, error: err } = await supabase
+          .from('navigation')
+          .select('id,label,position,path,is_enabled,is_deleted')
+          .eq('tenant_id', tenant_id)
+          .order('position', { ascending: true });
+
+        if (err) throw err;
+        setNavRows((data ?? []) as NavPillarRow[]);
+      } catch {
+        toast.error('Failed to load navigation');
+        setNavRows([]);
+      } finally {
+        setNavLoading(false);
+      }
+    };
+
+    void loadNav();
+  }, [tenant_id, toast]);
+
   useEffect(() => {
     if (!tenant_id) return;
 
@@ -116,55 +178,79 @@ export default function UserAccessPage() {
           });
           setUserAccess(accessMap);
         }
-
-        setError(null);
-        setSuccess(null);
-      } catch (err: any) {
-        setError('Failed to load access permissions');
+      } catch {
+        toast.error('Failed to load access permissions');
       }
     };
 
-    loadAccess();
-  }, [accessScope, selectedUserId, selectedGroupId, tenant_id]);
+    void loadAccess();
+  }, [accessScope, selectedUserId, selectedGroupId, tenant_id, toast]);
+
+  const routableModules = navRows.filter(isRoutableNavRow);
+  const allModuleIds = routableModules.map((r) => r.id);
 
   const handleAccessToggle = (moduleId: string) => {
-    setUserAccess(prev => ({
+    setUserAccess((prev) => ({
       ...prev,
       [moduleId]: !(prev[moduleId] ?? true),
     }));
+  };
+
+  const setPillarAccess = (ids: string[], allow: boolean) => {
+    setUserAccess((prev) => {
+      const next = { ...prev };
+      for (const id of ids) {
+        if (allow) {
+          delete next[id];
+        } else {
+          next[id] = false;
+        }
+      }
+      return next;
+    });
+  };
+
+  const togglePillarAccess = (pillarLabel: PillarRootLabel) => {
+    const ids = routableRowsInPillarSubtreeByLabel(navRows, pillarLabel).map((r) => r.id);
+    const tri = accessTriState(ids, userAccess);
+    const allow = tri !== 'all';
+    setPillarAccess(ids, allow);
+  };
+
+  const toggleAdministrationAccess = () => {
+    const ids = routableIdsOutsideThreePillars(navRows);
+    const tri = accessTriState(ids, userAccess);
+    const allow = tri !== 'all';
+    setPillarAccess(ids, allow);
   };
 
   const handleSaveAccess = async () => {
     if (!tenant_id) return;
     if (accessScope === 'user' && !selectedUserId) return;
     if (accessScope === 'group' && !selectedGroupId) return;
+    if (allModuleIds.length === 0) {
+      toast.error('No navigation modules to save. Check Navigation Manager for this tenant.');
+      return;
+    }
 
     try {
       setIsSaving(true);
-      setError(null);
 
-      // Get all modules from navigation
-      const allModules = defaultNavigationItems
-        .filter(item => item.path && !['Analytics', 'Business Core', 'Execution'].includes(item.label))
-        .map(item => item.id);
-
-      // Build upsert data
-      const accessData = allModules.map(moduleId =>
+      const accessData = allModuleIds.map((moduleId) =>
         accessScope === 'user'
           ? {
               tenant_id,
               user_id: selectedUserId,
               module_id: moduleId,
-              has_access: userAccess[moduleId] ?? true,
+              has_access: userAccess[moduleId] !== false,
             }
           : {
               group_id: selectedGroupId,
               module_id: moduleId,
-              has_access: userAccess[moduleId] ?? true,
+              has_access: userAccess[moduleId] !== false,
             }
       );
 
-      // Upsert all records
       const { error: upsertErr } = await (supabase as any)
         .from(accessScope === 'user' ? 'user_module_access' : 'group_module_access')
         .upsert(
@@ -176,76 +262,43 @@ export default function UserAccessPage() {
 
       if (upsertErr) throw upsertErr;
 
-      setSuccess('Access permissions saved successfully');
-      setTimeout(() => setSuccess(null), 3000);
+      toast.success('Access permissions saved successfully');
     } catch (err: any) {
-      setError(err.message);
+      toast.error(err.message);
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Get all non-pillar items, sorted by position
-  const allAccessibleItems = defaultNavigationItems
-    .filter(item => item.path && !['Analytics', 'Business Core', 'Execution'].includes(item.label))
-    .sort((a, b) => {
-      const posA = parseFloat(String(a.position ?? '999'));
-      const posB = parseFloat(String(b.position ?? '999'));
-      return posA - posB;
-    });
+  const adminIds = routableIdsOutsideThreePillars(navRows);
+  const adminItems = routableModules
+    .filter((r) => adminIds.includes(r.id))
+    .sort((a, b) => comparePositions(a.position, b.position));
 
-  // Organize items by pillar group for the right panel
-  const itemsByPillar = allAccessibleItems.reduce((acc, item) => {
-    // Extract pillar from position (1.x = Analytics, 2.x = Business Core, 3.x = Execution)
-    const positionPrefix = String(item.position ?? '').split('.')[0];
-    let pillar = '';
-    if (positionPrefix === '1') pillar = 'Analytics';
-    else if (positionPrefix === '2') pillar = 'Business Core';
-    else if (positionPrefix === '3') pillar = 'Execution';
-    else pillar = 'Administration';
-
-    if (!acc[pillar]) acc[pillar] = [];
-    acc[pillar].push(item);
-    return acc;
-  }, {} as Record<string, NavigationItem[]>);
+  const hasSelection = accessScope === 'user' ? Boolean(selectedUserId) : Boolean(selectedGroupId);
 
   return (
-    <PageContainer title="Access Levels">
-      {/* Two-Tier Header */}
-      <div className="mb-6 -mt-1">
-        <div className="flex items-center justify-between gap-4 mb-2">
-          <div className="flex items-center gap-3">
-            <div className="p-2">
-              <Users className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-700 dark:text-gray-300">
-              Access Levels
-            </h1>
-          </div>
-        </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400 ml-11">
-          Manage module-level access permissions for users and groups
-        </p>
-      </div>
+    <PageContainer module={null}>
+      <PremiumStickyHeader
+        icon={Users}
+        title="Access Levels"
+        subtitle="Manage module-level access permissions for users and groups"
+      />
 
-      {/* Divider */}
-      <div className="h-px bg-gradient-to-r from-gray-200 dark:from-gray-700 to-transparent mb-6" />
+      <div className={`mb-6 ${premiumSurfaces.divider}`} />
 
-      {/* Two-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        
-        {/* LEFT PANEL: Scope + Selection */}
+      <div className="grid grid-cols-1 gap-6 items-start lg:grid-cols-3">
         <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-            <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+          <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className="border-b border-gray-200 p-3 dark:border-gray-700">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setAccessScope('user')}
-                  className={`flex-1 px-3 py-2 text-xs font-medium rounded ${
+                  className={`flex-1 rounded px-3 py-2 text-xs font-medium ${
                     accessScope === 'user'
                       ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                      : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                   }`}
                 >
                   Users
@@ -253,10 +306,10 @@ export default function UserAccessPage() {
                 <button
                   type="button"
                   onClick={() => setAccessScope('group')}
-                  className={`flex-1 px-3 py-2 text-xs font-medium rounded ${
+                  className={`flex-1 rounded px-3 py-2 text-xs font-medium ${
                     accessScope === 'group'
                       ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                      : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                   }`}
                 >
                   Groups
@@ -264,15 +317,15 @@ export default function UserAccessPage() {
               </div>
             </div>
 
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="border-b border-gray-200 p-4 dark:border-gray-700">
               <div className="relative">
-                <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
                   placeholder={accessScope === 'user' ? 'Search users...' : 'Search groups...'}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full rounded border border-gray-300 bg-white py-2 pl-9 pr-4 text-xs text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
               </div>
             </div>
@@ -281,83 +334,74 @@ export default function UserAccessPage() {
               {accessScope === 'user' ? (
                 isLoading ? (
                   <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                    <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
                   </div>
                 ) : users.length === 0 ? (
-                  <div className="p-4 text-center text-xs text-gray-500 dark:text-gray-400">
-                    No users found
-                  </div>
+                  <div className="p-4 text-center text-xs text-gray-500 dark:text-gray-400">No users found</div>
                 ) : (
                   users
-                    .filter(u =>
-                      (u.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      (u.email || '').toLowerCase().includes(searchQuery.toLowerCase())
+                    .filter(
+                      (u) =>
+                        (u.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        (u.email || '').toLowerCase().includes(searchQuery.toLowerCase())
                     )
-                    .map(u => (
+                    .map((u) => (
                       <button
                         key={u.user_id}
+                        type="button"
                         onClick={() => setSelectedUserId(u.user_id)}
-                        className={`w-full text-left px-4 py-3 border-b border-gray-200 dark:border-gray-700 text-xs transition-colors last:border-0 ${
+                        className={`w-full border-b border-gray-200 px-4 py-3 text-left text-xs transition-colors last:border-0 dark:border-gray-700 ${
                           selectedUserId === u.user_id
-                            ? 'bg-blue-50 dark:bg-blue-900/30 border-l-4 border-l-blue-500'
+                            ? 'border-l-4 border-l-blue-500 bg-blue-50 dark:bg-blue-900/30'
                             : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
                         }`}
                       >
                         <div className="font-medium text-gray-900 dark:text-white">
                           {(u.full_name || '').trim() || u.email}
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{u.email}</div>
+                        <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{u.email}</div>
                       </button>
                     ))
                 )
+              ) : groupsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                </div>
+              ) : groups.length === 0 ? (
+                <div className="p-4 text-center text-xs text-gray-500 dark:text-gray-400">No groups found</div>
               ) : (
-                groupsLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-                  </div>
-                ) : groups.length === 0 ? (
-                  <div className="p-4 text-center text-xs text-gray-500 dark:text-gray-400">
-                    No groups found
-                  </div>
-                ) : (
-                  groups
-                    .filter(g => (g.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
-                    .map(g => (
-                      <button
-                        key={g.id}
-                        onClick={() => setSelectedGroupId(g.id)}
-                        className={`w-full text-left px-4 py-3 border-b border-gray-200 dark:border-gray-700 text-xs transition-colors last:border-0 ${
-                          selectedGroupId === g.id
-                            ? 'bg-blue-50 dark:bg-blue-900/30 border-l-4 border-l-blue-500'
-                            : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
-                        }`}
-                      >
-                        <div className="font-medium text-gray-900 dark:text-white">
-                          {g.name}
-                        </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                          {g.description || 'No description'}
-                        </div>
-                      </button>
-                    ))
-                )
+                groups
+                  .filter((g) => (g.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
+                  .map((g) => (
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() => setSelectedGroupId(g.id)}
+                      className={`w-full border-b border-gray-200 px-4 py-3 text-left text-xs transition-colors last:border-0 dark:border-gray-700 ${
+                        selectedGroupId === g.id
+                          ? 'border-l-4 border-l-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                          : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                      }`}
+                    >
+                      <div className="font-medium text-gray-900 dark:text-white">{g.name}</div>
+                      <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                        {g.description || 'No description'}
+                      </div>
+                    </button>
+                  ))
               )}
             </div>
           </div>
         </div>
 
-        {/* RIGHT PANEL: Access Matrix */}
         <div className="lg:col-span-2">
-          {(accessScope === 'user' ? selectedUserId : selectedGroupId) ? (
+          {hasSelection ? (
             <div className="space-y-4">
-              {/* Info Box */}
-              <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <div className="text-blue-600 dark:text-blue-400 mt-0.5">
-                  <AlertCircle className="w-4 h-4" />
-                </div>
+              <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+                <AlertCircle className="mt-0.5 h-4 w-4 text-blue-600 dark:text-blue-400" />
                 <div>
                   <p className="text-xs font-medium text-blue-900 dark:text-blue-200">Module Access Control</p>
-                  <p className="text-xs text-blue-800 dark:text-blue-300 mt-1">
+                  <p className="mt-1 text-xs text-blue-800 dark:text-blue-300">
                     {accessScope === 'user'
                       ? 'Configure access for an individual user. User-level settings can override group access.'
                       : 'Configure access for a group. All group members inherit these permissions.'}
@@ -365,90 +409,112 @@ export default function UserAccessPage() {
                 </div>
               </div>
 
-              {/* Messages */}
-              {error && (
-                <div className="flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                  <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-red-700 dark:text-red-300">{error}</p>
+              {navLoading ? (
+                <div className="flex justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
                 </div>
-              )}
-
-              {success && (
-                <div className="flex items-start gap-3 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                  <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-green-700 dark:text-green-300">{success}</p>
+              ) : allModuleIds.length === 0 ? (
+                <div className="rounded-lg border border-gray-200 bg-white p-8 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+                  No routable navigation items for this tenant. Open Navigation Manager to configure the menu.
                 </div>
-              )}
+              ) : (
+                <>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    {PILLAR_ROOT_LABEL_ORDER.map((pillarLabel) => {
+                      const mod = pillarAccent(premiumModuleForPillarLabel(pillarLabel));
+                      const items = routableRowsInPillarSubtreeByLabel(navRows, pillarLabel);
+                      const ids = items.map((r) => r.id);
+                      const tri = accessTriState(ids, userAccess);
 
-              {/* Access Matrix by Pillar */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-                <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {['Analytics', 'Business Core', 'Execution', 'Administration'].map((pillar) => {
-                    const pillarItems = itemsByPillar[pillar] || [];
-                    if (pillarItems.length === 0) return null;
-
-                    const colors = PILLAR_COLORS[pillar as keyof typeof PILLAR_COLORS];
-                    const bgColor = colors ? colors.bg : 'bg-gray-100';
-                    const textColor = colors ? colors.text : 'text-gray-700';
-                    const borderColor = colors ? colors.border : 'border-gray-300';
-
-                    return (
-                      <div key={pillar}>
-                        {/* Pillar Header */}
-                        <div className={`px-6 py-3 ${bgColor} border-b border-gray-200 dark:border-gray-700`}>
-                          <h3 className={`text-sm font-semibold ${textColor}`}>
-                            {pillar}
-                          </h3>
+                      return (
+                        <div
+                          key={pillarLabel}
+                          className={`overflow-hidden rounded-xl border bg-white/90 dark:bg-gray-900/50 ${mod.outlineAccent}`}
+                        >
+                          <div
+                            className={`flex items-center gap-2 border-b border-gray-200/80 px-3 py-2.5 dark:border-gray-600/60 ${mod.iconTile} border-0 rounded-none`}
+                          >
+                            <PillarAccessMasterCheckbox
+                              triState={tri}
+                              disabled={items.length === 0}
+                              onToggle={() => togglePillarAccess(pillarLabel)}
+                            />
+                            <h3 className={`text-sm font-semibold ${mod.titleText}`}>{pillarLabel}</h3>
+                          </div>
+                          <ul className="max-h-[min(22rem,45vh)] divide-y divide-gray-100 overflow-y-auto dark:divide-gray-700">
+                            {items.map((item) => (
+                              <li key={item.id}>
+                                <label className="flex cursor-pointer items-center gap-3 px-3 py-3 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                  <input
+                                    type="checkbox"
+                                    checked={userAccess[item.id] !== false}
+                                    onChange={() => handleAccessToggle(item.id)}
+                                    className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-2 focus:ring-green-500 dark:border-gray-600"
+                                  />
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white">{item.label}</p>
+                                  </div>
+                                  {userAccess[item.id] !== false ? (
+                                    <span className="flex-shrink-0 rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-200">
+                                      Allowed
+                                    </span>
+                                  ) : null}
+                                </label>
+                              </li>
+                            ))}
+                          </ul>
                         </div>
+                      );
+                    })}
+                  </div>
 
-                        {/* Module Items */}
-                        <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                          {pillarItems.map((item) => (
-                            <label
-                              key={item.id}
-                              className="flex items-center gap-3 px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors cursor-pointer"
-                            >
+                  {adminItems.length > 0 ? (
+                    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                      <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-100 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/80">
+                        <PillarAccessMasterCheckbox
+                          triState={accessTriState(adminIds, userAccess)}
+                          onToggle={toggleAdministrationAccess}
+                        />
+                        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Administration</h3>
+                      </div>
+                      <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+                        {adminItems.map((item) => (
+                          <li key={item.id}>
+                            <label className="flex cursor-pointer items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/30">
                               <input
                                 type="checkbox"
-                                checked={userAccess[item.id] ?? true}
+                                checked={userAccess[item.id] !== false}
                                 onChange={() => handleAccessToggle(item.id)}
-                                className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-2 focus:ring-green-500"
+                                className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-2 focus:ring-green-500 dark:border-gray-600"
                               />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                  {item.label}
-                                </p>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">{item.label}</p>
                               </div>
-                              {userAccess[item.id] !== false && (
-                                <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200 flex-shrink-0">
-                                  Allowed
-                                </span>
-                              )}
                             </label>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
 
-              {/* Save Button */}
-              <div className="flex justify-end pt-2">
-                <button
-                  onClick={handleSaveAccess}
-                  disabled={isSaving}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-sm font-medium transition-colors"
-                >
-                  <Save className="w-4 h-4" />
-                  {isSaving ? 'Saving...' : 'Save Access'}
-                </button>
-              </div>
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="button"
+                      onClick={handleSaveAccess}
+                      disabled={isSaving}
+                      className={premiumPrimaryButton('analytics', 'md', 'wide')}
+                    >
+                      <Save className="h-4 w-4" />
+                      {isSaving ? 'Saving...' : 'Save Access'}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           ) : (
-            <div className="flex items-center justify-center h-96 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="flex h-96 items-center justify-center rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
               <div className="text-center">
-                <Users className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                <Users className="mx-auto mb-3 h-12 w-12 text-gray-300 dark:text-gray-600" />
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {accessScope === 'user' ? 'Select a user to manage access' : 'Select a group to manage access'}
                 </p>

@@ -18,6 +18,7 @@ import {
 } from '@/lib/importExportUtils';
 import { supabase } from '@/lib/supabaseClient';
 import { premiumPrimaryButton, premiumTertiaryButton, premiumSurfaces } from '@/lib/premiumUi';
+import { useToast } from '@/lib/toast';
 import {
   Loader2,
   AlertCircle,
@@ -47,8 +48,8 @@ export default function ImportExportPage() {
   const [importRows, setImportRows] = useState<ImportRow[]>([]);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [applyLoading, setApplyLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [tableRowCount, setTableRowCount] = useState(0);
+  const { toast } = useToast();
 
   const canManageData = can('manage_users');
 
@@ -111,7 +112,6 @@ export default function ImportExportPage() {
 
     try {
       setExportLoading(true);
-      setError(null);
       const { exportTable } = await import('@/lib/importExport/io');
       const blob = await exportTable(selectedTable, tenant_id);
 
@@ -124,10 +124,9 @@ export default function ImportExportPage() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      setSuccessMessage(`Exported ${selectedTable} successfully`);
-      setTimeout(() => setSuccessMessage(null), 3000);
+      toast.success(`Exported ${selectedTable} successfully`);
     } catch (err: unknown) {
-      setError(errorMessage(err));
+      toast.error(errorMessage(err));
     } finally {
       setExportLoading(false);
     }
@@ -138,7 +137,6 @@ export default function ImportExportPage() {
     if (!selectedTable || !tenant_id) return;
 
     try {
-      setError(null);
       setImportFile(file);
 
       const { parseImportFile } = await import('@/lib/importExport/io');
@@ -152,7 +150,7 @@ export default function ImportExportPage() {
       setImportRows(classified);
       setPreviewOpen(true);
     } catch (err: unknown) {
-      setError(errorMessage(err));
+      toast.error(errorMessage(err));
     }
   };
 
@@ -162,22 +160,20 @@ export default function ImportExportPage() {
 
     try {
       setApplyLoading(true);
-      setError(null);
       const result = await applyImportChanges(selectedTable, tenant_id, importRows, user.id);
 
       if (result.success) {
-        setSuccessMessage(
+        toast.success(
           `Import completed: ${result.summary.inserts} inserted, ${result.summary.updates} updated, ${result.summary.deletes} deleted`
         );
         setImportRows([]);
         setImportFile(null);
         setPreviewOpen(false);
-        setTimeout(() => setSuccessMessage(null), 5000);
       } else {
-        setError(result.error || 'An error occurred');
+        toast.error(result.error || 'An error occurred');
       }
     } catch (err: unknown) {
-      setError(errorMessage(err));
+      toast.error(errorMessage(err));
     } finally {
       setApplyLoading(false);
     }
@@ -288,13 +284,6 @@ export default function ImportExportPage() {
             <div className="rounded border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3 flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-red-700 dark:text-red-300">{error}</p>
-            </div>
-          )}
-
-          {successMessage && (
-            <div className="rounded border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-3 flex items-start gap-2">
-              <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-green-700 dark:text-green-300">{successMessage}</p>
             </div>
           )}
 

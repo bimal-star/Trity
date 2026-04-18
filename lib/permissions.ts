@@ -5,8 +5,77 @@
  * Used throughout the app for authorization decisions
  */
 
+import type { User } from '@supabase/supabase-js';
 import { TenantRole, PermissionAction, ROLE_PERMISSIONS } from '@/types/access';
 import { UserProfile } from '@/types/profile';
+
+function tenantRoleRank(role: TenantRole): number {
+  if (role === 'super_admin') return 3;
+  if (role === 'admin') return 2;
+  return 1;
+}
+
+/**
+ * Pick the higher-privilege of two normalized roles (e.g. merge DB + trusted JWT claim).
+ */
+export function mergeTenantRoles(
+  a: TenantRole | null | undefined,
+  b: TenantRole | null | undefined
+): TenantRole | null {
+  const na = a ?? null;
+  const nb = b ?? null;
+  if (na == null) return nb;
+  if (nb == null) return na;
+  return tenantRoleRank(na) >= tenantRoleRank(nb) ? na : nb;
+}
+
+/** DB role + trusted `app_metadata.role` (higher privilege wins). */
+export function resolveProfileRole(
+  dbRole: string | null | undefined,
+  appMetadataRole: string | null | undefined
+): TenantRole {
+  return (
+    mergeTenantRoles(normalizeTenantRole(dbRole), normalizeTenantRole(appMetadataRole)) ??
+    'member'
+  );
+}
+
+/**
+ * Map DB / legacy role strings to canonical TenantRole.
+ * Returns null only when the value is missing; unknown strings fall back via callers (typically member).
+ */
+export function normalizeTenantRole(role: string | null | undefined): TenantRole | null {
+  if (role == null || typeof role !== 'string') return null;
+  const r = role.trim().toLowerCase().replace(/\s+/g, '_').replace(/-/g, '_');
+  if (r === 'member') return 'member';
+  if (r === 'admin' || r === 'administrator' || r === 'tenant_admin') return 'admin';
+  if (
+    r === 'super_admin' ||
+    r === 'superadmin' ||
+    r === 'super_administrator' ||
+    r === 'platform_admin' ||
+    r === 'global_admin' ||
+    r === 'system_admin'
+  ) {
+    return 'super_admin';
+  }
+  return null;
+}
+
+/** True when normalized role is super_admin (handles casing / spacing variants). */
+export function isSuperAdminRole(role: string | null | undefined): boolean {
+  return normalizeTenantRole(role) === 'super_admin';
+}
+
+/**
+ * True when this auth session is a platform super_admin, using DB profile and/or JWT claims.
+ * Used when tenant_id may be absent (platform shell, e.g. /admin/tenants).
+ */
+export function isSuperAdminSession(user: User, profile: UserProfile | null): boolean {
+  if (isSuperAdminRole(profile?.role)) return true;
+  const jwtRole = user.app_metadata?.role ?? user.user_metadata?.role;
+  return isSuperAdminRole(typeof jwtRole === 'string' ? jwtRole : undefined);
+}
 
 /**
  * Check if a role has a specific permission
@@ -15,8 +84,8 @@ import { UserProfile } from '@/types/profile';
  * @returns true if role has permission
  */
 export function roleHasPermission(role: TenantRole | string, action: PermissionAction): boolean {
-  const normalizedRole = (role as TenantRole) || 'member';
-  const permissions = ROLE_PERMISSIONS[normalizedRole] || ROLE_PERMISSIONS.member;
+  const canonical = normalizeTenantRole(role) ?? ('member' as TenantRole);
+  const permissions = ROLE_PERMISSIONS[canonical] || ROLE_PERMISSIONS.member;
   return permissions.includes(action);
 }
 
@@ -42,15 +111,17 @@ export function canUserPerform(
  * @returns true if manager can manage target
  */
 export function canManageUser(managerRole: TenantRole | string, targetRole: TenantRole | string): boolean {
-  const roleHierarchy: Record<string, number> = {
+  const roleHierarchy: Record<TenantRole, number> = {
     member: 1,
     admin: 2,
     super_admin: 3,
   };
-  
-  const managerLevel = roleHierarchy[managerRole as string] || 0;
-  const targetLevel = roleHierarchy[targetRole as string] || 0;
-  
+
+  const m = normalizeTenantRole(managerRole) ?? 'member';
+  const t = normalizeTenantRole(targetRole) ?? 'member';
+  const managerLevel = roleHierarchy[m] ?? 0;
+  const targetLevel = roleHierarchy[t] ?? 0;
+
   return managerLevel > targetLevel;
 }
 
@@ -64,21 +135,21 @@ export function canChangeUserRole(
   currentUserRole: TenantRole | string,
   targetNewRole: TenantRole | string
 ): boolean {
-  // Only admins and super_admins can change roles
-  if (currentUserRole !== 'admin' && currentUserRole !== 'super_admin') {
+  const current = normalizeTenantRole(currentUserRole) ?? 'member';
+  const target = normalizeTenantRole(targetNewRole) ?? 'member';
+
+  if (current !== 'admin' && current !== 'super_admin') {
     return false;
   }
-  
-  // Super_admin can assign any role
-  if (currentUserRole === 'super_admin') {
+
+  if (current === 'super_admin') {
     return true;
   }
-  
-  // Regular admin cannot promote to super_admin
-  if (targetNewRole === 'super_admin') {
+
+  if (target === 'super_admin') {
     return false;
   }
-  
+
   return true;
 }
 
@@ -95,13 +166,12 @@ export function canAccessTenant(
   targetTenantId: string,
   userRole?: TenantRole | string
 ): boolean {
-  if (!userTenantId) return false;
-  
-  // Super admins can access any tenant
-  if (userRole === 'super_admin') {
+  if (normalizeTenantRole(userRole) === 'super_admin') {
     return true;
   }
-  
+
+  if (!userTenantId) return false;
+
   // Others can only access their own tenant
   return userTenantId === targetTenantId;
 }
@@ -140,5 +210,6 @@ export const ACCESS_LEVELS = {
  * @returns Display info with label, description, and permissions
  */
 export function getRoleInfo(role: TenantRole | string) {
-  return ACCESS_LEVELS[role as TenantRole] || ACCESS_LEVELS.member;
+  const canonical = normalizeTenantRole(role) ?? 'member';
+  return ACCESS_LEVELS[canonical] || ACCESS_LEVELS.member;
 }

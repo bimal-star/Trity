@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 import { TenantProvider } from '@/contexts/TenantContext';
+import { ToastProvider } from '@/lib/toast';
 
 /**
  * AppProviders - Root-level provider wrapper
@@ -29,5 +30,9 @@ import { TenantProvider } from '@/contexts/TenantContext';
  * This wrapper exists to make the stability contract explicit.
  */
 export function AppProviders({ children }: { children: ReactNode }) {
-  return <TenantProvider>{children}</TenantProvider>;
+  return (
+    <ToastProvider>
+      <TenantProvider>{children}</TenantProvider>
+    </ToastProvider>
+  );
 }

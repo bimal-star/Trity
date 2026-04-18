@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import { LayoutSkeleton } from '@/components/LayoutSkeleton';
 import { AppProviders } from '@/providers/AppProviders';
 import { LayoutWrapper } from '@/components/LayoutWrapper';
 
@@ -29,7 +31,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <AppProviders>
-          <LayoutWrapper>{children}</LayoutWrapper>
+          <LayoutWrapper>
+            <Suspense fallback={<LayoutSkeleton />}>{children}</Suspense>
+          </LayoutWrapper>
         </AppProviders>
       </body>
     </html>

@@ -9,6 +9,9 @@
 export type TenantRole = 'member' | 'admin' | 'super_admin';
 export type GroupMemberRole = 'member' | 'admin';
 
+/** Per-navigation-module access for user overrides (users page / permission resolver). */
+export type AccessLevel = 'allowed' | 'readonly' | 'blocked';
+
 // Granular permissions for actions
 export type PermissionAction = 
   | 'view_users'

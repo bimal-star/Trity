@@ -11,6 +11,8 @@
 
 import DOMPurify from 'isomorphic-dompurify';
 
+type DOMPurifyConfig = Parameters<typeof DOMPurify.setConfig>[0];
+
 /**
  * Sanitize HTML content - removes all HTML tags and dangerous content
  * Suitable for plain text inputs
@@ -174,7 +176,7 @@ export function sanitizeSQLInput(input: string): string {
 
   // Remove SQL comments
   let sanitized = input.replace(/--[^\n]*/g, '');
-  sanitized = sanitized.replace(/\/\*.*?\*\//gs, '');
+  sanitized = sanitized.replace(/\/\*[\s\S]*?\*\//g, '');
 
   // Remove common SQL keywords in dangerous positions
   const dangerousPatterns = [
@@ -232,7 +234,7 @@ export function sanitizeObject(
  * 
  * @param {object} config - Custom DOMPurify configuration
  */
-export function configureDOMPurify(config: DOMPurify.Config): void {
+export function configureDOMPurify(config: DOMPurifyConfig): void {
   DOMPurify.setConfig(config);
 }
 
@@ -244,7 +246,7 @@ export function configureDOMPurify(config: DOMPurify.Config): void {
  */
 export function addDOMPurifyHook(
   hookName: string,
-  hookFunction: (currentNode: Element, data: any, config: DOMPurify.Config) => void
+  hookFunction: (currentNode: Element, data: any, config: DOMPurifyConfig) => void
 ): void {
   DOMPurify.addHook(hookName as any, hookFunction);
 }

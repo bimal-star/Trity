@@ -13,6 +13,7 @@ import {
   premiumSurfaces,
   premiumTypography,
 } from '@/lib/premiumUi';
+import { useToast } from '@/lib/toast';
 
 const DEFAULT_SYSTEM = `You are a concise helper explaining Trity and general ERP ideas.
 When project documentation is included in your context, use it for facts about this codebase and name the file when you rely on it.
@@ -49,22 +50,33 @@ export default function AiLabPage() {
   );
 }
 
+function TypingDots() {
+  return (
+    <span className="mt-1 inline-flex items-center gap-1" aria-hidden>
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-500 [animation-delay:-0.2s] dark:bg-gray-400" />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-500 [animation-delay:-0.1s] dark:bg-gray-400" />
+      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-500 dark:bg-gray-400" />
+    </span>
+  );
+}
+
 function PathAChatSection() {
   const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM);
   const [includeProjectDocs, setIncludeProjectDocs] = useState(true);
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [waitingFirstToken, setWaitingFirstToken] = useState(false);
+  const { toast } = useToast();
 
   const send = useCallback(async () => {
     const text = input.trim();
     if (!text || loading) return;
-    setError(null);
     setInput('');
     const nextTurns: ChatTurn[] = [...turns, { role: 'user', content: text }];
-    setTurns(nextTurns);
+    setTurns([...nextTurns, { role: 'assistant', content: '' }]);
     setLoading(true);
+    setWaitingFirstToken(true);
     try {
       const messages = [
         { role: 'system' as const, content: systemPrompt.trim() || DEFAULT_SYSTEM },
@@ -72,23 +84,101 @@ function PathAChatSection() {
       ];
       const res = await fetchWithSupabaseAuth('/api/ai/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'text/event-stream',
+        },
         body: JSON.stringify({ messages, include_project_docs: includeProjectDocs }),
       });
-      const payload = await res.json();
+
       if (!res.ok) {
-        throw new Error(payload?.error || `Request failed (${res.status})`);
+        let msg = `Request failed (${res.status})`;
+        try {
+          const j = (await res.json()) as { error?: string };
+          if (j?.error) msg = j.error;
+        } catch {
+          /* ignore */
+        }
+        throw new Error(msg);
       }
-      const reply = typeof payload.text === 'string' ? payload.text : '';
-      setTurns((prev) => [...prev, { role: 'assistant', content: reply || '(empty reply)' }]);
+
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('text/event-stream') || !res.body) {
+        throw new Error('Unexpected response from chat API');
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const blocks = buffer.split('\n\n');
+        buffer = blocks.pop() ?? '';
+        for (const block of blocks) {
+          let eventName = 'message';
+          const dataLines: string[] = [];
+          for (const line of block.split('\n')) {
+            if (line.startsWith('event:')) {
+              eventName = line.slice(6).trim();
+            } else if (line.startsWith('data:')) {
+              dataLines.push(line.slice(5).trim());
+            }
+          }
+          const dataStr = dataLines.join('\n');
+          if (!dataStr) continue;
+          const data = JSON.parse(dataStr) as { text?: string; message?: string };
+          if (eventName === 'delta' && typeof data.text === 'string' && data.text.length > 0) {
+            setWaitingFirstToken(false);
+            setTurns((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              if (last?.role === 'assistant') {
+                next[next.length - 1] = {
+                  role: 'assistant',
+                  content: last.content + data.text,
+                };
+              }
+              return next;
+            });
+          } else if (eventName === 'error') {
+            setWaitingFirstToken(false);
+            throw new Error(typeof data.message === 'string' ? data.message : 'Stream error');
+          } else if (eventName === 'done') {
+            setWaitingFirstToken(false);
+          }
+        }
+      }
+
+      setTurns((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === 'assistant' && last.content === '') {
+          const next = [...prev];
+          next[next.length - 1] = { role: 'assistant', content: '(empty reply)' };
+          return next;
+        }
+        return prev;
+      });
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Request failed');
-      setTurns((prev) => prev.slice(0, -1));
+      toast.error(e instanceof Error ? e.message : 'Request failed');
+      setTurns((prev) => {
+        let next = [...prev];
+        if (next[next.length - 1]?.role === 'assistant' && next[next.length - 1]?.content === '') {
+          next = next.slice(0, -1);
+        }
+        if (next[next.length - 1]?.role === 'user') {
+          next = next.slice(0, -1);
+        }
+        return next;
+      });
       setInput(text);
     } finally {
       setLoading(false);
+      setWaitingFirstToken(false);
     }
-  }, [includeProjectDocs, input, loading, systemPrompt, turns]);
+  }, [includeProjectDocs, input, loading, systemPrompt, toast, turns]);
 
   return (
     <section className={premiumSurfaces.card}>
@@ -137,7 +227,6 @@ function PathAChatSection() {
           className={premiumSecondaryButton(null, 'sm', 'auto')}
           onClick={() => {
             setTurns([]);
-            setError(null);
           }}
         >
           <RotateCcw className="mr-1 inline h-3.5 w-3.5" aria-hidden />
@@ -150,31 +239,37 @@ function PathAChatSection() {
         {turns.length === 0 ? (
           <p className={`${premiumTypography.helper}`}>No messages yet. Say something below.</p>
         ) : (
-          turns.map((t, i) => (
-            <div
-              key={`${i}-${t.role}`}
-              className={`rounded-lg px-3 py-2 text-sm ${
-                t.role === 'user'
-                  ? 'ml-4 bg-green-100 text-gray-900 dark:bg-green-900/30 dark:text-gray-100'
-                  : 'mr-4 bg-white text-gray-800 shadow-sm dark:bg-gray-800 dark:text-gray-100'
-              }`}
-            >
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                {t.role}
-              </span>
-              <p className="mt-1 whitespace-pre-wrap">{t.content}</p>
-            </div>
-          ))
+          turns.map((t, i) => {
+            const isPendingAssistant =
+              t.role === 'assistant' &&
+              t.content === '' &&
+              waitingFirstToken &&
+              i === turns.length - 1;
+            return (
+              <div
+                key={`path-a-${i}`}
+                className={`rounded-lg px-3 py-2 text-sm ${
+                  t.role === 'user'
+                    ? 'ml-4 bg-green-100 text-gray-900 dark:bg-green-900/30 dark:text-gray-100'
+                    : 'mr-4 bg-white text-gray-800 shadow-sm dark:bg-gray-800 dark:text-gray-100'
+                }`}
+              >
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                  {t.role}
+                </span>
+                {isPendingAssistant ? (
+                  <p className={`mt-1 ${premiumTypography.helper}`} aria-live="polite">
+                    Thinking…
+                    <TypingDots />
+                  </p>
+                ) : (
+                  <p className="mt-1 whitespace-pre-wrap">{t.content}</p>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
-      {error ? (
-        <p
-          className="mb-2 whitespace-pre-wrap break-words text-sm text-red-600 dark:text-red-400"
-          role="alert"
-        >
-          {error}
-        </p>
-      ) : null}
       <div className="flex gap-2">
         <input
           className={premiumInputComfortableBase}
@@ -205,13 +300,12 @@ function PathBAssistantSection() {
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const send = useCallback(
     async (resetThread: boolean) => {
       const text = input.trim();
       if (!text || loading) return;
-      setError(null);
       setInput('');
       setTurns((prev) => [...prev, { role: 'user', content: text }]);
       setLoading(true);
@@ -231,7 +325,7 @@ function PathBAssistantSection() {
         const reply = typeof payload.text === 'string' ? payload.text : '';
         setTurns((prev) => [...prev, { role: 'assistant', content: reply || '(empty reply)' }]);
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Request failed');
+        toast.error(e instanceof Error ? e.message : 'Request failed');
         setTurns((prev) =>
           prev.length && prev[prev.length - 1]?.role === 'user' ? prev.slice(0, -1) : prev
         );
@@ -240,7 +334,7 @@ function PathBAssistantSection() {
         setLoading(false);
       }
     },
-    [input, loading]
+    [input, loading, toast]
   );
 
   return (
@@ -286,7 +380,6 @@ function PathBAssistantSection() {
           className={premiumSecondaryButton(null, 'sm', 'auto')}
           onClick={() => {
             setTurns([]);
-            setError(null);
           }}
         >
           <RotateCcw className="mr-1 inline h-3.5 w-3.5" aria-hidden />
@@ -321,14 +414,6 @@ function PathBAssistantSection() {
           ))
         )}
       </div>
-      {error ? (
-        <p
-          className="mb-2 whitespace-pre-wrap break-words text-sm text-red-600 dark:text-red-400"
-          role="alert"
-        >
-          {error}
-        </p>
-      ) : null}
       <div className="flex gap-2">
         <input
           className={premiumInputComfortableBase}

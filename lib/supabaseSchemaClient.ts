@@ -21,6 +21,12 @@
 
 import { supabase } from './supabaseClient';
 
+/** Base client with dynamic `.from` / `.rpc` for names not in generated typings. */
+const dynamicSupabase = supabase as {
+  from: (name: string) => ReturnType<typeof supabase.from>;
+  rpc: (fn: string, args?: Record<string, unknown>) => ReturnType<typeof supabase.rpc>;
+};
+
 /**
  * Schema-aware Supabase client wrapper
  * Automatically routes queries to tenant-specific schemas
@@ -86,7 +92,7 @@ export class TenantedSupabaseClient {
 
     // If it's a shared table, use public schema
     if (sharedTables.includes(tableName)) {
-      return supabase.from(tableName);
+      return dynamicSupabase.from(tableName);
     }
 
     // For tenant-specific tables in non-public schemas, PostgREST requires RPC functions.
@@ -99,14 +105,14 @@ export class TenantedSupabaseClient {
     // 3. Once RPC functions are created, uncomment the code below
     //
     // For now, we route to public schema and rely on RLS + tenant_id column
-    return supabase.from(tableName);
+    return dynamicSupabase.from(tableName);
   }
 
   /**
    * Call a stored procedure/function
    */
   rpc(fnName: string, args?: Record<string, any>) {
-    return supabase.rpc(fnName, args);
+    return dynamicSupabase.rpc(fnName, args);
   }
 
   /**

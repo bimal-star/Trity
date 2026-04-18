@@ -3,8 +3,6 @@
  * Use across Workstreams page and WorkstreamTableWithGantt.
  */
 
-import type { WorkstreamStatus } from '@/types/workstream';
-
 export const workstreamStatusConfig: Record<
   string,
   { label: string; color: string; bgColor: string }

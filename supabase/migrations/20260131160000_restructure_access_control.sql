@@ -22,6 +22,7 @@ CREATE OR REPLACE FUNCTION public.assign_group_from_invite()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
   invite_group_id UUID;

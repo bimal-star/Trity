@@ -4,7 +4,7 @@ import type { Database } from '@/types/database';
 export async function fetchTenantIdForAiUser(
   supabase: SupabaseClient<Database>,
   authUserId: string
-): Promise<{ tenantId: string } | { error: string; status: 404 }> {
+): Promise<{ tenantId: string } | { error: string; status: number }> {
   const { data: profile, error } = await supabase
     .from('user_profiles')
     .select('tenant_id')
@@ -14,7 +14,26 @@ export async function fetchTenantIdForAiUser(
   if (error || !profile?.tenant_id) {
     return { error: 'User profile not found', status: 404 };
   }
-  return { tenantId: profile.tenant_id };
+
+  const tenantId = profile.tenant_id;
+
+  // Gate on the ai_lab feature flag. Default is enabled; admins can disable per-tenant via settings.
+  const { data: tenant } = await supabase
+    .from('tenants')
+    .select('settings')
+    .eq('id', tenantId)
+    .single();
+
+  const settings =
+    tenant?.settings && typeof tenant.settings === 'object'
+      ? (tenant.settings as Record<string, unknown>)
+      : null;
+  // Explicitly false means disabled; absent or true means enabled (default on).
+  if (settings?.['ai_lab'] === false) {
+    return { error: 'AI features are not enabled for this workspace.', status: 403 };
+  }
+
+  return { tenantId };
 }
 
 export async function insertAiUsageLog(

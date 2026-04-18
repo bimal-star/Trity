@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -n \"query.or\\\\|query.ilike\" /c/VSCode-Trity-LIVE/hooks/*.ts)",
+      "Bash(git check-ignore:*)",
+      "Bash(echo \"file check result: $?\")",
+      "Bash(grep -n \"service_role\\\\|SERVICE_ROLE\" /c/VSCode-Trity-LIVE/app/api/ai/*.ts /c/VSCode-Trity-LIVE/lib/*.ts)",
+      "Bash(npm run *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}

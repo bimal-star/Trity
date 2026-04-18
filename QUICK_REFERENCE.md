@@ -1,6 +1,6 @@
 # Quick Reference - Access Control System
 
-**Last Updated:** January 31, 2026
+**Last Updated:** April 12, 2026
 
 ## 🎯 What's New
 
@@ -134,6 +134,7 @@ await logUserRoleChange(tenantId, userId, 'member', 'admin', currentUserId);
 3. **All changes are logged with user/timestamp**
 4. **Higher role can manage lower role users**
 5. **Feature flags checked at runtime**
+6. **Supabase list queries:** For tenant-scoped tables, always filter with `.eq('tenant_id', effectiveTenantId)` (or skip the query if there is no tenant). Platform super-admin RLS can allow `SELECT` on **all** rows if the client omits that filter—see [TRITY_CONTEXT.md](TRITY_CONTEXT.md) § Multi-Tenant Architecture → *Platform super-admin and client-side tenant scoping*.
 
 ---
 
@@ -217,6 +218,7 @@ When user lacks permission, they see:
 - usePermissions hook validates access
 - canAccessTenant() prevents cross-tenant access
 - logAuditAction() tracks all changes
+- Tenant-scoped **reads** must use `effectiveTenantId` in queries where the UI is single-workspace; RLS super-admin `SELECT` policies do not replace this filter
 
 ---
 

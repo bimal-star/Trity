@@ -4,6 +4,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useTenant } from '@/contexts/TenantContext';
 import type { UserProfile } from '@/types/profile';
+import type { Database } from '@/types/database';
+
+type UserProfileDbUpdate = Database['public']['Tables']['user_profiles']['Update'];
 
 export interface TenantUser extends UserProfile {
   /** Resolved from profile.email or auth; may be empty if not in profile */
@@ -39,13 +42,13 @@ export function useTenantUsers(tenantId: string | null): UseTenantUsersReturn {
     try {
       setIsLoading(true);
       setError(null);
-      const { data, err } = await supabase
+      const { data, error: fetchErr } = await supabase
         .from('user_profiles')
         .select('id, user_id, tenant_id, full_name, email, role, primary_group_id, created_at, updated_at, user_groups(name)')
         .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false });
 
-      if (err) throw err;
+      if (fetchErr) throw fetchErr;
       const list = (data ?? []).map((r: any) => ({
         ...r,
         displayEmail: r.email ?? null,
@@ -71,7 +74,7 @@ export function useTenantUsers(tenantId: string | null): UseTenantUsersReturn {
       try {
         const { error: err } = await supabase
           .from('user_profiles')
-          .update({ role })
+          .update({ role } as UserProfileDbUpdate)
           .eq('user_id', userId)
           .eq('tenant_id', tenantId);
 
@@ -107,7 +110,7 @@ export function useTenantUsers(tenantId: string | null): UseTenantUsersReturn {
                 user_id: userId,
                 role: 'member',
                 added_by: user?.id ?? userId,
-              } as Record<string, unknown>,
+              },
               { onConflict: 'group_id,user_id' }
             );
         }

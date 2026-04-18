@@ -31,24 +31,26 @@ export function useUserGroups(tenantId?: string): UseUserGroupsReturn {
 
   // Fetch user groups
   const fetchGroups = async () => {
+    if (!tenantId) {
+      setGroups([]);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
 
-      let query = supabase
+      const { data, error: fetchError } = await supabase
         .from('user_groups')
         .select(`
           *,
           group_members (id, user_id, role, added_at)
         `)
         .eq('is_deleted', false)
+        .eq('tenant_id', tenantId)
         .order('name', { ascending: true });
-
-      if (tenantId) {
-        query = query.eq('tenant_id', tenantId);
-      }
-
-      const { data, error: fetchError } = await query;
 
       if (fetchError) throw fetchError;
 
@@ -118,7 +120,7 @@ export function useUserGroups(tenantId?: string): UseUserGroupsReturn {
       }
 
       await refreshGroups();
-      return { success: true, data: newGroup };
+      return { success: true, data: newGroup as UserGroup };
     } catch (err: any) {
       const errorMessage = err.message || 'Failed to create group';
       setError(errorMessage);

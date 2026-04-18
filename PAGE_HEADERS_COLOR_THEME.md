@@ -11,6 +11,13 @@ Pages:
 - **Products** (`app/products/page.tsx`) - Package2 icon
 - **Calendar** (`app/calendar/page.tsx`) - Calendar icon
 
+### Execution Pillar (Orange)
+Background: `bg-orange-600/10 dark:bg-orange-500/10`
+Text: `text-orange-600 dark:text-orange-400`
+
+Pages:
+- **Workstreams** (`app/workstreams/page.tsx`) - Calendar icon
+
 ### Analytics Pillar (Blue)
 Background: `bg-blue-600/10 dark:bg-blue-500/10`
 Text: `text-blue-600 dark:text-blue-400`
@@ -18,13 +25,6 @@ Text: `text-blue-600 dark:text-blue-400`
 Pages:
 - **Analytics** (`app/analytics/page.tsx`) - BarChart3 icon
 - **Dashboard** (`app/page.tsx`) - BarChart3 icon (primary analytics focus)
-
-### Execution Pillar (Orange)
-Background: `bg-orange-600/10 dark:bg-orange-500/10`
-Text: `text-orange-600 dark:text-orange-400`
-
-Pages:
-- **Workstreams** (`app/workstreams/page.tsx`) - Calendar icon
 
 ### Other/Administration (Gray)
 Background: `bg-gray-600/10 dark:bg-gray-500/10`

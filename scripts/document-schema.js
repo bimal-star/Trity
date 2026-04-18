@@ -7,8 +7,12 @@ const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
 
-const supabaseUrl = 'https://wvqlpcraxorchrtpatph.supabase.co';
-const supabaseAnonKey = 'sb_publishable_DSUbUfO9Dsyg3v6FzKLnCg_oyIYJeCC';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (e.g. load .env.local).');
+  process.exit(1);
+}
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 

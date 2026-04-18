@@ -1,7 +1,7 @@
 # TRITY_CONTEXT.md
 
-**Version:** 0.2.0  
-**Last Updated:** January 31, 2026  
+**Version:** 0.2.1  
+**Last Updated:** April 12, 2026  
 **Purpose:** Complete AI & developer context for the Trity project  
 **Authoritative Source:** This file reflects ONLY what exists in the current codebase
 
@@ -275,7 +275,13 @@ This CSV file is the **single source of truth** for the database schema. Always 
 
 **Additional Tables (40+):**
 
-- Product catalog (products, categories, product_categories, product_barcodes, product_variants, packing_configurations, bom_headers, bom_lines, etc.)
+- Product catalog (products, categories, product_categories, product_barcodes, **product_groups**, packing_configurations, bom_headers, bom_lines, etc.)
+
+**Catalogue configuration (`tenants.catalogue_mode`, migration `20260419105000_tenant_catalogue_settings.sql`):**
+
+- **`simple`** (default): flat product list; no groups column or variants tab in the products UI.
+- **`grouped`**: optional `products.product_group_id`; variants are **separate product rows** in the same group; `products.variant_attributes` holds optional labels (e.g. size/colour).
+- **`matrix`**: same as grouped plus attribute dimensions on `product_groups.attribute_dimensions` (JSON) and a basic matrix view / variant generator on the group detail page. Operational modules (orders, stock, purchasing) do **not** branch on catalogue mode—only catalogue/UI layers do.
 - Inventory (stock_levels, stock_adjustments, stock_transfers, etc.)
 - Sales & Orders (sales_orders, sales_invoices, delivery_locations, etc.)
 - Purchasing (purchase_orders, purchase_invoices, goods_receipt, goods_return, etc.)
@@ -377,19 +383,33 @@ type UserRole = 'member' | 'admin' | 'super_admin';
 
 **Convention:**
 
-- All data operations include `tenant_id` context from `TenantContext`
-- RLS policies enforce tenant data isolation
-- Queries automatically filtered by current user's tenant
-- Cross-tenant access prevented at all levels
+- All data operations include `tenant_id` context from `TenantContext` (use `effectiveTenantId` when the user may be acting in another workspace)
+- RLS policies enforce tenant data isolation for normal users
+- **Do not assume** the database hides other tenants’ rows for every query (see platform super-admin note below)
 
 **Usage Pattern:**
 
 ```typescript
-const { tenant_id } = useTenant();
+const { effectiveTenantId: tenant_id } = useTenant();
 
-// Data operations automatically scoped to tenant_id
+// List/detail reads: always filter by active workspace tenant (defense in depth)
 const { data } = await supabase.from('products').select('*').eq('tenant_id', tenant_id);
 ```
+
+### Platform super-admin and client-side tenant scoping
+
+**Context:** Migrations such as [`supabase/migrations/20260415120000_platform_super_admin_workspace_select.sql`](supabase/migrations/20260415120000_platform_super_admin_workspace_select.sql) add permissive `SELECT` policies using `public.is_tenants_platform_super_admin()`. PostgreSQL RLS combines policies with **OR**: if that predicate is true, **all rows** in the table can be visible unless the **query** restricts them.
+
+**Implication:** For platform super-admins (or anyone matching that function), **unscoped** `select('*')` on tenant-scoped tables can return **every tenant’s data**. Workspace switching uses `effectiveTenantId` in the app; RLS does not know the “current workspace” unless you filter.
+
+**Rules for new code:**
+
+1. Any **multi-row** Supabase read from a tenant-scoped table or view should include `.eq('tenant_id', effectiveTenantId)` (or equivalent) when the UI is meant to show **one** workspace.
+2. Hooks that take an optional `tenantId` must **not** run an unscoped list query when it is missing—return an empty list and skip the query (pattern: [`hooks/useUserGroups.ts`](hooks/useUserGroups.ts) `fetchGroups`).
+3. Avoid fallbacks like “if no tenant, select all categories” for super-admins; use empty results instead (pattern: [`components/products/ProductDetailsTabs.tsx`](components/products/ProductDetailsTabs.tsx) `loadAll`).
+4. Cross-tenant **writes** while impersonating a workspace may require explicit policies (e.g. [`supabase/migrations/20260421100000_products_platform_super_admin_write.sql`](supabase/migrations/20260421100000_products_platform_super_admin_write.sql) for `products` / `product_categories`), in addition to client `tenant_id` on inserts.
+
+**Historical bug:** The products list used `vw_products_full` without a `tenant_id` filter; normal users were constrained by RLS, but super-admins saw all products. Fixed in [`hooks/useProducts.ts`](hooks/useProducts.ts) `fetchProducts`.
 
 ---
 

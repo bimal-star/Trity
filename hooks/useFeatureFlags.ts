@@ -30,7 +30,7 @@ export interface UseFeaturesReturn {
  * }
  */
 export function useFeatureFlags(): UseFeaturesReturn {
-  const { tenant_id } = useTenant();
+  const { effectiveTenantId: tenant_id } = useTenant();
   const { tenant, isLoading, error } = useTenantDetails(tenant_id);
 
   return useMemo(() => {
