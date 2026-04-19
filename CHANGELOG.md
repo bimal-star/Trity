@@ -2,6 +2,14 @@
 
 All notable project changes are recorded here.
 
+## 0.3.2 - 2026-04-19
+
+Based on commits since `v0.3.1`.
+
+### Other
+
+- pre-UI-polish snapshot
+
 ## Unreleased
 
 ### Bundle analyzer follow-ups
@@ -12,11 +20,11 @@ All notable project changes are recorded here.
 
 **Bundle analyzer (`npm run analyze`, Next 14.0.4, `webpack-bundle-analyzer` static HTML under `.next/analyze/`) — after these changes**
 
-| Target | Before (baseline) | After (parsed, this run) |
-| --- | --- | --- |
-| Edge / `middleware.js` | Prior root middleware pulled `next/server` on the edge runtime (large parsed middleware entry in analyzer). | **No edge webpack bundle** — `edge.html` has empty `chartData` (middleware removed). |
-| `papaparse` | Eagerly tied to shared import/export module graph. | **Client:** ~19 KB parsed in dedicated async chunk (e.g. `1812.*.js`). **Node:** ~21 KB parsed in chunk `9156.js`. |
-| `tr46` / `mappingTable.json` | Pulled with static `openai` imports into broad server graphs. | **~260 KB parsed** for `mappingTable.json` under chunk `7066.js` alongside `openai` (loaded when AI routes execute dynamic import). |
+| Target                       | Before (baseline)                                                                                           | After (parsed, this run)                                                                                                            |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Edge / `middleware.js`       | Prior root middleware pulled `next/server` on the edge runtime (large parsed middleware entry in analyzer). | **No edge webpack bundle** — `edge.html` has empty `chartData` (middleware removed).                                                |
+| `papaparse`                  | Eagerly tied to shared import/export module graph.                                                          | **Client:** ~19 KB parsed in dedicated async chunk (e.g. `1812.*.js`). **Node:** ~21 KB parsed in chunk `9156.js`.                  |
+| `tr46` / `mappingTable.json` | Pulled with static `openai` imports into broad server graphs.                                               | **~260 KB parsed** for `mappingTable.json` under chunk `7066.js` alongside `openai` (loaded when AI routes execute dynamic import). |
 
 Reproduce module paths from reports: `node scripts/parse-analyze-html.cjs`.
 
