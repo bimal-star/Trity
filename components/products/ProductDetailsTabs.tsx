@@ -414,8 +414,8 @@ export default function ProductDetailsTabs({
   useEffect(() => {
     if (!openChipMenu) return;
     const close = () => setOpenChipMenu(null);
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
   }, [openChipMenu]);
 
   useEffect(() => {
@@ -1973,9 +1973,10 @@ export default function ProductDetailsTabs({
                                       aria-expanded={openChipMenu === node.id}
                                       disabled={isChecking}
                                       onMouseDown={(e) => e.stopPropagation()}
-                                      onClick={() =>
-                                        setOpenChipMenu(openChipMenu === node.id ? null : node.id)
-                                      }
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenChipMenu(openChipMenu === node.id ? null : node.id);
+                                      }}
                                       className={`pr-2 pl-1 py-1.5 transition-colors ${
                                         isSelected
                                           ? 'text-green-100 hover:bg-green-700'
@@ -1993,7 +1994,8 @@ export default function ProductDetailsTabs({
                                     <div
                                       role="menu"
                                       onMouseDown={(e) => e.stopPropagation()}
-                                      className="absolute right-0 top-full mt-1 z-40 min-w-[120px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="absolute left-0 top-full mt-1 z-40 min-w-[120px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
                                     >
                                       <button
                                         role="menuitem"
