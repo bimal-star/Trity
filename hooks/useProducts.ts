@@ -5,55 +5,48 @@
  * Provides CRUD operations, filtering, sorting, and category management
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import type { Database, Json } from '@/types/database';
 import { packingConfigurationInserts } from '@/lib/productPacking';
-import { Product, ProductFormData, ProductFilters, ProductSortField, SortDirection } from '@/types/product';
+import {
+  Product,
+  ProductFormData,
+  ProductFilters,
+  ProductSortField,
+  SortDirection,
+} from '@/types/product';
 import { useTenant } from '@/contexts/TenantContext';
 
 type VwProductRow = Database['public']['Views']['vw_products_full']['Row'];
-
-interface Category {
-  id: string;
-  name: string;
-  industry_type: string | null;
-}
 
 interface UseProductsReturn {
   products: Product[];
   isLoading: boolean;
   error: string | null;
-  /** Set when the categories master list fails to load (RLS, network, etc.). */
-  categoriesError: string | null;
-  availableCategories: Category[];
   createProduct: (
     data: ProductFormData
   ) => Promise<{ success: boolean; error?: string; data?: Product }>;
-  updateProduct: (id: string, data: Partial<ProductFormData>) => Promise<{ success: boolean; error?: string }>;
+  updateProduct: (
+    id: string,
+    data: Partial<ProductFormData>
+  ) => Promise<{ success: boolean; error?: string }>;
   /** Soft-deletes the product (`is_deleted` = true). */
   deleteProduct: (id: string) => Promise<{ success: boolean; error?: string }>;
   restoreProduct: (id: string) => Promise<{ success: boolean; error?: string }>;
   /** Refreshes the product list; resolves to the loaded products (after mapping). */
   refreshProducts: () => Promise<Product[]>;
-  refreshCategories: () => Promise<void>;
 }
 
-/** When `loadProducts` is false, only categories are fetched (e.g. create-product page). Avoids N+1 catalog loads. */
+/** When `loadProducts` is false, the product list is not fetched (e.g. create-product page). */
 export interface UseProductsOptions {
   loadProducts?: boolean;
 }
 
-/**
- * Junction table `product_categories` is the canonical set of category memberships.
- * `products.category_id` is the primary category (first selected / first chip) for reporting and `vw_products_full.category_name`.
- */
 function normalizeCategoryNames(raw: unknown): string[] | null {
   if (raw == null) return null;
   if (Array.isArray(raw)) {
-    const names = raw
-      .map((x) => (typeof x === 'string' ? x.trim() : String(x)))
-      .filter(Boolean);
+    const names = raw.map((x) => (typeof x === 'string' ? x.trim() : String(x))).filter(Boolean);
     return names.length > 0 ? names : null;
   }
   if (typeof raw === 'string') {
@@ -104,7 +97,10 @@ function messageForProductCreateError(err: unknown): string {
     return 'A product with this SKU already exists for this workspace. Use a different SKU.';
   }
   if (code === '23503' || /foreign key|violates foreign key/i.test(message)) {
-    return message || 'Invalid reference (category or related record). Check that it belongs to this workspace.';
+    return (
+      message ||
+      'Invalid reference (category or related record). Check that it belongs to this workspace.'
+    );
   }
   return message || 'Failed to create product';
 }
@@ -112,8 +108,7 @@ function messageForProductCreateError(err: unknown): string {
 export function buildProductInsertPayload(
   data: ProductFormData,
   tenantId: string,
-  userId: string,
-  primaryCategoryId: string | null
+  userId: string
 ): Database['public']['Tables']['products']['Insert'] {
   return {
     tenant_id: tenantId,
@@ -122,7 +117,7 @@ export function buildProductInsertPayload(
     industry_type: data.industry_type,
     product_type: data.product_type ?? 'finished_good',
     status: data.status ?? 'active',
-    category_id: primaryCategoryId,
+    category_id: null,
     description: data.description ?? null,
     short_description: data.short_description ?? null,
     cost_price: data.cost_price ?? null,
@@ -171,40 +166,6 @@ export function useProducts(
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [categoriesError, setCategoriesError] = useState<string | null>(null);
-  const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
-  const categoriesFetchSeq = useRef(0);
-
-  const fetchCategories = useCallback(async () => {
-    if (!tenant_id) {
-      categoriesFetchSeq.current += 1;
-      setAvailableCategories([]);
-      setCategoriesError(null);
-      return;
-    }
-
-    const seq = ++categoriesFetchSeq.current;
-
-    try {
-      setCategoriesError(null);
-      const { data, error: catErr } = await supabase
-        .from('categories')
-        .select('id, name, industry_type')
-        .eq('tenant_id', tenant_id)
-        .eq('is_deleted', false)
-        .order('name');
-
-      if (catErr) throw catErr;
-      if (seq !== categoriesFetchSeq.current) return;
-      setAvailableCategories((data as Category[]) || []);
-    } catch (err: unknown) {
-      if (seq !== categoriesFetchSeq.current) return;
-      console.error('Error fetching categories:', err);
-      const msg = err instanceof Error ? err.message : 'Failed to load categories';
-      setCategoriesError(msg);
-      setAvailableCategories([]);
-    }
-  }, [tenant_id]);
 
   const fetchProducts = async (): Promise<Product[]> => {
     if (!tenant_id) {
@@ -243,44 +204,15 @@ export function useProducts(
           query = query.not('reorder_point', 'is', null).eq('tracks_inventory', true);
         }
         if (filters.searchQuery) {
-          // Strip PostgREST filter-separator/grouping chars and SQL wildcards to prevent query injection.
           const safe = filters.searchQuery
             .toLowerCase()
             .replace(/[,()\[\]]/g, '')
             .replace(/[%_]/g, '')
             .trim();
           if (safe) {
-            query = query.or(`name.ilike.%${safe}%,description.ilike.%${safe}%,sku.ilike.%${safe}%`);
-          }
-        }
-
-        if (filters.categories && filters.categories.length > 0) {
-          const { data: catRows } = await supabase
-            .from('categories')
-            .select('id')
-            .eq('tenant_id', tenant_id)
-            .in('name', filters.categories)
-            .eq('is_deleted', false);
-
-          if (catRows && catRows.length > 0) {
-            const categoryIds = catRows.map((c) => c.id);
-            const { data: pcRows } = await supabase
-              .from('product_categories')
-              .select('product_id')
-              .eq('tenant_id', tenant_id)
-              .in('category_id', categoryIds)
-              .eq('is_deleted', false);
-
-            if (pcRows && pcRows.length > 0) {
-              const productIds = [...new Set(pcRows.map((pc) => pc.product_id as string))];
-              query = query.in('id', productIds);
-            } else {
-              setProducts([]);
-              return [];
-            }
-          } else {
-            setProducts([]);
-            return [];
+            query = query.or(
+              `name.ilike.%${safe}%,description.ilike.%${safe}%,sku.ilike.%${safe}%`
+            );
           }
         }
 
@@ -314,18 +246,6 @@ export function useProducts(
     }
   };
 
-  // Categories: load when tenant changes or after explicit refreshCategories() only.
-  // Do NOT tie this to `filters` — search updates filters every keystroke and overlapping
-  // fetches could resolve out of order and wipe the category list (empty dropdown).
-  useEffect(() => {
-    if (tenant_id) {
-      void fetchCategories();
-    } else {
-      setAvailableCategories([]);
-      setCategoriesError(null);
-    }
-  }, [tenant_id, fetchCategories]);
-
   useEffect(() => {
     if (!tenant_id) {
       setProducts([]);
@@ -339,6 +259,7 @@ export function useProducts(
       setError(null);
       setIsLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, sortField, sortDirection, tenant_id, loadProducts]);
 
   const createProduct = async (
@@ -360,18 +281,9 @@ export function useProducts(
         };
       }
 
-      const { categories, packing_configurations, ..._rest } = data;
+      const { packing_configurations } = data;
 
-      // Primary category_id = first name in the submitted list; junction rows hold full membership.
-      const categoryIds =
-        categories?.length && availableCategories.length
-          ? categories
-              .map((name) => availableCategories.find((c) => c.name === name)?.id)
-              .filter((id): id is string => Boolean(id))
-          : [];
-      const primaryCategoryId = categoryIds[0] ?? null;
-
-      const insertPayload = buildProductInsertPayload(data, tenant_id, user.id, primaryCategoryId);
+      const insertPayload = buildProductInsertPayload(data, tenant_id, user.id);
 
       const { data: newProduct, error: insertError } = await supabase
         .from('products')
@@ -389,22 +301,13 @@ export function useProducts(
 
       const productId = newProduct.id;
 
-      if (categoryIds.length > 0) {
-        const productCategories = categoryIds.map((categoryId) => ({
-          product_id: productId,
-          category_id: categoryId,
-          tenant_id,
-        }));
-
-        const { error: junctionError } = await supabase.from('product_categories').insert(productCategories);
-
-        if (junctionError) {
-          console.error('Error linking categories:', junctionError);
-        }
-      }
-
       if (packing_configurations?.length) {
-        const rows = packingConfigurationInserts(productId, tenant_id, user.id, packing_configurations);
+        const rows = packingConfigurationInserts(
+          productId,
+          tenant_id,
+          user.id,
+          packing_configurations
+        );
         const { error: packErr } = await supabase.from('packing_configurations').insert(rows);
         if (packErr) {
           console.error('Error saving packing configurations:', packErr);
@@ -424,7 +327,6 @@ export function useProducts(
     data: Partial<ProductFormData>
   ): Promise<{ success: boolean; error?: string }> => {
     try {
-      const categoriesData = data.categories;
       const packingData = data.packing_configurations;
 
       const allowedFields = [
@@ -463,9 +365,13 @@ export function useProducts(
           } else if (
             typeof value === 'string' &&
             value === '' &&
-            ['description', 'short_description', 'storage_conditions', 'image_url', 'specifications_url'].includes(
-              field
-            )
+            [
+              'description',
+              'short_description',
+              'storage_conditions',
+              'image_url',
+              'specifications_url',
+            ].includes(field)
           ) {
             updateData[field] = null;
           } else if (value !== null && value !== undefined) {
@@ -475,48 +381,14 @@ export function useProducts(
       });
 
       if (Object.keys(updateData).length > 0) {
-        const { error: updateError } = await supabase.from('products').update(updateData).eq('id', id);
+        const { error: updateError } = await supabase
+          .from('products')
+          .update(updateData)
+          .eq('id', id);
 
         if (updateError) {
           console.error('Product update error:', updateError);
           throw new Error(updateError.message);
-        }
-      }
-
-      if (categoriesData !== undefined && tenant_id) {
-        await supabase.from('product_categories').delete().eq('product_id', id);
-
-        let primaryCategoryId: string | null = null;
-
-        if (categoriesData.length > 0) {
-          const categoryIds = availableCategories
-            .filter((cat) => categoriesData.includes(cat.name))
-            .map((cat) => cat.id);
-
-          primaryCategoryId = categoryIds[0] ?? null;
-
-          if (categoryIds.length > 0) {
-            const { error: junctionError } = await supabase.from('product_categories').insert(
-              categoryIds.map((categoryId) => ({
-                product_id: id,
-                category_id: categoryId,
-                tenant_id,
-              }))
-            );
-
-            if (junctionError) {
-              console.error('Category linking error:', junctionError);
-              throw new Error(junctionError.message);
-            }
-          }
-        }
-
-        const { error: catPrimaryErr } = await supabase
-          .from('products')
-          .update({ category_id: primaryCategoryId })
-          .eq('id', id);
-        if (catPrimaryErr) {
-          throw new Error(catPrimaryErr.message);
         }
       }
 
@@ -604,13 +476,10 @@ export function useProducts(
     products,
     isLoading,
     error,
-    categoriesError,
-    availableCategories,
     createProduct,
     updateProduct,
     deleteProduct,
     restoreProduct,
     refreshProducts: fetchProducts,
-    refreshCategories: fetchCategories,
   };
 }

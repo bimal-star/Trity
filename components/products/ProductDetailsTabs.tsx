@@ -18,15 +18,40 @@ import {
   StockTransaction,
   ProductionPlan,
   ProductActivityLog,
-  CategorySummary,
 } from '@/types/product';
 import PackingConfigurationsEditor from '@/components/PackingConfigurationsEditor';
-import { AlertTriangle, Loader2, Tag } from 'lucide-react';
+import {
+  AlertTriangle,
+  Check,
+  Loader2,
+  MoreVertical,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { productTracksInventory } from '@/lib/productInventoryPolicy';
-import { premiumInputComfortableBase, premiumPrimaryButton, premiumSecondaryButton, premiumSurfaces, premiumTypography } from '@/lib/premiumUi';
-import AddCategoryModal from '@/components/products/AddCategoryModal';
+import {
+  premiumInputComfortableBase,
+  premiumPrimaryButton,
+  premiumSecondaryButton,
+  premiumSurfaces,
+  premiumTypography,
+} from '@/lib/premiumUi';
 import { logProductUpdated } from '@/lib/auditLog';
-import { BARCODE_TYPE_OPTIONS, formatBarcodeTypeLabel, type BarcodeType } from '@/lib/barcodeLabels';
+import {
+  type CategoryTier,
+  type CategoryNode,
+  loadCategoryStructure,
+  getProductCategoryAssignments,
+  saveProductCategories,
+} from '@/lib/categories';
+import {
+  BARCODE_TYPE_OPTIONS,
+  formatBarcodeTypeLabel,
+  type BarcodeType,
+} from '@/lib/barcodeLabels';
 import { packingConfigurationInserts } from '@/lib/productPacking';
 import type { Database } from '@/types/database';
 import { parseAttributeDimensions } from '@/lib/productCatalogue';
@@ -80,10 +105,7 @@ function VariantsInGroupPanel({
     }
   }
 
-  const groupTotalStock = groupProducts.reduce(
-    (s, p) => s + (Number(p.total_stock) || 0),
-    0
-  );
+  const groupTotalStock = groupProducts.reduce((s, p) => s + (Number(p.total_stock) || 0), 0);
 
   if (!product.product_group_id) {
     return (
@@ -108,7 +130,8 @@ function VariantsInGroupPanel({
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="font-semibold text-gray-900 dark:text-white">Variants</h3>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          Group: <span className="font-medium text-gray-800 dark:text-gray-200">{groupLabel ?? '—'}</span>
+          Group:{' '}
+          <span className="font-medium text-gray-800 dark:text-gray-200">{groupLabel ?? '—'}</span>
         </p>
       </div>
 
@@ -179,7 +202,8 @@ function VariantsInGroupPanel({
             </tbody>
           </table>
           <p className={`mt-2 text-gray-500 dark:text-gray-400 ${premiumTypography.helper}`}>
-            Stock per cell. Click a cell to open that product. Highlighted column shows the current product.
+            Stock per cell. Click a cell to open that product. Highlighted column shows the current
+            product.
           </p>
         </div>
       ) : (
@@ -260,8 +284,15 @@ export default function ProductDetailsTabs({
   const [groupLabel, setGroupLabel] = useState<string | null>(null);
   const [groupDimensions, setGroupDimensions] = useState<unknown | null>(null);
   const [barcodes, setBarcodes] = useState<ProductBarcode[]>([]);
-  const [categories, setCategories] = useState<CategorySummary[]>([]);
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [catTiers, setCatTiers] = useState<CategoryTier[]>([]);
+  const [catNodesByTier, setCatNodesByTier] = useState<Record<number, CategoryNode[]>>({});
+  const [catSelectedByTier, setCatSelectedByTier] = useState<Record<number, string[]>>({});
+  const [catInitialByTier, setCatInitialByTier] = useState<Record<number, string[]>>({});
+  const [catLoading, setCatLoading] = useState(false);
+  const [categorySearch, setCategorySearch] = useState('');
+  const [inlineAddOpen, setInlineAddOpen] = useState<number | null>(null);
+  const [inlineAddName, setInlineAddName] = useState('');
+  const [savingInlineAdd, setSavingInlineAdd] = useState(false);
   const [priceListItems, setPriceListItems] = useState<PriceListItemWithList[]>([]);
   const [priceLists, setPriceLists] = useState<PriceList[]>([]);
   const [costHistory, setCostHistory] = useState<ProductCostHistory[]>([]);
@@ -285,9 +316,19 @@ export default function ProductDetailsTabs({
   const [savingBarcode, setSavingBarcode] = useState(false);
   const [barcodeError, setBarcodeError] = useState<string | null>(null);
 
-  // Categories save state
   const [savingCategories, setSavingCategories] = useState(false);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
+
+  // Chip ⋮ menu / delete / edit state
+  const [openChipMenu, setOpenChipMenu] = useState<string | null>(null);
+  const [checkingChipDelete, setCheckingChipDelete] = useState<string | null>(null);
+  type ChipDeleteModal =
+    | { kind: 'safe'; node: CategoryNode }
+    | { kind: 'blocked'; node: CategoryNode; productCount: number; childCount: number };
+  const [chipDeleteModal, setChipDeleteModal] = useState<ChipDeleteModal | null>(null);
+  const [confirmingChipDelete, setConfirmingChipDelete] = useState(false);
+  const [editingChip, setEditingChip] = useState<{ id: string; name: string } | null>(null);
+  const [savingChipEdit, setSavingChipEdit] = useState(false);
 
   // Pricing form state
   const [priceListId, setPriceListId] = useState('');
@@ -320,8 +361,6 @@ export default function ProductDetailsTabs({
     description: string;
     onConfirm: () => void | Promise<void>;
   } | null>(null);
-
-  const [addCategoryOpen, setAddCategoryOpen] = useState(false);
 
   const [opsSubTab, setOpsSubTab] = useState<
     'forecasts' | 'stock' | 'transactions' | 'production' | 'activity'
@@ -371,14 +410,20 @@ export default function ProductDetailsTabs({
     setBasePricingMsg(null);
   }, [product.id, product.cost_price, product.sell_price]);
 
+  // Close chip ⋮ menu on outside click
+  useEffect(() => {
+    if (!openChipMenu) return;
+    const close = () => setOpenChipMenu(null);
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [openChipMenu]);
+
   useEffect(() => {
     async function loadAll() {
       setLoading(true);
 
       const [
         barcodesRes,
-        categoriesRes,
-        categoryLinksRes,
         priceListsRes,
         priceListItemsRes,
         costHistoryRes,
@@ -391,10 +436,6 @@ export default function ProductDetailsTabs({
         activityLogRes,
       ] = await Promise.all([
         supabase.from('product_barcodes').select('*').eq('product_id', product.id),
-        tenant_id
-          ? supabase.from('categories').select('*').eq('tenant_id', tenant_id).order('name')
-          : Promise.resolve({ data: [] as CategorySummary[] | null, error: null }),
-        supabase.from('product_categories').select('category_id').eq('product_id', product.id),
         tenant_id
           ? supabase
               .from('price_lists')
@@ -448,11 +489,6 @@ export default function ProductDetailsTabs({
       ]);
 
       setBarcodes((barcodesRes.data || []) as ProductBarcode[]);
-      const cats = (categoriesRes.data || []) as CategorySummary[];
-      setCategories(cats);
-      setSelectedCategoryIds(
-        (categoryLinksRes.data || []).map((l) => (l as { category_id: string }).category_id)
-      );
 
       const plists = (priceListsRes.data || []) as PriceList[];
       setPriceLists(plists);
@@ -483,7 +519,27 @@ export default function ProductDetailsTabs({
     }
 
     if (product?.id) {
-      loadAll();
+      void loadAll();
+      if (tenant_id) {
+        setCatLoading(true);
+        Promise.all([loadCategoryStructure(tenant_id), getProductCategoryAssignments(product.id)])
+          .then(([structure, assignments]) => {
+            setCatTiers(structure.tiers);
+            setCatNodesByTier(structure.nodesByTier);
+            const byTier: Record<number, string[]> = {};
+            for (const t of structure.tiers) byTier[t.tier_number] = [];
+            for (const a of assignments) {
+              if (!byTier[a.tier_number]) byTier[a.tier_number] = [];
+              byTier[a.tier_number].push(a.category_node_id);
+            }
+            setCatSelectedByTier(byTier);
+            setCatInitialByTier(JSON.parse(JSON.stringify(byTier)));
+          })
+          .catch((err) => {
+            console.error('Failed to load category structure:', err);
+          })
+          .finally(() => setCatLoading(false));
+      }
     }
   }, [product?.id, tenant_id]);
 
@@ -510,7 +566,11 @@ export default function ProductDetailsTabs({
           .eq('product_group_id', gid)
           .eq('is_deleted', false)
           .order('name'),
-        supabase.from('product_groups').select('name, attribute_dimensions').eq('id', gid).maybeSingle(),
+        supabase
+          .from('product_groups')
+          .select('name, attribute_dimensions')
+          .eq('id', gid)
+          .maybeSingle(),
       ]);
       if (error) {
         console.error(error);
@@ -531,7 +591,9 @@ export default function ProductDetailsTabs({
       setGroupProducts(mapped);
       const g = gRow as { name?: string; attribute_dimensions?: unknown } | null;
       setGroupLabel(g?.name ?? product.product_group_name ?? null);
-      setGroupDimensions(g?.attribute_dimensions ?? product.product_group_attribute_dimensions ?? null);
+      setGroupDimensions(
+        g?.attribute_dimensions ?? product.product_group_attribute_dimensions ?? null
+      );
     }
     void loadGroup();
   }, [
@@ -543,15 +605,15 @@ export default function ProductDetailsTabs({
     product.product_group_attribute_dimensions,
   ]);
 
-  const reloadCategories = useCallback(async () => {
+  const reloadCategoryStructure = useCallback(async () => {
     if (!tenant_id) return;
-    const { data, error } = await supabase
-      .from('categories')
-      .select('*')
-      .eq('tenant_id', tenant_id)
-      .eq('is_deleted', false)
-      .order('name');
-    if (!error && data) setCategories(data as CategorySummary[]);
+    try {
+      const structure = await loadCategoryStructure(tenant_id);
+      setCatTiers(structure.tiers);
+      setCatNodesByTier(structure.nodesByTier);
+    } catch (err) {
+      console.error('Failed to reload category structure:', err);
+    }
   }, [tenant_id]);
 
   useEffect(() => {
@@ -581,7 +643,12 @@ export default function ProductDetailsTabs({
         })
         .eq('id', product.id);
       if (error) throw error;
-      await logProductUpdated(tenant_id, product.id, { action: 'base_pricing_updated' }, user?.id ?? null);
+      await logProductUpdated(
+        tenant_id,
+        product.id,
+        { action: 'base_pricing_updated' },
+        user?.id ?? null
+      );
       await onProductUpdated?.();
       toast.success('Base pricing saved.');
     } catch (e: unknown) {
@@ -765,7 +832,12 @@ export default function ProductDetailsTabs({
           await supabase.from('product_barcodes').delete().eq('id', id);
           setBarcodes((prev) => prev.filter((b) => b.id !== id));
           if (tenant_id) {
-            await logProductUpdated(tenant_id, product.id, { action: 'barcode_removed', id }, user?.id ?? null);
+            await logProductUpdated(
+              tenant_id,
+              product.id,
+              { action: 'barcode_removed', id },
+              user?.id ?? null
+            );
           }
         } catch (err) {
           console.error('Error deleting barcode', err);
@@ -776,51 +848,159 @@ export default function ProductDetailsTabs({
     });
   };
 
-  const handleToggleCategory = (categoryId: string) => {
-    setSelectedCategoryIds((prev) =>
-      prev.includes(categoryId) ? prev.filter((id) => id !== categoryId) : [...prev, categoryId]
-    );
+  const handleTierSelect = (tierNum: number, nodeId: string) => {
+    setCatSelectedByTier((prev) => {
+      const isSelected = (prev[tierNum] ?? []).includes(nodeId);
+      const next = { ...prev };
+      next[tierNum] = isSelected ? [] : [nodeId];
+      for (const t of catTiers) {
+        if (t.tier_number > tierNum) next[t.tier_number] = [];
+      }
+      return next;
+    });
+  };
+
+  const handleTierMultiToggle = (tierNum: number, nodeId: string) => {
+    setCatSelectedByTier((prev) => {
+      const cur = prev[tierNum] ?? [];
+      return {
+        ...prev,
+        [tierNum]: cur.includes(nodeId) ? cur.filter((id) => id !== nodeId) : [...cur, nodeId],
+      };
+    });
+  };
+
+  const handleCancelCategories = () => {
+    setCatSelectedByTier(JSON.parse(JSON.stringify(catInitialByTier)));
+  };
+
+  const handleInlineAddNode = async (tierNum: number) => {
+    const name = inlineAddName.trim();
+    if (!name || !tenant_id || !user?.id) return;
+    setSavingInlineAdd(true);
+    try {
+      const { error } = await supabase
+        .from('category_nodes')
+        .insert({ tenant_id, tier_number: tierNum, name, sort_order: 0, is_active: true });
+      if (error) throw error;
+      setInlineAddOpen(null);
+      setInlineAddName('');
+      await reloadCategoryStructure();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to add category');
+    } finally {
+      setSavingInlineAdd(false);
+    }
   };
 
   const handleSaveCategories = async () => {
+    if (!tenant_id) {
+      setCategoriesError('Tenant ID not available.');
+      return;
+    }
+    setSavingCategories(true);
+    setCategoriesError(null);
     try {
-      setSavingCategories(true);
-      setCategoriesError(null);
-      if (!tenant_id) {
-        setCategoriesError('Tenant ID not available.');
+      const assignments = Object.entries(catSelectedByTier).flatMap(([tierNum, ids]) =>
+        ids.map((id) => ({ tier_number: Number(tierNum), category_node_id: id }))
+      );
+      const result = await saveProductCategories(product.id, tenant_id, assignments);
+      if (!result.ok) {
+        const msg = result.errors?.map((e) => e.message).join('; ') ?? 'Validation failed';
+        setCategoriesError(msg);
         return;
       }
-
-      await supabase.from('product_categories').delete().eq('product_id', product.id);
-
-      if (selectedCategoryIds.length > 0) {
-        const rows = selectedCategoryIds.map((category_id) => ({
-          product_id: product.id,
-          category_id,
-          tenant_id,
-        }));
-        const { error } = await supabase.from('product_categories').insert(rows);
-        if (error) throw error;
-      }
-
-      const primaryId = selectedCategoryIds[0] ?? null;
-      const { error: primaryErr } = await supabase
-        .from('products')
-        .update({ category_id: primaryId, updated_by: user?.id ?? null })
-        .eq('id', product.id);
-      if (primaryErr) throw primaryErr;
-
+      setCatInitialByTier(JSON.parse(JSON.stringify(catSelectedByTier)));
       await logProductUpdated(
         tenant_id,
         product.id,
-        { action: 'categories_saved', category_ids: selectedCategoryIds },
+        { action: 'categories_saved', tier_assignments: catSelectedByTier },
         user?.id ?? null
       );
-      toast.success('Category links saved.');
+      toast.success('Categories saved.');
     } catch (err: any) {
       toast.error(err.message || 'Failed to save categories');
     } finally {
       setSavingCategories(false);
+    }
+  };
+
+  const handleChipDeleteClick = async (node: CategoryNode) => {
+    setOpenChipMenu(null);
+    setCheckingChipDelete(node.id);
+    try {
+      const { count, error } = await (
+        supabase as unknown as { from: (t: string) => ReturnType<typeof supabase.from> }
+      )
+        .from('product_category_assignments')
+        .select('*', { count: 'exact', head: true })
+        .eq('category_node_id', node.id);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      if ((count ?? 0) > 0) {
+        setChipDeleteModal({ kind: 'blocked', node, productCount: count ?? 0, childCount: 0 });
+      } else {
+        setChipDeleteModal({ kind: 'safe', node });
+      }
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to check usage');
+    } finally {
+      setCheckingChipDelete(null);
+    }
+  };
+
+  const handleChipConfirmDelete = async () => {
+    if (!chipDeleteModal || chipDeleteModal.kind !== 'safe' || !tenant_id) return;
+    const { node } = chipDeleteModal;
+    setConfirmingChipDelete(true);
+    try {
+      const { error } = await (
+        supabase as unknown as { from: (t: string) => ReturnType<typeof supabase.from> }
+      )
+        .from('category_nodes')
+        .delete()
+        .eq('id', node.id)
+        .eq('tenant_id', tenant_id);
+      if (error) {
+        toast.error(error.message);
+        setChipDeleteModal(null);
+        return;
+      }
+      toast.success(`"${node.name}" deleted.`);
+      setChipDeleteModal(null);
+      await reloadCategoryStructure();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete');
+      setChipDeleteModal(null);
+    } finally {
+      setConfirmingChipDelete(false);
+    }
+  };
+
+  const handleChipEditSave = async () => {
+    if (!editingChip || !editingChip.name.trim() || !tenant_id) return;
+    setSavingChipEdit(true);
+    try {
+      const { error } = await (
+        supabase as unknown as { from: (t: string) => ReturnType<typeof supabase.from> }
+      )
+        .from('category_nodes')
+        .update({ name: editingChip.name.trim() })
+        .eq('id', editingChip.id)
+        .eq('tenant_id', tenant_id);
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      toast.success('Category renamed.');
+      setEditingChip(null);
+      await reloadCategoryStructure();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to rename');
+    } finally {
+      setSavingChipEdit(false);
     }
   };
 
@@ -899,7 +1079,12 @@ export default function ProductDetailsTabs({
           await supabase.from('price_list_items').delete().eq('id', id);
           setPriceListItems((prev) => prev.filter((i) => i.id !== id));
           if (tenant_id) {
-            await logProductUpdated(tenant_id, product.id, { action: 'price_list_item_removed', id }, user?.id ?? null);
+            await logProductUpdated(
+              tenant_id,
+              product.id,
+              { action: 'price_list_item_removed', id },
+              user?.id ?? null
+            );
           }
         } catch (err) {
           console.error('Error deleting price list item', err);
@@ -970,7 +1155,12 @@ export default function ProductDetailsTabs({
       setNewCostMethod('');
       setNewCostNotes('');
       await refetchCostHistory();
-      await logProductUpdated(tenant_id, product.id, { action: 'cost_history_added' }, user?.id ?? null);
+      await logProductUpdated(
+        tenant_id,
+        product.id,
+        { action: 'cost_history_added' },
+        user?.id ?? null
+      );
       toast.success('Cost history row added.');
     } catch (e: any) {
       toast.error(e.message || 'Failed to add cost row');
@@ -988,7 +1178,12 @@ export default function ProductDetailsTabs({
           await supabase.from('product_cost_history').delete().eq('id', id);
           await refetchCostHistory();
           if (tenant_id) {
-            await logProductUpdated(tenant_id, product.id, { action: 'cost_history_deleted', id }, user?.id ?? null);
+            await logProductUpdated(
+              tenant_id,
+              product.id,
+              { action: 'cost_history_deleted', id },
+              user?.id ?? null
+            );
           }
         } finally {
           setConfirmDialog(null);
@@ -1016,7 +1211,12 @@ export default function ProductDetailsTabs({
       if (error) throw error;
       setNewMetricDate('');
       await refetchMetrics();
-      await logProductUpdated(tenant_id, product.id, { action: 'product_metric_added' }, user?.id ?? null);
+      await logProductUpdated(
+        tenant_id,
+        product.id,
+        { action: 'product_metric_added' },
+        user?.id ?? null
+      );
       toast.success('Metric added.');
     } catch (e: any) {
       toast.error(e.message || 'Failed to add metric');
@@ -1034,7 +1234,12 @@ export default function ProductDetailsTabs({
           await supabase.from('product_metrics').delete().eq('id', id);
           await refetchMetrics();
           if (tenant_id) {
-            await logProductUpdated(tenant_id, product.id, { action: 'product_metric_deleted', id }, user?.id ?? null);
+            await logProductUpdated(
+              tenant_id,
+              product.id,
+              { action: 'product_metric_deleted', id },
+              user?.id ?? null
+            );
           }
         } finally {
           setConfirmDialog(null);
@@ -1065,7 +1270,12 @@ export default function ProductDetailsTabs({
       setFcEnd('');
       setFcQty('');
       await refetchForecasts();
-      await logProductUpdated(tenant_id, product.id, { action: 'demand_forecast_added' }, user?.id ?? null);
+      await logProductUpdated(
+        tenant_id,
+        product.id,
+        { action: 'demand_forecast_added' },
+        user?.id ?? null
+      );
       toast.success('Forecast added.');
     } catch (e: any) {
       toast.error(e.message || 'Failed to add forecast');
@@ -1083,7 +1293,12 @@ export default function ProductDetailsTabs({
           await supabase.from('demand_forecasts').delete().eq('id', id);
           await refetchForecasts();
           if (tenant_id) {
-            await logProductUpdated(tenant_id, product.id, { action: 'demand_forecast_deleted', id }, user?.id ?? null);
+            await logProductUpdated(
+              tenant_id,
+              product.id,
+              { action: 'demand_forecast_deleted', id },
+              user?.id ?? null
+            );
           }
         } finally {
           setConfirmDialog(null);
@@ -1115,7 +1330,12 @@ export default function ProductDetailsTabs({
       setPpEnd('');
       setPpQty('');
       await refetchProduction();
-      await logProductUpdated(tenant_id, product.id, { action: 'production_plan_added' }, user?.id ?? null);
+      await logProductUpdated(
+        tenant_id,
+        product.id,
+        { action: 'production_plan_added' },
+        user?.id ?? null
+      );
       toast.success('Production plan added.');
     } catch (e: any) {
       toast.error(e.message || 'Failed to add production plan');
@@ -1133,7 +1353,12 @@ export default function ProductDetailsTabs({
           await supabase.from('production_plans').delete().eq('id', id);
           await refetchProduction();
           if (tenant_id) {
-            await logProductUpdated(tenant_id, product.id, { action: 'production_plan_deleted', id }, user?.id ?? null);
+            await logProductUpdated(
+              tenant_id,
+              product.id,
+              { action: 'production_plan_deleted', id },
+              user?.id ?? null
+            );
           }
         } finally {
           setConfirmDialog(null);
@@ -1151,10 +1376,19 @@ export default function ProductDetailsTabs({
         return;
       }
 
-      await supabase.from('packing_configurations').delete().eq('product_id', product.id).eq('tenant_id', tenant_id);
+      await supabase
+        .from('packing_configurations')
+        .delete()
+        .eq('product_id', product.id)
+        .eq('tenant_id', tenant_id);
 
       if (packingConfigs.length > 0) {
-        const rows = packingConfigurationInserts(product.id, tenant_id, user?.id ?? null, packingConfigs);
+        const rows = packingConfigurationInserts(
+          product.id,
+          tenant_id,
+          user?.id ?? null,
+          packingConfigs
+        );
         const { error } = await supabase.from('packing_configurations').insert(rows);
         if (error) throw error;
       }
@@ -1188,7 +1422,10 @@ export default function ProductDetailsTabs({
         className="bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 max-w-md w-full p-5"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <h2 id="tier-dialog-title" className="text-base font-semibold text-gray-900 dark:text-white">
+        <h2
+          id="tier-dialog-title"
+          className="text-base font-semibold text-gray-900 dark:text-white"
+        >
           {tierDialog.existing ? 'Edit' : 'Set'} price — {tierDialog.list.name}
         </h2>
         <div className="mt-4 space-y-3">
@@ -1246,6 +1483,101 @@ export default function ProductDetailsTabs({
     </div>
   ) : null;
 
+  const chipDeleteModalEl = chipDeleteModal ? (
+    <div
+      className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/50"
+      role="presentation"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget && !confirmingChipDelete) setChipDeleteModal(null);
+      }}
+    >
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="chip-del-title"
+        aria-describedby="chip-del-desc"
+        className={`${premiumSurfaces.cardElevated} max-w-md w-full`}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        {chipDeleteModal.kind === 'safe' ? (
+          <>
+            <h2
+              id="chip-del-title"
+              className="text-base font-semibold text-gray-900 dark:text-white"
+            >
+              Delete Category
+            </h2>
+            <p id="chip-del-desc" className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+              <span className="font-medium">&ldquo;{chipDeleteModal.node.name}&rdquo;</span> is not
+              used by any products. You can safely delete it.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                className={premiumSecondaryButton('businessCore', 'sm', 'auto')}
+                onClick={() => setChipDeleteModal(null)}
+                disabled={confirmingChipDelete}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-red-600 hover:bg-red-700 text-white disabled:opacity-60 transition-colors"
+                onClick={() => void handleChipConfirmDelete()}
+                disabled={confirmingChipDelete}
+              >
+                {confirmingChipDelete ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                )}
+                Delete
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h2
+              id="chip-del-title"
+              className="text-base font-semibold text-gray-900 dark:text-white"
+            >
+              Cannot Delete Category
+            </h2>
+            <p id="chip-del-desc" className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+              <span className="font-medium">&ldquo;{chipDeleteModal.node.name}&rdquo;</span> cannot
+              be deleted because it is currently in use.
+            </p>
+            <ul className="mt-3 space-y-1.5 text-sm text-gray-700 dark:text-gray-300">
+              {chipDeleteModal.productCount > 0 && (
+                <li className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" aria-hidden />
+                  {chipDeleteModal.productCount}{' '}
+                  {chipDeleteModal.productCount === 1 ? 'product' : 'products'}
+                </li>
+              )}
+              {chipDeleteModal.childCount > 0 && (
+                <li className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-400 shrink-0" aria-hidden />
+                  {chipDeleteModal.childCount} child{' '}
+                  {chipDeleteModal.childCount === 1 ? 'category' : 'categories'}
+                </li>
+              )}
+            </ul>
+            <div className="mt-5 flex justify-end">
+              <button
+                type="button"
+                className={premiumPrimaryButton('businessCore', 'sm', 'standard')}
+                onClick={() => setChipDeleteModal(null)}
+              >
+                Close
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  ) : null;
+
   const confirmFooter = confirmDialog ? (
     <div
       className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50"
@@ -1291,23 +1623,12 @@ export default function ProductDetailsTabs({
     </div>
   ) : null;
 
-  const addCategoryModalEl = (
-    <AddCategoryModal
-      open={addCategoryOpen}
-      onClose={() => setAddCategoryOpen(false)}
-      onCreated={({ id }) => {
-        void reloadCategories();
-        setSelectedCategoryIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
-      }}
-    />
-  );
-
   if (loading) {
     return (
       <>
         {tierDialogEl}
         {confirmFooter}
-        {addCategoryModalEl}
+        {chipDeleteModalEl}
         <div className="mt-6 flex flex-1 min-h-0 items-center justify-center py-10 text-gray-500 text-sm">
           <Loader2 className="w-4 h-4 mr-2 animate-spin shrink-0" aria-hidden />
           Loading product details...
@@ -1320,7 +1641,7 @@ export default function ProductDetailsTabs({
     <>
       {tierDialogEl}
       {confirmFooter}
-      {addCategoryModalEl}
+      {chipDeleteModalEl}
       <div className="mt-6 min-h-0 flex-1 flex flex-col overflow-hidden">
         <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mb-4 text-sm overflow-x-auto pb-0.5 -mx-1 px-1">
           {(
@@ -1453,12 +1774,24 @@ export default function ProductDetailsTabs({
                 <table className="min-w-full border divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-900/40">
                     <tr>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Barcode</th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Type</th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Packing Level</th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Qty</th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Primary</th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Active</th>
+                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        Barcode
+                      </th>
+                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        Type
+                      </th>
+                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        Packing Level
+                      </th>
+                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        Qty
+                      </th>
+                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        Primary
+                      </th>
+                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        Active
+                      </th>
                       <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}></th>
                     </tr>
                   </thead>
@@ -1495,60 +1828,282 @@ export default function ProductDetailsTabs({
             </div>
           )}
 
-          {activeTab === 'categories' && (
-            <div>
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <h3 className="font-semibold text-gray-900 dark:text-white">Categories</h3>
-                <button
-                  type="button"
-                  onClick={() => setAddCategoryOpen(true)}
-                  className={`shrink-0 ${premiumSecondaryButton('businessCore', 'sm', 'auto')}`}
-                >
-                  <Tag className="h-3.5 w-3.5" aria-hidden />
-                  New category
-                </button>
-              </div>
-              {categoriesError && (
-                <p className="text-[11px] text-red-500 mb-1">{categoriesError}</p>
-              )}
-              <div className="flex flex-wrap gap-3">
-                {categories.map((cat) => {
-                  const selected = selectedCategoryIds.includes(cat.id);
-                  return (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      className={`px-3 py-1.5 rounded-full border text-xs transition-colors ${
-                        selected
-                          ? 'bg-green-600 text-white border-green-600'
-                          : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'
-                      }`}
-                      onClick={() => handleToggleCategory(cat.id)}
-                    >
-                      {cat.name}
-                    </button>
-                  );
-                })}
-                {categories.length === 0 && (
-                  <p className="text-gray-400 text-sm">No categories found.</p>
-                )}
-              </div>
-              <div className="mt-3 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleSaveCategories}
-                  disabled={savingCategories}
-                  className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {savingCategories ? 'Saving...' : 'Save Category Links'}
-                </button>
-                <p className="text-[10px] text-gray-500">
-                  Category links are the source of truth; the first selected category is stored as the
-                  product&apos;s primary <code className="text-[9px]">category_id</code> for reporting.
-                </p>
-              </div>
-            </div>
-          )}
+          {activeTab === 'categories' &&
+            (() => {
+              const search = categorySearch.toLowerCase();
+              const hasChanges = catTiers.some((t) => {
+                const cur = [...(catSelectedByTier[t.tier_number] ?? [])].sort().join(',');
+                const ini = [...(catInitialByTier[t.tier_number] ?? [])].sort().join(',');
+                return cur !== ini;
+              });
+              const changedTierCount = catTiers.filter((t) => {
+                const cur = [...(catSelectedByTier[t.tier_number] ?? [])].sort().join(',');
+                const ini = [...(catInitialByTier[t.tier_number] ?? [])].sort().join(',');
+                return cur !== ini;
+              }).length;
+
+              return (
+                <div className="flex flex-col gap-3">
+                  <div className="relative">
+                    <Search
+                      className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
+                      aria-hidden
+                    />
+                    <input
+                      type="text"
+                      placeholder="Search across all tiers…"
+                      value={categorySearch}
+                      onChange={(e) => setCategorySearch(e.target.value)}
+                      className={`${premiumInputComfortableBase} pl-8 text-xs`}
+                    />
+                  </div>
+
+                  {categoriesError && <p className="text-[11px] text-red-500">{categoriesError}</p>}
+
+                  {catLoading && <p className="text-xs text-gray-400">Loading categories…</p>}
+
+                  {!catLoading && catTiers.length === 0 && (
+                    <p className="text-sm text-gray-400">
+                      No category tiers configured for this workspace.
+                    </p>
+                  )}
+
+                  <div className="space-y-5">
+                    {catTiers.map((tier) => {
+                      const nodes = catNodesByTier[tier.tier_number] ?? [];
+                      const selected = catSelectedByTier[tier.tier_number] ?? [];
+                      const isMulti = tier.is_multi_select;
+                      const filtered = search
+                        ? nodes.filter((n) => n.name.toLowerCase().includes(search))
+                        : nodes;
+                      const dimmed = search && filtered.length === 0;
+
+                      return (
+                        <div key={tier.tier_number} className={dimmed ? 'opacity-30' : undefined}>
+                          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                            {tier.name}
+                            {isMulti && (
+                              <span className="ml-1.5 normal-case font-normal text-gray-300 dark:text-gray-600">
+                                · multi-select
+                              </span>
+                            )}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {filtered.map((node) => {
+                              const isSelected = selected.includes(node.id);
+                              const isChecking = checkingChipDelete === node.id;
+                              const isEditingThis = editingChip?.id === node.id;
+
+                              if (isEditingThis) {
+                                return (
+                                  <div
+                                    key={node.id}
+                                    className="inline-flex items-center gap-1 rounded-full border border-green-400 bg-white px-2 py-1 dark:bg-gray-900"
+                                  >
+                                    <input
+                                      autoFocus
+                                      type="text"
+                                      value={editingChip.name}
+                                      maxLength={200}
+                                      disabled={savingChipEdit}
+                                      onChange={(e) =>
+                                        setEditingChip({ ...editingChip, name: e.target.value })
+                                      }
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') void handleChipEditSave();
+                                        if (e.key === 'Escape') setEditingChip(null);
+                                      }}
+                                      className="w-28 bg-transparent text-xs text-gray-900 outline-none dark:text-white"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => void handleChipEditSave()}
+                                      disabled={savingChipEdit}
+                                      aria-label="Save"
+                                      className="text-green-600 hover:text-green-700 disabled:opacity-50"
+                                    >
+                                      {savingChipEdit ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                                      ) : (
+                                        <Check className="h-3 w-3" aria-hidden />
+                                      )}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingChip(null)}
+                                      disabled={savingChipEdit}
+                                      aria-label="Cancel"
+                                      className="text-gray-400 hover:text-gray-600"
+                                    >
+                                      <X className="h-3 w-3" aria-hidden />
+                                    </button>
+                                  </div>
+                                );
+                              }
+
+                              return (
+                                <div key={node.id} className="relative inline-flex">
+                                  {/* Single pill container — border + rounding live here only */}
+                                  <div
+                                    className={`inline-flex items-center overflow-hidden rounded-full border transition-colors ${
+                                      isSelected
+                                        ? 'border-green-600 bg-green-600 text-white'
+                                        : 'border-gray-300 bg-white text-gray-700 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200'
+                                    }`}
+                                  >
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        isMulti
+                                          ? handleTierMultiToggle(tier.tier_number, node.id)
+                                          : handleTierSelect(tier.tier_number, node.id)
+                                      }
+                                      className="pl-3 pr-1.5 py-1.5 text-xs font-medium"
+                                    >
+                                      {node.name}
+                                    </button>
+                                    <span
+                                      className={`w-px self-stretch mx-0.5 ${isSelected ? 'bg-green-400' : 'bg-gray-200 dark:bg-gray-700'}`}
+                                      aria-hidden
+                                    />
+                                    <button
+                                      type="button"
+                                      aria-label="Category actions"
+                                      aria-haspopup="menu"
+                                      aria-expanded={openChipMenu === node.id}
+                                      disabled={isChecking}
+                                      onMouseDown={(e) => e.stopPropagation()}
+                                      onClick={() =>
+                                        setOpenChipMenu(openChipMenu === node.id ? null : node.id)
+                                      }
+                                      className={`pr-2 pl-1 py-1.5 transition-colors ${
+                                        isSelected
+                                          ? 'text-green-100 hover:bg-green-700'
+                                          : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:text-gray-500 dark:hover:bg-gray-700'
+                                      }`}
+                                    >
+                                      {isChecking ? (
+                                        <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                                      ) : (
+                                        <MoreVertical className="h-3 w-3" aria-hidden />
+                                      )}
+                                    </button>
+                                  </div>
+                                  {openChipMenu === node.id && (
+                                    <div
+                                      role="menu"
+                                      onMouseDown={(e) => e.stopPropagation()}
+                                      className="absolute right-0 top-full mt-1 z-40 min-w-[120px] rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800"
+                                    >
+                                      <button
+                                        role="menuitem"
+                                        type="button"
+                                        className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700"
+                                        onClick={() => {
+                                          setOpenChipMenu(null);
+                                          setEditingChip({ id: node.id, name: node.name });
+                                        }}
+                                      >
+                                        <Pencil className="h-3 w-3 text-gray-400" aria-hidden />
+                                        Edit
+                                      </button>
+                                      <button
+                                        role="menuitem"
+                                        type="button"
+                                        className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
+                                        onClick={() => void handleChipDeleteClick(node)}
+                                      >
+                                        <Trash2 className="h-3 w-3" aria-hidden />
+                                        Delete
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                            {!search &&
+                              (inlineAddOpen === tier.tier_number ? (
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    autoFocus
+                                    type="text"
+                                    value={inlineAddName}
+                                    onChange={(e) => setInlineAddName(e.target.value)}
+                                    placeholder="Name…"
+                                    className={`${premiumInputComfortableBase} w-36 text-xs`}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter')
+                                        void handleInlineAddNode(tier.tier_number);
+                                      if (e.key === 'Escape') {
+                                        setInlineAddOpen(null);
+                                        setInlineAddName('');
+                                      }
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleInlineAddNode(tier.tier_number)}
+                                    disabled={savingInlineAdd || !inlineAddName.trim()}
+                                    className="rounded-full bg-green-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                                  >
+                                    {savingInlineAdd ? '…' : 'Add'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setInlineAddOpen(null);
+                                      setInlineAddName('');
+                                    }}
+                                    className="text-[11px] text-gray-400 hover:text-gray-600"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setInlineAddOpen(tier.tier_number);
+                                    setInlineAddName('');
+                                  }}
+                                  className="inline-flex items-center gap-1 rounded-full border border-dashed border-gray-300 px-3 py-1.5 text-xs text-gray-400 hover:border-green-500 hover:text-green-600 dark:border-gray-600"
+                                >
+                                  <Plus className="h-3 w-3" aria-hidden />
+                                  Add
+                                </button>
+                              ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {hasChanges && (
+                    <div className="sticky bottom-0 flex items-center gap-2 border-t border-gray-100 bg-white pt-3 dark:border-gray-800 dark:bg-gray-950">
+                      <button
+                        type="button"
+                        onClick={() => void handleSaveCategories()}
+                        disabled={savingCategories}
+                        className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {savingCategories ? 'Saving…' : 'Save'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelCategories}
+                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+                      >
+                        Cancel
+                      </button>
+                      <p className="text-[10px] text-gray-400">
+                        {changedTierCount} tier{changedTierCount !== 1 ? 's' : ''} with unsaved
+                        changes
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
           {activeTab === 'pricing' && (
             <div className="space-y-6">
@@ -1556,7 +2111,9 @@ export default function ProductDetailsTabs({
               {priceError && <p className="text-[11px] text-red-500 mb-2">{priceError}</p>}
 
               <section className={`${premiumSurfaces.insetInfo} space-y-3`}>
-                <p className={`${premiumTypography.sectionTitle} uppercase tracking-wide`}>Base pricing</p>
+                <p className={`${premiumTypography.sectionTitle} uppercase tracking-wide`}>
+                  Base pricing
+                </p>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400">
                   Base sell price is the fallback when a customer has no price tier assigned.
                 </p>
@@ -1577,7 +2134,9 @@ export default function ProductDetailsTabs({
                     />
                   </div>
                   <div>
-                    <label className={`block ${premiumTypography.label} mb-1`}>Sell price (base)</label>
+                    <label className={`block ${premiumTypography.label} mb-1`}>
+                      Sell price (base)
+                    </label>
                     <input
                       type="number"
                       step="any"
@@ -1589,22 +2148,23 @@ export default function ProductDetailsTabs({
                   <div>
                     <label className={`block ${premiumTypography.label} mb-1`}>Margin</label>
                     <p
-                      className={`text-sm font-medium ${
-                        (() => {
-                          const sell = parseFloat(baseSellInput);
-                          const cost = parseFloat(baseCostInput);
-                          if (!Number.isFinite(sell) || sell <= 0 || !Number.isFinite(cost)) {
-                            return 'text-gray-500 dark:text-gray-400';
-                          }
-                          const m = ((sell - cost) / sell) * 100;
-                          return m < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white';
-                        })()
-                      }`}
+                      className={`text-sm font-medium ${(() => {
+                        const sell = parseFloat(baseSellInput);
+                        const cost = parseFloat(baseCostInput);
+                        if (!Number.isFinite(sell) || sell <= 0 || !Number.isFinite(cost)) {
+                          return 'text-gray-500 dark:text-gray-400';
+                        }
+                        const m = ((sell - cost) / sell) * 100;
+                        return m < 0
+                          ? 'text-red-600 dark:text-red-400'
+                          : 'text-gray-900 dark:text-white';
+                      })()}`}
                     >
                       {(() => {
                         const sell = parseFloat(baseSellInput);
                         const cost = parseFloat(baseCostInput);
-                        if (!Number.isFinite(sell) || sell <= 0 || !Number.isFinite(cost)) return '—';
+                        if (!Number.isFinite(sell) || sell <= 0 || !Number.isFinite(cost))
+                          return '—';
                         return `${(((sell - cost) / sell) * 100).toFixed(1)}%`;
                       })()}
                     </p>
@@ -1630,7 +2190,8 @@ export default function ProductDetailsTabs({
                     >
                       <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" aria-hidden />
                       <span>
-                        Selling below cost — you are losing {formatMoney(loss)} per unit at the base price.
+                        Selling below cost — you are losing {formatMoney(loss)} per unit at the base
+                        price.
                       </span>
                     </div>
                   );
@@ -1642,56 +2203,62 @@ export default function ProductDetailsTabs({
                   Customer price tiers
                 </p>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 max-w-xl">
-                  Price tiers let you set different prices for different customers. Assign a tier to a customer
-                  and they will automatically get those prices.
+                  Price tiers let you set different prices for different customers. Assign a tier to
+                  a customer and they will automatically get those prices.
                 </p>
                 <ul className="divide-y divide-gray-200 dark:divide-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
-                  {priceLists.filter((pl) => !pl.is_deleted).map((pl) => {
-                    const item = priceListItems.find((i) => i.price_list_id === pl.id);
-                    const displayPrice =
-                      item?.unit_price ??
-                      (product.sell_price != null ? product.sell_price : null);
-                    return (
-                      <li
-                        key={pl.id}
-                        className="flex flex-wrap items-center justify-between gap-2 bg-white dark:bg-gray-900/40 px-3 py-2"
-                      >
-                        <span className="font-medium text-gray-900 dark:text-white">{pl.name}</span>
-                        <span className="text-gray-700 dark:text-gray-200">
-                          {item ? formatMoney(item.unit_price) : formatMoney(displayPrice)}
-                          {!item && product.sell_price != null && (
-                            <span className="ml-1 text-[10px] text-gray-400">(base)</span>
-                          )}
-                        </span>
-                        <span className="flex flex-wrap items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setTierDialog({
-                                list: pl,
-                                existing: item ?? null,
-                                unitPrice: item ? String(item.unit_price) : '',
-                                minQty: item?.min_quantity != null ? String(item.min_quantity) : '1',
-                                maxQty: item?.max_quantity != null ? String(item.max_quantity) : '',
-                              })
-                            }
-                            className="px-2 py-1 text-[11px] font-medium text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20 rounded"
-                          >
-                            {item ? 'Edit' : 'Set price'}
-                          </button>
-                          {item ? (
+                  {priceLists
+                    .filter((pl) => !pl.is_deleted)
+                    .map((pl) => {
+                      const item = priceListItems.find((i) => i.price_list_id === pl.id);
+                      const displayPrice =
+                        item?.unit_price ??
+                        (product.sell_price != null ? product.sell_price : null);
+                      return (
+                        <li
+                          key={pl.id}
+                          className="flex flex-wrap items-center justify-between gap-2 bg-white dark:bg-gray-900/40 px-3 py-2"
+                        >
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {pl.name}
+                          </span>
+                          <span className="text-gray-700 dark:text-gray-200">
+                            {item ? formatMoney(item.unit_price) : formatMoney(displayPrice)}
+                            {!item && product.sell_price != null && (
+                              <span className="ml-1 text-[10px] text-gray-400">(base)</span>
+                            )}
+                          </span>
+                          <span className="flex flex-wrap items-center gap-1">
                             <button
                               type="button"
-                              onClick={() => handleDeletePriceItem(item.id)}
-                              className="px-2 py-1 text-[11px] font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded"
+                              onClick={() =>
+                                setTierDialog({
+                                  list: pl,
+                                  existing: item ?? null,
+                                  unitPrice: item ? String(item.unit_price) : '',
+                                  minQty:
+                                    item?.min_quantity != null ? String(item.min_quantity) : '1',
+                                  maxQty:
+                                    item?.max_quantity != null ? String(item.max_quantity) : '',
+                                })
+                              }
+                              className="px-2 py-1 text-[11px] font-medium text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20 rounded"
                             >
-                              Remove
+                              {item ? 'Edit' : 'Set price'}
                             </button>
-                          ) : null}
-                        </span>
-                      </li>
-                    );
-                  })}
+                            {item ? (
+                              <button
+                                type="button"
+                                onClick={() => handleDeletePriceItem(item.id)}
+                                className="px-2 py-1 text-[11px] font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 rounded"
+                              >
+                                Remove
+                              </button>
+                            ) : null}
+                          </span>
+                        </li>
+                      );
+                    })}
                   {priceLists.filter((pl) => !pl.is_deleted).length === 0 && (
                     <li className="px-3 py-4 text-center text-gray-400 text-sm">
                       No price tiers yet. Create tiers under Customer pricing.
@@ -1769,7 +2336,9 @@ export default function ProductDetailsTabs({
                   Quantity discounts (by tier)
                 </p>
                 {priceListItems.length === 0 ? (
-                  <p className="text-sm text-gray-400">No tier-specific prices for this product yet.</p>
+                  <p className="text-sm text-gray-400">
+                    No tier-specific prices for this product yet.
+                  </p>
                 ) : (
                   (() => {
                     const withBands = priceListItems.filter(
@@ -1786,7 +2355,9 @@ export default function ProductDetailsTabs({
                       <ul className="text-sm space-y-1 text-gray-700 dark:text-gray-300">
                         {withBands.map((i) => (
                           <li key={i.id}>
-                            <span className="font-medium">{i.price_list?.name || i.price_list_id}</span>
+                            <span className="font-medium">
+                              {i.price_list?.name || i.price_list_id}
+                            </span>
                             : min {i.min_quantity ?? '—'}, max {i.max_quantity ?? '—'} —{' '}
                             {formatMoney(i.unit_price)}
                           </li>
@@ -1855,10 +2426,18 @@ export default function ProductDetailsTabs({
                 <table className="min-w-full border divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-900/40">
                     <tr>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Effective From</th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Cost Price</th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Method</th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Notes</th>
+                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        Effective From
+                      </th>
+                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        Cost Price
+                      </th>
+                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        Method
+                      </th>
+                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        Notes
+                      </th>
                       <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`} />
                     </tr>
                   </thead>
@@ -1899,7 +2478,9 @@ export default function ProductDetailsTabs({
             <div className="space-y-4">
               <h3 className="font-semibold text-gray-900 dark:text-white">Product Metrics</h3>
               <div className={`${premiumSurfaces.insetInfo} flex flex-wrap items-end gap-2`}>
-                {metricMsg && <p className="w-full text-xs text-red-600 dark:text-red-400">{metricMsg}</p>}
+                {metricMsg && (
+                  <p className="w-full text-xs text-red-600 dark:text-red-400">{metricMsg}</p>
+                )}
                 <div>
                   <label className={premiumTypography.label}>Metric date</label>
                   <input
@@ -1930,12 +2511,24 @@ export default function ProductDetailsTabs({
                 <table className="min-w-full border divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-900/40">
                     <tr>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Date</th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Period</th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Sales Qty</th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Sales Rev.</th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Stock Value</th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Turnover</th>
+                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        Date
+                      </th>
+                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        Period
+                      </th>
+                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        Sales Qty
+                      </th>
+                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        Sales Rev.
+                      </th>
+                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        Stock Value
+                      </th>
+                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        Turnover
+                      </th>
                       <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`} />
                     </tr>
                   </thead>
@@ -2066,11 +2659,21 @@ export default function ProductDetailsTabs({
                     <table className="min-w-full border divide-y divide-gray-200 dark:divide-gray-700">
                       <thead className="bg-gray-50 dark:bg-gray-900/40">
                         <tr>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Period</th>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Forecast Qty</th>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Actual Qty</th>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Confidence</th>
-                          <th className={`px-3 py-2 text-right ${premiumTypography.tableHeader}`}>Actions</th>
+                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                            Period
+                          </th>
+                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                            Forecast Qty
+                          </th>
+                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                            Actual Qty
+                          </th>
+                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                            Confidence
+                          </th>
+                          <th className={`px-3 py-2 text-right ${premiumTypography.tableHeader}`}>
+                            Actions
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -2120,10 +2723,18 @@ export default function ProductDetailsTabs({
                       <table className="min-w-full border divide-y divide-gray-200 dark:divide-gray-700">
                         <thead className="bg-gray-50 dark:bg-gray-900/40">
                           <tr>
-                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Location</th>
-                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Quantity</th>
-                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Available</th>
-                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Reserved</th>
+                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                              Location
+                            </th>
+                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                              Quantity
+                            </th>
+                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                              Available
+                            </th>
+                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                              Reserved
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -2165,11 +2776,21 @@ export default function ProductDetailsTabs({
                       <table className="min-w-full border divide-y divide-gray-200 dark:divide-gray-700">
                         <thead className="bg-gray-50 dark:bg-gray-900/40">
                           <tr>
-                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Date</th>
-                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Type</th>
-                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Qty</th>
-                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>From</th>
-                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>To</th>
+                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                              Date
+                            </th>
+                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                              Type
+                            </th>
+                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                              Qty
+                            </th>
+                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                              From
+                            </th>
+                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                              To
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -2242,11 +2863,21 @@ export default function ProductDetailsTabs({
                     <table className="min-w-full border divide-y divide-gray-200 dark:divide-gray-700">
                       <thead className="bg-gray-50 dark:bg-gray-900/40">
                         <tr>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Planned Start</th>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Planned End</th>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Planned Qty</th>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Status</th>
-                          <th className={`px-3 py-2 text-right ${premiumTypography.tableHeader}`}>Actions</th>
+                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                            Planned Start
+                          </th>
+                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                            Planned End
+                          </th>
+                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                            Planned Qty
+                          </th>
+                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                            Status
+                          </th>
+                          <th className={`px-3 py-2 text-right ${premiumTypography.tableHeader}`}>
+                            Actions
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -2289,9 +2920,15 @@ export default function ProductDetailsTabs({
                     <table className="min-w-full border divide-y divide-gray-200 dark:divide-gray-700">
                       <thead className="bg-gray-50 dark:bg-gray-900/40">
                         <tr>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Timestamp</th>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Action</th>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>User</th>
+                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                            Timestamp
+                          </th>
+                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                            Action
+                          </th>
+                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                            User
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">

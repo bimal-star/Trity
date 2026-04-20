@@ -5,7 +5,6 @@ import { Loader2, Tag } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { useTenant } from '@/contexts/TenantContext';
 import type { IndustryType } from '@/types/product';
-import type { Database } from '@/types/database';
 import type { PremiumModule } from '@/lib/premiumUi';
 import {
   pillarAccent,
@@ -28,28 +27,19 @@ export const CATEGORY_INDUSTRY_OPTIONS: IndustryType[] = [
   'other',
 ];
 
-/**
- * Coerce a free-form industry string (e.g. `tenants.industry` slug) to a
- * valid `IndustryType` enum value. Unknown values fall back to `other` so a
- * tenant whose industry was added to the shared `industries` table but is
- * not in the narrow product enum still gets a sane default rather than
- * being silently tagged `manufacturing`.
- */
 export function coerceIndustryType(raw: string): IndustryType {
-  return CATEGORY_INDUSTRY_OPTIONS.includes(raw as IndustryType)
-    ? (raw as IndustryType)
-    : 'other';
+  return CATEGORY_INDUSTRY_OPTIONS.includes(raw as IndustryType) ? (raw as IndustryType) : 'other';
 }
 
 export function formatIndustryLabel(t: string): string {
-  return t
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return t.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 export interface AddCategoryModalProps {
   open: boolean;
   onClose: () => void;
+  /** Which tier to create the node in. Defaults to 1 (top-level category). */
+  tierNumber?: number;
   /** Default pillar styling (products = businessCore). */
   module?: PremiumModule;
   onCreated: (payload: { id: string; name: string }) => void;
@@ -58,6 +48,7 @@ export interface AddCategoryModalProps {
 export default function AddCategoryModal({
   open,
   onClose,
+  tierNumber = 1,
   module = 'businessCore',
   onCreated,
 }: AddCategoryModalProps) {
@@ -67,40 +58,16 @@ export default function AddCategoryModal({
   const focus = premiumFocusRing(module);
 
   const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [tenantIndustry, setTenantIndustry] = useState<string | null>(null);
-  const [industryLoading, setIndustryLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
       setName('');
-      setDescription('');
       setError(null);
       setSaving(false);
     }
   }, [open]);
-
-  useEffect(() => {
-    if (!open || !tenant_id) return;
-    let cancelled = false;
-    setIndustryLoading(true);
-    void (async () => {
-      const { data } = await supabase
-        .from('tenants')
-        .select('industry')
-        .eq('id', tenant_id)
-        .maybeSingle();
-      if (!cancelled) {
-        setTenantIndustry((data?.industry as string | null) ?? null);
-        setIndustryLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [open, tenant_id]);
 
   useEffect(() => {
     if (!open) return;
@@ -122,28 +89,21 @@ export default function AddCategoryModal({
       setError('Sign in and ensure a workspace is selected.');
       return;
     }
-    if (industryLoading) {
-      setError('Loading tenant industry, please wait a moment…');
-      return;
-    }
 
     setSaving(true);
     setError(null);
 
-    const row: Database['public']['Tables']['categories']['Insert'] = {
-      tenant_id,
-      name: trimmed,
-      description: description.trim() || null,
-      industry_type: coerceIndustryType(tenantIndustry ?? ''),
-      is_active: true,
-      is_deleted: false,
-      metadata: {},
-      integration_metadata: {},
-      created_by: user.id,
-      updated_by: user.id,
-    };
-
-    const { data, error: insErr } = await supabase.from('categories').insert(row).select('id, name').single();
+    const { data, error: insErr } = await supabase
+      .from('category_nodes')
+      .insert({
+        tenant_id,
+        tier_number: tierNumber,
+        name: trimmed,
+        sort_order: 0,
+        is_active: true,
+      })
+      .select('id, name')
+      .single();
 
     setSaving(false);
     if (insErr) {
@@ -181,11 +141,14 @@ export default function AddCategoryModal({
             <Tag className={`h-5 w-5 ${bc.iconColor}`} aria-hidden />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 id="add-category-title" className={`${premiumTypography.pageTitle} ${bc.titleText}`}>
+            <h2
+              id="add-category-title"
+              className={`${premiumTypography.pageTitle} ${bc.titleText}`}
+            >
               New category
             </h2>
             <p className={`mt-1 ${premiumTypography.helper}`}>
-              Adds a catalog group for this workspace. Industry is inherited from the tenant.
+              Adds a node to tier {tierNumber} of this workspace&apos;s category structure.
             </p>
           </div>
         </div>
@@ -207,24 +170,12 @@ export default function AddCategoryModal({
               maxLength={200}
             />
           </div>
-          <div>
-            <label htmlFor="add-category-desc" className={`mb-1 block ${premiumTypography.label}`}>
-              Description <span className="font-normal text-gray-400">(optional)</span>
-            </label>
-            <textarea
-              id="add-category-desc"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              className={`${premiumInputComfortableBase} ${focus} resize-y min-h-[4rem]`}
-              placeholder="Short note for your team"
-              disabled={saving}
-              maxLength={2000}
-            />
-          </div>
 
           {error && (
-            <p className={`${premiumTypography.helper} text-red-600 dark:text-red-400`} role="alert">
+            <p
+              className={`${premiumTypography.helper} text-red-600 dark:text-red-400`}
+              role="alert"
+            >
               {error}
             </p>
           )}
@@ -241,7 +192,7 @@ export default function AddCategoryModal({
             <button
               type="submit"
               className={premiumPrimaryButton(module, 'sm', 'standard')}
-              disabled={saving || industryLoading}
+              disabled={saving}
             >
               {saving ? (
                 <>

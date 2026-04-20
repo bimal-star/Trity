@@ -12,7 +12,13 @@ import { useProducts } from '@/hooks/useProducts';
 import { useTenant } from '@/contexts/TenantContext';
 import { useCatalogueMode } from '@/hooks/useCatalogueMode';
 import { Product, ProductFilters, StatusType, ProductType } from '@/types/product';
-import { pillarAccent, premiumPrimaryButton, premiumSurfaces, premiumTertiaryButton, premiumTypography } from '@/lib/premiumUi';
+import {
+  pillarAccent,
+  premiumPrimaryButton,
+  premiumSurfaces,
+  premiumTertiaryButton,
+  premiumTypography,
+} from '@/lib/premiumUi';
 import { Package2, Plus } from 'lucide-react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { ExportFormatDropdown } from '@/components/common/ExportFormatDropdown';
@@ -52,32 +58,17 @@ export default function ProductsPage() {
     return base;
   }, [search, statusFilter, productTypeFilter, categoryFilter, showArchived]);
 
-  const {
-    products,
-    isLoading,
-    error,
-    categoriesError,
-    availableCategories,
-    deleteProduct,
-    restoreProduct,
-    refreshProducts,
-    refreshCategories,
-  } = useProducts(filters, 'created_at', 'desc');
+  const { products, isLoading, error, deleteProduct, restoreProduct, refreshProducts } =
+    useProducts(filters, 'created_at', 'desc');
 
   const [addCategoryOpen, setAddCategoryOpen] = useState(false);
 
   const handleProductUpdated = async () => {
     const list = await refreshProducts();
-    setSelectedProduct((prev) => (prev ? list.find((p) => p.id === prev.id) ?? prev : null));
+    setSelectedProduct((prev) => (prev ? (list.find((p) => p.id === prev.id) ?? prev) : null));
   };
 
-  const categoryOptions = useMemo(() => {
-    const names = new Set<string>();
-    for (const c of availableCategories) {
-      names.add(c.name);
-    }
-    return ['all', ...Array.from(names).sort((a, b) => a.localeCompare(b))];
-  }, [availableCategories]);
+  const categoryOptions = ['all'];
 
   const filterActive =
     Boolean(search.trim()) ||
@@ -90,7 +81,8 @@ export default function ProductsPage() {
       title: `Archive “${product.name}”?`,
       description: 'The product will be hidden from default catalog lists but data is preserved.',
       confirmLabel: 'Archive',
-      confirmClassName: 'px-3 py-1.5 text-sm font-medium rounded-lg bg-amber-600 hover:bg-amber-700 text-white',
+      confirmClassName:
+        'px-3 py-1.5 text-sm font-medium rounded-lg bg-amber-600 hover:bg-amber-700 text-white',
       onConfirm: async () => {
         setConfirmDialog(null);
         const r = await deleteProduct(product.id);
@@ -117,7 +109,8 @@ export default function ProductsPage() {
       title: `Restore “${product.name}”?`,
       description: 'The product will return to the active catalog and appear in default lists.',
       confirmLabel: 'Restore',
-      confirmClassName: 'px-3 py-1.5 text-sm font-medium rounded-lg bg-green-600 hover:bg-green-700 text-white',
+      confirmClassName:
+        'px-3 py-1.5 text-sm font-medium rounded-lg bg-green-600 hover:bg-green-700 text-white',
       onConfirm: async () => {
         setConfirmDialog(null);
         const r = await restoreProduct(product.id);
@@ -182,7 +175,7 @@ export default function ProductsPage() {
         open={addCategoryOpen}
         onClose={() => setAddCategoryOpen(false)}
         onCreated={({ name }) => {
-          void refreshCategories();
+          void refreshProducts();
           setCategoryFilter(name);
         }}
       />
@@ -223,10 +216,7 @@ export default function ProductsPage() {
                 buttonClassName={premiumTertiaryButton('sm', 'standard')}
               />
               {supportsGroups && (
-                <Link
-                  href="/products/groups"
-                  className={premiumTertiaryButton('sm', 'standard')}
-                >
+                <Link href="/products/groups" className={premiumTertiaryButton('sm', 'standard')}>
                   Product groups
                 </Link>
               )}
@@ -273,7 +263,6 @@ export default function ProductsPage() {
                 selectedProductId={selectedProduct?.id ?? null}
                 isLoading={isLoading}
                 error={error}
-                categoriesError={categoriesError}
                 search={search}
                 onSearchChange={setSearch}
                 onSelect={setSelectedProduct}
