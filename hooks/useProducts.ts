@@ -178,11 +178,54 @@ export function useProducts(
       setIsLoading(true);
       setError(null);
 
+      const activeTierFilters = Object.entries(filters?.categoryNodeIdsByTier ?? {})
+        .map(([tierNumber, nodeIds]) => ({
+          tierNumber: Number(tierNumber),
+          nodeIds: (nodeIds ?? []).filter(Boolean),
+        }))
+        .filter((entry) => entry.nodeIds.length > 0);
+
+      let tierMatchedProductIds: string[] | null = null;
+      if (activeTierFilters.length > 0) {
+        for (const tierFilter of activeTierFilters) {
+          const { data: assignments, error: assignmentError } = await supabase
+            .from('product_category_assignments')
+            .select('product_id')
+            .eq('tenant_id', tenant_id)
+            .eq('tier_number', tierFilter.tierNumber)
+            .in('category_node_id', tierFilter.nodeIds);
+
+          if (assignmentError) throw assignmentError;
+
+          const idsForTier = new Set(
+            ((assignments ?? []) as Array<{ product_id: string | null }>)
+              .map((row) => row.product_id)
+              .filter((id): id is string => Boolean(id))
+          );
+
+          if (tierMatchedProductIds === null) {
+            tierMatchedProductIds = Array.from(idsForTier);
+          } else {
+            const currentSet = new Set(tierMatchedProductIds);
+            tierMatchedProductIds = Array.from(idsForTier).filter((id) => currentSet.has(id));
+          }
+        }
+
+        if (!tierMatchedProductIds || tierMatchedProductIds.length === 0) {
+          setProducts([]);
+          return [];
+        }
+      }
+
       let query = supabase
         .from('vw_products_full')
         .select('*')
         .eq('tenant_id', tenant_id)
         .order(sortField, { ascending: sortDirection === 'asc' });
+
+      if (tierMatchedProductIds?.length) {
+        query = query.in('id', tierMatchedProductIds);
+      }
 
       if (filters) {
         if (filters.industry_type) {
@@ -202,6 +245,13 @@ export function useProducts(
         }
         if (filters.lowStock) {
           query = query.not('reorder_point', 'is', null).eq('tracks_inventory', true);
+        }
+        // Legacy flat category name filter kept for compatibility.
+        if (filters.categories?.length) {
+          query = query.overlaps('category_names', filters.categories);
+        }
+        if (filters.tags?.length) {
+          query = query.overlaps('tags', filters.tags);
         }
         if (filters.searchQuery) {
           const safe = filters.searchQuery

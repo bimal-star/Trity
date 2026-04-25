@@ -231,12 +231,19 @@ export interface ProductActivityLog {
 }
 /**
  * Product Type Definitions
- * 
+ *
  * Defines interfaces and types for the products management system
  * Based on the Supabase products table schema
  */
 
-export type IndustryType = 'bakery' | 'ready_meals' | 'pizza' | 'construction' | 'manufacturing' | 'retail' | 'other';
+export type IndustryType =
+  | 'bakery'
+  | 'ready_meals'
+  | 'pizza'
+  | 'construction'
+  | 'manufacturing'
+  | 'retail'
+  | 'other';
 export type ProductType =
   | 'raw_material'
   | 'semi_finished'
@@ -258,14 +265,14 @@ export interface Product {
   category_id: string | null;
   base_unit_id: string | null;
   status: StatusType;
-  
+
   // Pricing
   cost_price: number | null;
   /** Weighted-average inventory unit cost; null until costing updates it. */
   weighted_avg_unit_cost?: number | null;
   sell_price: number | null;
   currency: string | null;
-  
+
   // Physical attributes
   weight: number | null;
   weight_unit_id: string | null;
@@ -275,7 +282,7 @@ export interface Product {
   dimension_unit_id: string | null;
   volume: number | null;
   volume_unit_id: string | null;
-  
+
   // Inventory
   /** When false, SKU is non-stocked (e.g. service); defaults true when omitted. */
   tracks_inventory?: boolean | null;
@@ -286,27 +293,27 @@ export interface Product {
   /** Aggregated from stock levels when loaded via `vw_products_full`. */
   total_stock?: number | null;
   lead_time_days: number | null;
-  
+
   // Quality & Safety
   shelf_life_days: number | null;
   storage_conditions: string | null;
   allergens: string[] | null;
   certifications: string[] | null;
   safety_rating: string | null;
-  
+
   // Manufacturing
   default_supplier_id: string | null;
   manufacturer_part_number: string | null;
   batch_tracked: boolean | null;
   serial_tracked: boolean | null;
   lot_controlled: boolean | null;
-  
+
   // Media & Documentation
   image_url: string | null;
   images: any | null;
   documents: any | null;
   specifications_url: string | null;
-  
+
   // Custom attributes
   attributes: any | null;
   metadata: any | null;
@@ -318,7 +325,7 @@ export interface Product {
   variant_attributes?: Record<string, unknown> | null;
   product_group_name?: string | null;
   product_group_attribute_dimensions?: unknown | null;
-  
+
   // Audit
   is_active: boolean | null;
   /** Soft-delete flag when present in DB (non-deleted products are false or omitted). */
@@ -405,7 +412,11 @@ export interface ProductFilters {
   maxPrice?: number;
   lowStock?: boolean;
   searchQuery?: string;
+  /** Legacy flat category-name filter (kept for compatibility). */
   categories?: string[];
+  tags?: string[];
+  /** Tier-aware category node selections keyed by tier number. */
+  categoryNodeIdsByTier?: Record<number, string[]>;
   recordVisibility?: ProductRecordVisibility;
 }
 

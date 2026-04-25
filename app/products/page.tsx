@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import AddCategoryModal from '@/components/products/AddCategoryModal';
 import PremiumStickyHeader from '@/components/layout/premium/PremiumStickyHeader';
 import PageContainer from '@/components/PageContainer';
@@ -11,7 +11,13 @@ import ProductDetailsTabs from '@/components/products/ProductDetailsTabs';
 import { useProducts } from '@/hooks/useProducts';
 import { useTenant } from '@/contexts/TenantContext';
 import { useCatalogueMode } from '@/hooks/useCatalogueMode';
-import { Product, ProductFilters, StatusType, ProductType } from '@/types/product';
+import {
+  Product,
+  ProductFilters,
+  ProductRecordVisibility,
+  ProductType,
+  StatusType,
+} from '@/types/product';
 import {
   pillarAccent,
   premiumPrimaryButton,
@@ -23,6 +29,7 @@ import { Package2, Plus } from 'lucide-react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { ExportFormatDropdown } from '@/components/common/ExportFormatDropdown';
 import { logProductArchived, logProductRestored } from '@/lib/auditLog';
+import { CategoryNode, CategoryTier, loadCategoryStructure } from '@/lib/categories';
 
 const bc = pillarAccent('businessCore');
 
@@ -41,40 +48,130 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | StatusType>('all');
   const [productTypeFilter, setProductTypeFilter] = useState<'all' | ProductType>('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [showArchived, setShowArchived] = useState(false);
+  const [selectedCategoryNodeIdsByTier, setSelectedCategoryNodeIdsByTier] = useState<
+    Record<number, string[]>
+  >({});
+  const [tagFilter, setTagFilter] = useState<string>('all');
+  const [recordVisibility, setRecordVisibility] = useState<ProductRecordVisibility>('active');
+  const [categoryTiers, setCategoryTiers] = useState<CategoryTier[]>([]);
+  const [categoryNodesByTier, setCategoryNodesByTier] = useState<Record<number, CategoryNode[]>>(
+    {}
+  );
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
 
   const filters = useMemo((): ProductFilters | undefined => {
     const q = search.trim();
     const base: ProductFilters = {
-      recordVisibility: showArchived ? 'all' : 'active',
+      recordVisibility,
       status: statusFilter === 'all' ? 'all' : statusFilter,
     };
     if (productTypeFilter !== 'all') base.product_type = productTypeFilter;
-    if (categoryFilter !== 'all') base.categories = [categoryFilter];
+    if (Object.values(selectedCategoryNodeIdsByTier).some((ids) => ids.length > 0)) {
+      base.categoryNodeIdsByTier = selectedCategoryNodeIdsByTier;
+    }
+    if (tagFilter !== 'all') base.tags = [tagFilter];
     if (q) base.searchQuery = q;
     return base;
-  }, [search, statusFilter, productTypeFilter, categoryFilter, showArchived]);
+  }, [
+    search,
+    statusFilter,
+    productTypeFilter,
+    selectedCategoryNodeIdsByTier,
+    tagFilter,
+    recordVisibility,
+  ]);
 
   const { products, isLoading, error, deleteProduct, restoreProduct, refreshProducts } =
     useProducts(filters, 'created_at', 'desc');
 
   const [addCategoryOpen, setAddCategoryOpen] = useState(false);
 
+  const reloadCategoryStructure = useCallback(async () => {
+    if (!tenant_id) {
+      setCategoryTiers([]);
+      setCategoryNodesByTier({});
+      setCategoriesError(null);
+      return;
+    }
+    try {
+      const structure = await loadCategoryStructure(tenant_id);
+      setCategoryTiers(structure.tiers);
+      setCategoryNodesByTier(structure.nodesByTier);
+      setCategoriesError(null);
+    } catch (err) {
+      console.error('Failed to load category tier structure:', err);
+      setCategoryTiers([]);
+      setCategoryNodesByTier({});
+      setCategoriesError(err instanceof Error ? err.message : 'Failed to load categories');
+    }
+  }, [tenant_id]);
+
+  useEffect(() => {
+    void reloadCategoryStructure();
+  }, [reloadCategoryStructure]);
+
   const handleProductUpdated = async () => {
     const list = await refreshProducts();
     setSelectedProduct((prev) => (prev ? (list.find((p) => p.id === prev.id) ?? prev) : null));
   };
 
-  const categoryOptions = ['all'];
+  const tagOptions = useMemo(() => {
+    const tagSet = new Set<string>();
+    products.forEach((product) => {
+      product.tags?.forEach((tag) => {
+        const normalized = tag.trim();
+        if (normalized) tagSet.add(normalized);
+      });
+    });
+    if (tagFilter !== 'all') tagSet.add(tagFilter);
+    return ['all', ...Array.from(tagSet).sort((a, b) => a.localeCompare(b))];
+  }, [products, tagFilter]);
 
   const filterActive =
     Boolean(search.trim()) ||
     statusFilter !== 'all' ||
     productTypeFilter !== 'all' ||
-    categoryFilter !== 'all';
+    Object.values(selectedCategoryNodeIdsByTier).some((ids) => ids.length > 0) ||
+    tagFilter !== 'all' ||
+    recordVisibility !== 'active';
+
+  const handleToggleCategoryNode = useCallback(
+    (tierNumber: number, nodeId: string, isMultiSelect: boolean) => {
+      setSelectedCategoryNodeIdsByTier((prev) => {
+        const current = prev[tierNumber] ?? [];
+        const exists = current.includes(nodeId);
+        let nextForTier: string[];
+
+        if (isMultiSelect) {
+          nextForTier = exists ? current.filter((id) => id !== nodeId) : [...current, nodeId];
+        } else {
+          nextForTier = exists ? [] : [nodeId];
+        }
+
+        const next: Record<number, string[]> = {};
+        Object.entries(prev).forEach(([key, ids]) => {
+          const numKey = Number(key);
+          if (numKey <= tierNumber) next[numKey] = ids;
+        });
+        if (nextForTier.length > 0) next[tierNumber] = nextForTier;
+        else delete next[tierNumber];
+
+        return next;
+      });
+    },
+    []
+  );
+
+  const clearFilters = useCallback(() => {
+    setSearch('');
+    setStatusFilter('all');
+    setProductTypeFilter('all');
+    setSelectedCategoryNodeIdsByTier({});
+    setTagFilter('all');
+    setRecordVisibility('active');
+  }, []);
 
   const handleArchive = (product: Product) => {
     setConfirmDialog({
@@ -174,9 +271,9 @@ export default function ProductsPage() {
       <AddCategoryModal
         open={addCategoryOpen}
         onClose={() => setAddCategoryOpen(false)}
-        onCreated={({ name }) => {
+        onCreated={() => {
           void refreshProducts();
-          setCategoryFilter(name);
+          void reloadCategoryStructure();
         }}
       />
       <PageContainer module="businessCore">
@@ -251,32 +348,38 @@ export default function ProductsPage() {
 
         {/* Fill main column (~sidebar h-screen): chrome ≈ PageContainer pt/pb + header + divider */}
         <div className="flex h-[calc(100vh-132px)] min-h-[min(560px,calc(100vh-132px))] w-full flex-col overflow-hidden">
-          <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden lg:grid-cols-3 lg:items-stretch">
-            <div className="flex h-full min-h-0 flex-col lg:col-span-1">
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden lg:grid-cols-[1.35fr_1.65fr] lg:items-stretch">
+            <div className="flex h-full min-h-0 flex-col">
               <ProductList
                 products={products}
                 productTypeFilter={productTypeFilter}
                 onProductTypeFilterChange={setProductTypeFilter}
-                categoryFilter={categoryFilter}
-                onCategoryFilterChange={setCategoryFilter}
-                categoryOptions={categoryOptions}
+                categoryTiers={categoryTiers}
+                categoryNodesByTier={categoryNodesByTier}
+                selectedCategoryNodeIdsByTier={selectedCategoryNodeIdsByTier}
+                onToggleCategoryNode={handleToggleCategoryNode}
+                tagFilter={tagFilter}
+                onTagFilterChange={setTagFilter}
+                tagOptions={tagOptions}
+                recordVisibility={recordVisibility}
+                onRecordVisibilityChange={setRecordVisibility}
                 selectedProductId={selectedProduct?.id ?? null}
                 isLoading={isLoading}
                 error={error}
+                categoriesError={categoriesError}
                 search={search}
                 onSearchChange={setSearch}
                 onSelect={setSelectedProduct}
                 statusFilter={statusFilter}
                 onStatusFilterChange={setStatusFilter}
                 filterActive={filterActive}
+                onClearFilters={clearFilters}
                 onOpenAddCategory={() => setAddCategoryOpen(true)}
                 showGroupColumn={supportsGroups}
-                showArchived={showArchived}
-                onShowArchivedChange={setShowArchived}
               />
             </div>
 
-            <div className="lg:col-span-2 space-y-4 min-w-0 overflow-hidden min-h-0 h-full flex flex-col">
+            <div className="space-y-4 min-w-0 overflow-hidden min-h-0 h-full flex flex-col">
               <div className="shrink-0">
                 <ProductMasterCard
                   product={selectedProduct}
