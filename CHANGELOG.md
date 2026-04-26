@@ -2,6 +2,29 @@
 
 All notable project changes are recorded here.
 
+## 0.3.3 - 2026-04-26
+
+Based on commits since `v0.3.2`.
+
+### Features
+
+- Feature: Category UI change
+- Feature: Category schema change
+
+### Documentation
+
+- docs: tidy SQL and reference documentation navigation (#3)
+
+### Other
+
+- Top Nav fixes and UI cleanup
+- stable snapshot before nav redesign
+- Super-admin tenant impersonation with RLS, audit, and dev auto-attach (#4)
+- Add migration to extend tenant_role enum with super_admin
+- Wire tenant context and UI for super-admin impersonation
+- Add impersonation API routes and client helpers
+- Add tenant impersonation migration and audit table types
+
 ## 0.3.2 - 2026-04-19
 
 Based on commits since `v0.3.1`.
