@@ -69,14 +69,11 @@ export default function LogoUrlField({
     }
   };
 
-  const defaultLabelClass =
-    'mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300';
+  const defaultLabelClass = 'mb-1 block text-xs font-medium text-gray-700 dark:text-gray-300';
 
   return (
     <div className="space-y-2">
-      <label className={labelClassName ?? defaultLabelClass}>
-        {label}
-      </label>
+      <label className={labelClassName ?? defaultLabelClass}>{label}</label>
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-600 dark:bg-gray-900">
           {logoUrl?.trim() ? (
@@ -129,12 +126,13 @@ export default function LogoUrlField({
         </div>
       </div>
       {localError ? (
-        <p role="alert" className="text-xs text-red-600 dark:text-red-400">{localError}</p>
+        <p role="alert" className="text-xs text-red-600 dark:text-red-400">
+          {localError}
+        </p>
       ) : uploadBlocked ? (
         <p className="text-[11px] text-gray-500 dark:text-gray-400">
           {storageTenantIdProp === null
-            ? uploadDisabledHint ??
-              'Save the tenant first, then open Edit to upload a logo.'
+            ? (uploadDisabledHint ?? 'Save the tenant first, then open Edit to upload a logo.')
             : 'Workspace not ready. Try again in a moment.'}
         </p>
       ) : (

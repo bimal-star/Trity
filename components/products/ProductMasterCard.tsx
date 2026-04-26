@@ -20,7 +20,11 @@ const PRODUCT_STATUS_MAP: Record<string, string> = {
   discontinued: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
 };
 
-export default function ProductMasterCard({ product, onArchive, onRestore }: ProductMasterCardProps) {
+export default function ProductMasterCard({
+  product,
+  onArchive,
+  onRestore,
+}: ProductMasterCardProps) {
   if (!product) {
     return (
       <MasterCardEmptyState

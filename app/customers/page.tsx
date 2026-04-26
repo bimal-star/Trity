@@ -14,7 +14,12 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useCustomers } from '@/hooks/useCustomers';
 import type { Customer, CustomerRecordVisibility, CustomerStatus } from '@/types/customer';
 import { logCustomerArchived, logCustomerRestored } from '@/lib/auditLog';
-import { pillarAccent, premiumPrimaryButton, premiumSurfaces, premiumTertiaryButton, premiumTypography } from '@/lib/premiumUi';
+import {
+  pillarAccent,
+  premiumPrimaryButton,
+  premiumTertiaryButton,
+  premiumTypography,
+} from '@/lib/premiumUi';
 import { Users, Plus, Loader2 } from 'lucide-react';
 import { ExportFormatDropdown } from '@/components/common/ExportFormatDropdown';
 
@@ -22,8 +27,13 @@ const bc = pillarAccent('businessCore');
 
 export default function CustomersPage() {
   const router = useRouter();
-  const { user, effectiveTenantId: tenant_id, ready, isLoading: tenantBootLoading, profile } =
-    useTenant();
+  const {
+    user,
+    effectiveTenantId: tenant_id,
+    ready,
+    isLoading: tenantBootLoading,
+    profile,
+  } = useTenant();
   const { can } = usePermissions();
   const canManageCustomers = can('manage_users');
 
@@ -107,7 +117,10 @@ export default function CustomersPage() {
       <ProtectedRoute>
         <PageContainer module="businessCore">
           <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="mb-4 h-8 w-8 animate-spin text-green-700 dark:text-green-500" aria-hidden />
+            <Loader2
+              className="mb-4 h-8 w-8 animate-spin text-green-700 dark:text-green-500"
+              aria-hidden
+            />
             <p className="text-sm text-gray-500 dark:text-gray-400">Loading…</p>
           </div>
         </PageContainer>
@@ -120,7 +133,10 @@ export default function CustomersPage() {
       <ProtectedRoute>
         <PageContainer module="businessCore">
           <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="mb-4 h-8 w-8 animate-spin text-green-700 dark:text-green-500" aria-hidden />
+            <Loader2
+              className="mb-4 h-8 w-8 animate-spin text-green-700 dark:text-green-500"
+              aria-hidden
+            />
             <p className="text-sm text-gray-500 dark:text-gray-400">Redirecting…</p>
           </div>
         </PageContainer>
@@ -133,7 +149,10 @@ export default function CustomersPage() {
       <ProtectedRoute>
         <PageContainer module="businessCore">
           <div className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="mb-4 h-8 w-8 animate-spin text-green-700 dark:text-green-500" aria-hidden />
+            <Loader2
+              className="mb-4 h-8 w-8 animate-spin text-green-700 dark:text-green-500"
+              aria-hidden
+            />
             <p className="text-sm text-gray-500 dark:text-gray-400">Loading…</p>
           </div>
         </PageContainer>
@@ -232,9 +251,7 @@ export default function CustomersPage() {
           }
         />
 
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
-
-        <div className="flex h-[calc(100vh-132px)] min-h-[min(560px,calc(100vh-132px))] w-full flex-col overflow-hidden">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden lg:grid-cols-3 lg:items-stretch">
             <div className="flex h-full min-h-0 flex-col lg:col-span-1">
               <CustomerList

@@ -10,7 +10,9 @@ const path = require('path');
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (e.g. load .env.local).');
+  console.error(
+    'Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (e.g. load .env.local).'
+  );
   process.exit(1);
 }
 
@@ -18,9 +20,16 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 async function documentSchema() {
   console.log('Fetching database schema...\n');
-  
-  const tables = ['products', 'categories', 'navigation', 'calendar', 'product_categories', 'units'];
-  
+
+  const tables = [
+    'products',
+    'categories',
+    'navigation',
+    'calendar',
+    'product_categories',
+    'units',
+  ];
+
   let markdown = `# Database Schema Reference
 *Auto-generated on: ${new Date().toLocaleString()}*
 
@@ -34,7 +43,7 @@ async function documentSchema() {
     const { error } = await supabase.from(tableName).select('*').limit(0);
     if (!error) existingTables++;
   }
-  
+
   markdown += `- **Total Tables**: ${existingTables}\n`;
   markdown += `- **Database**: Supabase PostgreSQL\n`;
   markdown += `- **Type Safety**: Yes (via generated types)\n\n`;
@@ -43,12 +52,9 @@ async function documentSchema() {
   // Document each table
   for (const tableName of tables) {
     console.log(`Documenting ${tableName}...`);
-    
-    const { data, error } = await supabase
-      .from(tableName)
-      .select('*')
-      .limit(1);
-    
+
+    const { data, error } = await supabase.from(tableName).select('*').limit(1);
+
     if (error) {
       markdown += `## ❌ ${tableName}\n\n`;
       markdown += `**Status**: Not accessible or doesn't exist\n`;
@@ -56,37 +62,37 @@ async function documentSchema() {
       markdown += `---\n\n`;
       continue;
     }
-    
+
     markdown += `## ✅ ${tableName}\n\n`;
-    
+
     if (data && data.length > 0) {
       const row = data[0];
       const columns = Object.keys(row);
-      
+
       markdown += `**Column Count**: ${columns.length}\n\n`;
       markdown += `### Columns\n\n`;
       markdown += `| Column | Type | Sample Value |\n`;
       markdown += `|--------|------|-------------|\n`;
-      
-      columns.forEach(col => {
+
+      columns.forEach((col) => {
         const value = row[col];
         let type = typeof value;
-        
+
         if (value === null) type = 'null';
         else if (value instanceof Date) type = 'date';
         else if (Array.isArray(value)) type = 'array';
         else if (typeof value === 'object') type = 'object';
-        
+
         let sampleValue = JSON.stringify(value);
         if (sampleValue && sampleValue.length > 50) {
           sampleValue = sampleValue.substring(0, 47) + '...';
         }
-        
+
         markdown += `| \`${col}\` | ${type} | ${sampleValue} |\n`;
       });
-      
+
       markdown += `\n`;
-      
+
       // TypeScript type reference
       markdown += `### TypeScript Type\n\n`;
       markdown += `\`\`\`typescript\n`;
@@ -95,7 +101,7 @@ async function documentSchema() {
       markdown += `type ${tableName.charAt(0).toUpperCase() + tableName.slice(1)}Insert = Database['public']['Tables']['${tableName}']['Insert'];\n`;
       markdown += `type ${tableName.charAt(0).toUpperCase() + tableName.slice(1)}Update = Database['public']['Tables']['${tableName}']['Update'];\n`;
       markdown += `\`\`\`\n\n`;
-      
+
       // Usage example
       markdown += `### Example Usage\n\n`;
       markdown += `\`\`\`typescript\n`;
@@ -119,11 +125,10 @@ async function documentSchema() {
       markdown += `  .delete()\n`;
       markdown += `  .eq('id', 'some-id');\n`;
       markdown += `\`\`\`\n\n`;
-      
     } else {
       markdown += `**Status**: Table exists but is empty\n\n`;
     }
-    
+
     markdown += `---\n\n`;
   }
 
@@ -146,7 +151,7 @@ async function documentSchema() {
     fs.mkdirSync(outputDir, { recursive: true });
   }
   fs.writeFileSync(outputPath, markdown, 'utf8');
-  
+
   console.log(`\n✅ Schema documentation generated: ${outputPath}`);
 }
 

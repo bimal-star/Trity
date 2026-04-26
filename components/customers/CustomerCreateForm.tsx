@@ -47,12 +47,7 @@ const defaultFormData: CustomerFormData = {
   metadata: {},
 };
 
-const customerTypeOptions: CustomerType[] = [
-  'individual',
-  'business',
-  'distributor',
-  'internal',
-];
+const customerTypeOptions: CustomerType[] = ['individual', 'business', 'distributor', 'internal'];
 
 const statusOptions: CustomerStatus[] = ['active', 'inactive', 'on_hold', 'prospect'];
 
@@ -69,7 +64,11 @@ function formatStatusLabel(s: CustomerStatus): string {
 
 type RightSectionId = 'address' | 'legal' | 'commercial' | 'logistics' | 'metadata';
 
-import { formCardShell, formInputClass as inputClass, formLabelClass as labelClass } from '@/lib/formTokens';
+import {
+  formCardShell,
+  formInputClass as inputClass,
+  formLabelClass as labelClass,
+} from '@/lib/formTokens';
 
 export interface CustomerCreateFormProps {
   onCreate: (data: CustomerFormData) => Promise<{ success: boolean; error?: string }>;
@@ -77,7 +76,11 @@ export interface CustomerCreateFormProps {
   onSuccess?: () => void;
 }
 
-export default function CustomerCreateForm({ onCreate, onCancel, onSuccess }: CustomerCreateFormProps) {
+export default function CustomerCreateForm({
+  onCreate,
+  onCancel,
+  onSuccess,
+}: CustomerCreateFormProps) {
   const { lists: priceTiers } = usePriceLists();
   const [formData, setFormData] = useState<CustomerFormData>(defaultFormData);
   const [metadataJson, setMetadataJson] = useState('{}');
@@ -92,39 +95,39 @@ export default function CustomerCreateForm({ onCreate, onCancel, onSuccess }: Cu
 
   const hasAddressDetails = Boolean(
     formData.address_line1 ||
-      formData.address_line2 ||
-      formData.city ||
-      formData.state ||
-      formData.postcode ||
-      formData.country
+    formData.address_line2 ||
+    formData.city ||
+    formData.state ||
+    formData.postcode ||
+    formData.country
   );
   const hasLegalDetails = Boolean(
     formData.registration_number ||
-      formData.vat_number ||
-      formData.tax_scheme ||
-      formData.credit_rating ||
-      formData.risk_category
+    formData.vat_number ||
+    formData.tax_scheme ||
+    formData.credit_rating ||
+    formData.risk_category
   );
   const hasCommercialDetails = Boolean(
     formData.payment_terms ||
-      formData.credit_limit != null ||
-      formData.currency ||
-      formData.price_list_id ||
-      formData.discount_rate != null ||
-      formData.credit_hold ||
-      formData.tax_inclusive
+    formData.credit_limit != null ||
+    formData.currency ||
+    formData.price_list_id ||
+    formData.discount_rate != null ||
+    formData.credit_hold ||
+    formData.tax_inclusive
   );
   const hasLogisticsDetails = Boolean(
     formData.default_warehouse_id ||
-      formData.delivery_instructions ||
-      formData.preferred_carrier ||
-      formData.shipping_account_number ||
-      formData.incoterms ||
-      formData.sales_rep_id ||
-      formData.channel ||
-      formData.region ||
-      formData.forecast_group ||
-      formData.demand_profile
+    formData.delivery_instructions ||
+    formData.preferred_carrier ||
+    formData.shipping_account_number ||
+    formData.incoterms ||
+    formData.sales_rep_id ||
+    formData.channel ||
+    formData.region ||
+    formData.forecast_group ||
+    formData.demand_profile
   );
   const hasMetadataDetails = metadataJson.trim() !== '{}';
 
@@ -571,7 +574,9 @@ export default function CustomerCreateForm({ onCreate, onCancel, onSuccess }: Cu
                           className="rounded text-green-600 focus:ring-green-500"
                           disabled={isSubmitting}
                         />
-                        <span className="text-xs text-gray-700 dark:text-gray-300">Tax inclusive</span>
+                        <span className="text-xs text-gray-700 dark:text-gray-300">
+                          Tax inclusive
+                        </span>
                       </label>
                       <label className="flex cursor-pointer items-center gap-2">
                         <input
@@ -581,7 +586,9 @@ export default function CustomerCreateForm({ onCreate, onCancel, onSuccess }: Cu
                           className="rounded text-red-600 focus:ring-red-500"
                           disabled={isSubmitting}
                         />
-                        <span className="text-xs text-gray-700 dark:text-gray-300">Credit hold</span>
+                        <span className="text-xs text-gray-700 dark:text-gray-300">
+                          Credit hold
+                        </span>
                       </label>
                     </div>
                   </div>

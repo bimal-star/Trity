@@ -10,11 +10,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { useSupplierProductCatalog } from '@/hooks/useSupplierProductCatalog';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useWarehouses } from '@/hooks/useWarehouses';
-import {
-  poLineNetExtended,
-  poLineNetUnitPrice,
-  poLineTaxAmount,
-} from '@/lib/purchaseLinePricing';
+import { poLineNetExtended, poLineNetUnitPrice, poLineTaxAmount } from '@/lib/purchaseLinePricing';
 import {
   pillarAccent,
   premiumDangerButton,
@@ -153,7 +149,10 @@ export default function NewPurchaseOrderPage() {
 
   const { catalog: supplierCatalog } = useSupplierProductCatalog(supplierId || null);
 
-  const activeSuppliers = useMemo(() => suppliers.filter((s) => s.status === 'active'), [suppliers]);
+  const activeSuppliers = useMemo(
+    () => suppliers.filter((s) => s.status === 'active'),
+    [suppliers]
+  );
   const activeWarehouses = useMemo(
     () => warehouses.filter((w) => w.status === 'active'),
     [warehouses]
@@ -203,7 +202,12 @@ export default function NewPurchaseOrderPage() {
     let tax = 0;
     for (const r of rows) {
       if (!r.product_id || r.quantity_ordered <= 0) continue;
-      subtotal += poLineNetExtended(r.quantity_ordered, r.unit_price, r.discount_pct, r.discount_amount);
+      subtotal += poLineNetExtended(
+        r.quantity_ordered,
+        r.unit_price,
+        r.discount_pct,
+        r.discount_amount
+      );
       tax += poLineTaxAmount(
         r.quantity_ordered,
         r.unit_price,
@@ -240,10 +244,7 @@ export default function NewPurchaseOrderPage() {
         product_query: query,
         product_id: resolvedId ?? '',
         unit_price: productChanged ? resolvePoListUnitPrice(p, cat) : cur.unit_price,
-        uom:
-          productChanged && cat?.uom?.trim()
-            ? cat.uom.trim()
-            : cur.uom,
+        uom: productChanged && cat?.uom?.trim() ? cat.uom.trim() : cur.uom,
       };
       return next;
     });
@@ -337,395 +338,411 @@ export default function NewPurchaseOrderPage() {
         />
 
         <div className="space-y-5">
-            {err && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-                {err}
-              </div>
-            )}
+          {err && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+              {err}
+            </div>
+          )}
 
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(220px,0.62fr)_minmax(240px,0.72fr)_minmax(280px,0.85fr)] xl:items-stretch">
-              <div className={`flex h-full flex-col ${premiumSurfaces.card}`}>
-                <h2 className={`mb-4 ${premiumTypography.sectionTitle}`}>Supplier & Ship-to</h2>
-                <div className="flex flex-1 flex-col justify-between gap-3">
-                  <div className="grid gap-3 md:grid-cols-2 md:items-start">
-                    <div>
-                      <label className={`block ${premiumTypography.label}`}>Supplier</label>
-                      <select
-                        value={supplierId}
-                        onChange={(e) => setSupplierId(e.target.value)}
-                        className={`mt-1 ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
-                      >
-                        <option value="">Select supplier…</option>
-                        {activeSuppliers.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.supplier_code} — {s.legal_name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className={premiumSurfaces.insetInfo}>
-                      <p className="mb-2 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                        <Building2 className="h-3.5 w-3.5" aria-hidden />
-                        Supplier address
-                      </p>
-                      <ul className="space-y-1 text-xs leading-relaxed text-gray-700 dark:text-gray-300">
-                        {supplierDetailLines.length > 0 ? (
-                          supplierDetailLines.map((line, i) => <li key={i}>{line}</li>)
-                        ) : (
-                          <li className="text-gray-500 dark:text-gray-500">
-                            Choose a supplier to show registered address and contact.
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                  </div>
-                  <div className="grid gap-3 md:grid-cols-2 md:items-start">
-                    <div>
-                      <label className={`block ${premiumTypography.label}`}>Warehouse (ship-to)</label>
-                      <select
-                        value={warehouseId}
-                        onChange={(e) => setWarehouseId(e.target.value)}
-                        className={`mt-1 ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
-                      >
-                        <option value="">Select warehouse…</option>
-                        {activeWarehouses.map((w) => (
-                          <option key={w.id} value={w.id}>
-                            {w.warehouse_code} — {w.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className={premiumSurfaces.insetInfo}>
-                      <p className="mb-2 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                        <MapPin className="h-3.5 w-3.5" aria-hidden />
-                        Ship-to address
-                      </p>
-                      <ul className="space-y-1 text-xs leading-relaxed text-gray-700 dark:text-gray-300">
-                        {warehouseDetailLines.length > 0 ? (
-                          warehouseDetailLines.map((line, i) => <li key={i}>{line}</li>)
-                        ) : (
-                          <li className="text-gray-500 dark:text-gray-500">
-                            Choose a warehouse to show delivery location and contact.
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className={`flex h-full flex-col ${premiumSurfaces.card}`}>
-                <h2 className={`mb-4 ${premiumTypography.sectionTitle}`}>Order details</h2>
-                <div className="flex max-w-sm flex-1 flex-col justify-between gap-4">
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(220px,0.62fr)_minmax(240px,0.72fr)_minmax(280px,0.85fr)] xl:items-stretch">
+            <div className={`flex h-full flex-col ${premiumSurfaces.card}`}>
+              <h2 className={`mb-4 ${premiumTypography.sectionTitle}`}>Supplier & Ship-to</h2>
+              <div className="flex flex-1 flex-col justify-between gap-3">
+                <div className="grid gap-3 md:grid-cols-2 md:items-start">
                   <div>
-                    <label className={`block ${premiumTypography.label}`}>Order date</label>
-                    <input
-                      type="date"
-                      value={orderDate}
-                      onChange={(e) => setOrderDate(e.target.value)}
+                    <label className={`block ${premiumTypography.label}`}>Supplier</label>
+                    <select
+                      value={supplierId}
+                      onChange={(e) => setSupplierId(e.target.value)}
                       className={`mt-1 ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
-                    />
+                    >
+                      <option value="">Select supplier…</option>
+                      {activeSuppliers.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.supplier_code} — {s.legal_name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
+                  <div className={premiumSurfaces.insetInfo}>
+                    <p className="mb-2 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      <Building2 className="h-3.5 w-3.5" aria-hidden />
+                      Supplier address
+                    </p>
+                    <ul className="space-y-1 text-xs leading-relaxed text-gray-700 dark:text-gray-300">
+                      {supplierDetailLines.length > 0 ? (
+                        supplierDetailLines.map((line, i) => <li key={i}>{line}</li>)
+                      ) : (
+                        <li className="text-gray-500 dark:text-gray-500">
+                          Choose a supplier to show registered address and contact.
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2 md:items-start">
                   <div>
-                    <label className={`block ${premiumTypography.label}`}>Expected date</label>
-                    <input
-                      type="date"
-                      value={expectedDate}
-                      onChange={(e) => setExpectedDate(e.target.value)}
+                    <label className={`block ${premiumTypography.label}`}>
+                      Warehouse (ship-to)
+                    </label>
+                    <select
+                      value={warehouseId}
+                      onChange={(e) => setWarehouseId(e.target.value)}
                       className={`mt-1 ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
-                    />
+                    >
+                      <option value="">Select warehouse…</option>
+                      {activeWarehouses.map((w) => (
+                        <option key={w.id} value={w.id}>
+                          {w.warehouse_code} — {w.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  <div>
-                    <label className={`block ${premiumTypography.label}`}>Currency</label>
-                    <input
-                      value={currency}
-                      onChange={(e) => setCurrency(e.target.value.toUpperCase().slice(0, 3))}
-                      maxLength={3}
-                      className={`mt-1 !max-w-[8rem] uppercase ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className={`flex h-full flex-col ${premiumSurfaces.card}`}>
-                <h2 className={premiumTypography.sectionTitle}>Notes</h2>
-                <p className={`mt-1 ${premiumTypography.helper}`}>
-                  Commercial terms, delivery instructions, or internal remarks.
-                </p>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={5}
-                  placeholder="Optional — visible on the purchase order record."
-                  className={`mt-3 min-h-[7.5rem] flex-1 resize-y ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
-                />
-              </div>
-
-              <div className={`flex h-full flex-col ${premiumSurfaces.cardElevated}`}>
-                <h3 className={premiumTypography.sectionTitle}>Summary</h3>
-                <p className={`mt-1 ${premiumTypography.helper}`}>
-                  Operational totals and commit action.
-                </p>
-                <div className={`mt-3 space-y-2 ${premiumTypography.body}`}>
-                  <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
-                    <span>Lines</span>
-                    <span className="font-medium tabular-nums">
-                      {rows.filter((r) => r.product_id).length}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
-                    <span>Subtotal (net)</span>
-                    <span className="font-medium tabular-nums">{formatMoney(totals.subtotal, currency)}</span>
-                  </div>
-                  <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
-                    <span>Estimated tax</span>
-                    <span className="font-medium tabular-nums">{formatMoney(totals.tax, currency)}</span>
+                  <div className={premiumSurfaces.insetInfo}>
+                    <p className="mb-2 inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      <MapPin className="h-3.5 w-3.5" aria-hidden />
+                      Ship-to address
+                    </p>
+                    <ul className="space-y-1 text-xs leading-relaxed text-gray-700 dark:text-gray-300">
+                      {warehouseDetailLines.length > 0 ? (
+                        warehouseDetailLines.map((line, i) => <li key={i}>{line}</li>)
+                      ) : (
+                        <li className="text-gray-500 dark:text-gray-500">
+                          Choose a warehouse to show delivery location and contact.
+                        </li>
+                      )}
+                    </ul>
                   </div>
                 </div>
-                <div className="mt-3 rounded-xl bg-green-50 p-3 dark:bg-green-900/20">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`${premiumTypography.button} text-gray-700 dark:text-gray-300`}>
-                      Total
-                    </span>
-                    <span className="text-lg font-semibold tabular-nums text-green-700 dark:text-green-300">
-                      {formatMoney(totals.grand, currency)}
-                    </span>
-                  </div>
-                </div>
-                <p className={`mt-3 inline-flex items-start gap-1.5 leading-snug ${premiumTypography.helper}`}>
-                  <Truck className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-                  Supplier and ship-to must be selected before saving.
-                </p>
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={() => void submit()}
-                  className={`mt-3 w-full ${premiumPrimaryButton('businessCore', 'lg', 'wide')}`}
-                >
-                  {saving ? 'Saving…' : 'Create Draft PO'}
-                </button>
               </div>
             </div>
 
-            <div className={premiumSurfaces.card}>
-              <div className="mb-2">
-                <h2 className={premiumTypography.sectionTitle}>Line Items</h2>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table
-                  className={`w-full min-w-[920px] table-fixed border-collapse text-left ${premiumTypography.tableCell}`}
-                >
-                  <colgroup>
-                    <col style={{ width: '2.5rem' }} />
-                    <col style={{ width: '24%' }} />
-                    <col style={{ width: '4.25rem' }} />
-                    <col style={{ width: '3.25rem' }} />
-                    <col style={{ width: '4.75rem' }} />
-                    <col style={{ width: '3.5rem' }} />
-                    <col style={{ width: '4.75rem' }} />
-                    <col style={{ width: '3.5rem' }} />
-                    <col style={{ width: '6.5rem' }} />
-                    <col style={{ width: '6.75rem' }} />
-                    <col style={{ width: '5.5rem' }} />
-                    <col style={{ width: '5.5rem' }} />
-                    <col style={{ width: '5.25rem' }} />
-                  </colgroup>
-                  <thead>
-                    <tr className={`border-b border-gray-200 dark:border-gray-700 ${premiumTypography.tableHeaderDense}`}>
-                      <th className="pb-1.5 pr-1 text-left align-bottom">Line</th>
-                      <th className="pb-1.5 px-1 text-left align-bottom">Product</th>
-                      <th className="pb-1.5 px-0.5 text-left align-bottom">Qty</th>
-                      <th className="pb-1.5 px-0.5 text-left align-bottom">UoM</th>
-                      <th className="pb-1.5 px-0.5 text-left align-bottom">List</th>
-                      <th className="pb-1.5 px-0.5 text-left align-bottom">Disc%</th>
-                      <th className="pb-1.5 px-0.5 text-left align-bottom">Disc amt</th>
-                      <th className="pb-1.5 px-0.5 text-left align-bottom">Tax%</th>
-                      <th className="pb-1.5 px-0.5 text-right align-bottom">Net unit</th>
-                      <th className="pb-1.5 px-0.5 text-right align-bottom">Line total</th>
-                      <th className="pb-1.5 px-0.5 text-right align-bottom">Std</th>
-                      <th className="pb-1.5 px-0.5 text-right align-bottom">Avg</th>
-                      <th className="pb-1.5 pl-1 text-right align-bottom" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row, idx) => {
-                      const p = row.product_id ? productMap.get(row.product_id) : undefined;
-                      const netExt = poLineNetExtended(
-                        row.quantity_ordered,
-                        row.unit_price,
-                        row.discount_pct,
-                        row.discount_amount
-                      );
-                      const netUnit = poLineNetUnitPrice(
-                        row.quantity_ordered,
-                        row.unit_price,
-                        row.discount_pct,
-                        row.discount_amount
-                      );
-                      const std = p?.cost_price != null ? Number(p.cost_price) : null;
-                      const wac = p?.weighted_avg_unit_cost != null ? Number(p.weighted_avg_unit_cost) : null;
-                      const lineCat =
-                        row.product_id && supplierId ? catalogByProduct.get(row.product_id) : undefined;
-                      const moqWarn =
-                        lineCat && isBelowMoq(row.quantity_ordered, lineCat.min_order_qty);
-                      return (
-                        <tr key={idx} className="border-b border-gray-100 dark:border-gray-800">
-                          <td className="py-1 pr-1 align-middle">
-                            <div className="rounded-md bg-gray-100 py-0.5 text-center text-[11px] font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-200">
-                              {idx + 1}
-                            </div>
-                          </td>
-                          <td className="min-w-0 px-1 py-1 align-middle">
-                            <input
-                              list="po-products-list"
-                              value={row.product_query}
-                              onChange={(e) => onProductQueryChange(idx, e.target.value)}
-                              className={premiumInputCompact}
-                              placeholder="Type SKU or product name..."
-                            />
-                          </td>
-                          <td className="px-0.5 py-1 align-middle">
-                            <input
-                              type="number"
-                              min={0.0001}
-                              step="any"
-                              value={row.quantity_ordered}
-                              onChange={(e) =>
-                                updateRow(idx, { quantity_ordered: parseFloat(e.target.value) || 0 })
-                              }
-                              className={premiumInputCompact}
-                              title={
-                                moqWarn && lineCat
-                                  ? `Below supplier MOQ (${lineCat.min_order_qty})`
-                                  : undefined
-                              }
-                            />
-                            {moqWarn && lineCat ? (
-                              <p className="mt-0.5 text-[10px] leading-tight text-amber-600 dark:text-amber-400">
-                                MOQ {lineCat.min_order_qty}
-                              </p>
-                            ) : null}
-                          </td>
-                          <td className="px-0.5 py-1 align-middle">
-                            <input
-                              value={row.uom}
-                              onChange={(e) => updateRow(idx, { uom: e.target.value })}
-                              className={premiumInputCompact}
-                              placeholder="ea"
-                            />
-                          </td>
-                          <td className="px-0.5 py-1 align-middle">
-                            <input
-                              type="number"
-                              min={0}
-                              step="any"
-                              value={row.unit_price}
-                              onChange={(e) =>
-                                updateRow(idx, { unit_price: parseFloat(e.target.value) || 0 })
-                              }
-                              className={premiumInputCompact}
-                            />
-                          </td>
-                          <td className="px-0.5 py-1 align-middle">
-                            <input
-                              type="number"
-                              min={0}
-                              max={100}
-                              step="any"
-                              value={row.discount_pct}
-                              onChange={(e) =>
-                                updateRow(idx, { discount_pct: parseFloat(e.target.value) || 0 })
-                              }
-                              className={premiumInputCompact}
-                            />
-                          </td>
-                          <td className="px-0.5 py-1 align-middle">
-                            <input
-                              type="number"
-                              min={0}
-                              step="any"
-                              value={row.discount_amount}
-                              onChange={(e) =>
-                                updateRow(idx, { discount_amount: parseFloat(e.target.value) || 0 })
-                              }
-                              className={premiumInputCompact}
-                            />
-                          </td>
-                          <td className="px-0.5 py-1 align-middle">
-                            <input
-                              type="number"
-                              min={0}
-                              max={100}
-                              step="any"
-                              value={row.tax_rate_pct}
-                              onChange={(e) =>
-                                updateRow(idx, { tax_rate_pct: parseFloat(e.target.value) || 0 })
-                              }
-                              className={premiumInputCompact}
-                            />
-                          </td>
-                          <td className="px-0.5 py-1 align-middle">
-                            <div className="rounded-md bg-gray-50 px-1.5 py-0.5 text-right tabular-nums dark:bg-gray-900/50">
-                              <span className="font-semibold text-gray-900 dark:text-gray-100">
-                                {row.product_id ? formatMoney(netUnit, currency) : '—'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-0.5 py-1 align-middle">
-                            <div className="rounded-md bg-green-50 px-1.5 py-0.5 text-right tabular-nums dark:bg-green-900/20">
-                              <span className="font-semibold text-green-700 dark:text-green-300">
-                                {row.product_id ? formatMoney(netExt, currency) : '—'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-0.5 py-1 align-middle">
-                            <div className="rounded-md bg-gray-50 px-1.5 py-0.5 text-right tabular-nums dark:bg-gray-900/50">
-                              <span className="font-medium text-gray-700 dark:text-gray-300">
-                                {std != null && Number.isFinite(std) ? formatMoney(std, currency) : '—'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-0.5 py-1 align-middle">
-                            <div className="rounded-md bg-gray-50 px-1.5 py-0.5 text-right tabular-nums dark:bg-gray-900/50">
-                              <span className="font-medium text-gray-700 dark:text-gray-300">
-                                {wac != null && Number.isFinite(wac) ? formatMoney(wac, currency) : '—'}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-1 pl-1 text-right align-middle">
-                            <button
-                              type="button"
-                              onClick={() => setRows((r) => r.filter((_, i) => i !== idx))}
-                              className={premiumDangerButton('sm', 'standard')}
-                            >
-                              <Trash2 size={12} /> Remove
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="mt-4 border-t border-gray-200 pt-3 dark:border-gray-700">
-                <button
-                  type="button"
-                  onClick={() => setRows((r) => [...r, emptyLine()])}
-                  className={premiumSecondaryButton('businessCore', 'sm', 'standard')}
-                >
-                  <Plus size={15} />
-                  Add Line
-                </button>
+            <div className={`flex h-full flex-col ${premiumSurfaces.card}`}>
+              <h2 className={`mb-4 ${premiumTypography.sectionTitle}`}>Order details</h2>
+              <div className="flex max-w-sm flex-1 flex-col justify-between gap-4">
+                <div>
+                  <label className={`block ${premiumTypography.label}`}>Order date</label>
+                  <input
+                    type="date"
+                    value={orderDate}
+                    onChange={(e) => setOrderDate(e.target.value)}
+                    className={`mt-1 ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                  />
+                </div>
+                <div>
+                  <label className={`block ${premiumTypography.label}`}>Expected date</label>
+                  <input
+                    type="date"
+                    value={expectedDate}
+                    onChange={(e) => setExpectedDate(e.target.value)}
+                    className={`mt-1 ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                  />
+                </div>
+                <div>
+                  <label className={`block ${premiumTypography.label}`}>Currency</label>
+                  <input
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value.toUpperCase().slice(0, 3))}
+                    maxLength={3}
+                    className={`mt-1 !max-w-[8rem] uppercase ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                  />
+                </div>
               </div>
             </div>
-            <datalist id="po-products-list">
-              {products.map((pr) => (
-                <option key={pr.id} value={productDisplayText(pr)} />
-              ))}
-            </datalist>
 
+            <div className={`flex h-full flex-col ${premiumSurfaces.card}`}>
+              <h2 className={premiumTypography.sectionTitle}>Notes</h2>
+              <p className={`mt-1 ${premiumTypography.helper}`}>
+                Commercial terms, delivery instructions, or internal remarks.
+              </p>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={5}
+                placeholder="Optional — visible on the purchase order record."
+                className={`mt-3 min-h-[7.5rem] flex-1 resize-y ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+              />
+            </div>
+
+            <div className={`flex h-full flex-col ${premiumSurfaces.cardElevated}`}>
+              <h3 className={premiumTypography.sectionTitle}>Summary</h3>
+              <p className={`mt-1 ${premiumTypography.helper}`}>
+                Operational totals and commit action.
+              </p>
+              <div className={`mt-3 space-y-2 ${premiumTypography.body}`}>
+                <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
+                  <span>Lines</span>
+                  <span className="font-medium tabular-nums">
+                    {rows.filter((r) => r.product_id).length}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
+                  <span>Subtotal (net)</span>
+                  <span className="font-medium tabular-nums">
+                    {formatMoney(totals.subtotal, currency)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
+                  <span>Estimated tax</span>
+                  <span className="font-medium tabular-nums">
+                    {formatMoney(totals.tax, currency)}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-3 rounded-xl bg-green-50 p-3 dark:bg-green-900/20">
+                <div className="flex items-center justify-between gap-2">
+                  <span className={`${premiumTypography.button} text-gray-700 dark:text-gray-300`}>
+                    Total
+                  </span>
+                  <span className="text-lg font-semibold tabular-nums text-green-700 dark:text-green-300">
+                    {formatMoney(totals.grand, currency)}
+                  </span>
+                </div>
+              </div>
+              <p
+                className={`mt-3 inline-flex items-start gap-1.5 leading-snug ${premiumTypography.helper}`}
+              >
+                <Truck className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                Supplier and ship-to must be selected before saving.
+              </p>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => void submit()}
+                className={`mt-3 w-full ${premiumPrimaryButton('businessCore', 'lg', 'wide')}`}
+              >
+                {saving ? 'Saving…' : 'Create Draft PO'}
+              </button>
+            </div>
+          </div>
+
+          <div className={premiumSurfaces.card}>
+            <div className="mb-2">
+              <h2 className={premiumTypography.sectionTitle}>Line Items</h2>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table
+                className={`w-full min-w-[920px] table-fixed border-collapse text-left ${premiumTypography.tableCell}`}
+              >
+                <colgroup>
+                  <col style={{ width: '2.5rem' }} />
+                  <col style={{ width: '24%' }} />
+                  <col style={{ width: '4.25rem' }} />
+                  <col style={{ width: '3.25rem' }} />
+                  <col style={{ width: '4.75rem' }} />
+                  <col style={{ width: '3.5rem' }} />
+                  <col style={{ width: '4.75rem' }} />
+                  <col style={{ width: '3.5rem' }} />
+                  <col style={{ width: '6.5rem' }} />
+                  <col style={{ width: '6.75rem' }} />
+                  <col style={{ width: '5.5rem' }} />
+                  <col style={{ width: '5.5rem' }} />
+                  <col style={{ width: '5.25rem' }} />
+                </colgroup>
+                <thead>
+                  <tr
+                    className={`border-b border-gray-200 dark:border-gray-700 ${premiumTypography.tableHeaderDense}`}
+                  >
+                    <th className="pb-1.5 pr-1 text-left align-bottom">Line</th>
+                    <th className="pb-1.5 px-1 text-left align-bottom">Product</th>
+                    <th className="pb-1.5 px-0.5 text-left align-bottom">Qty</th>
+                    <th className="pb-1.5 px-0.5 text-left align-bottom">UoM</th>
+                    <th className="pb-1.5 px-0.5 text-left align-bottom">List</th>
+                    <th className="pb-1.5 px-0.5 text-left align-bottom">Disc%</th>
+                    <th className="pb-1.5 px-0.5 text-left align-bottom">Disc amt</th>
+                    <th className="pb-1.5 px-0.5 text-left align-bottom">Tax%</th>
+                    <th className="pb-1.5 px-0.5 text-right align-bottom">Net unit</th>
+                    <th className="pb-1.5 px-0.5 text-right align-bottom">Line total</th>
+                    <th className="pb-1.5 px-0.5 text-right align-bottom">Std</th>
+                    <th className="pb-1.5 px-0.5 text-right align-bottom">Avg</th>
+                    <th className="pb-1.5 pl-1 text-right align-bottom" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, idx) => {
+                    const p = row.product_id ? productMap.get(row.product_id) : undefined;
+                    const netExt = poLineNetExtended(
+                      row.quantity_ordered,
+                      row.unit_price,
+                      row.discount_pct,
+                      row.discount_amount
+                    );
+                    const netUnit = poLineNetUnitPrice(
+                      row.quantity_ordered,
+                      row.unit_price,
+                      row.discount_pct,
+                      row.discount_amount
+                    );
+                    const std = p?.cost_price != null ? Number(p.cost_price) : null;
+                    const wac =
+                      p?.weighted_avg_unit_cost != null ? Number(p.weighted_avg_unit_cost) : null;
+                    const lineCat =
+                      row.product_id && supplierId
+                        ? catalogByProduct.get(row.product_id)
+                        : undefined;
+                    const moqWarn =
+                      lineCat && isBelowMoq(row.quantity_ordered, lineCat.min_order_qty);
+                    return (
+                      <tr key={idx} className="border-b border-gray-100 dark:border-gray-800">
+                        <td className="py-1 pr-1 align-middle">
+                          <div className="rounded-md bg-gray-100 py-0.5 text-center text-[11px] font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                            {idx + 1}
+                          </div>
+                        </td>
+                        <td className="min-w-0 px-1 py-1 align-middle">
+                          <input
+                            list="po-products-list"
+                            value={row.product_query}
+                            onChange={(e) => onProductQueryChange(idx, e.target.value)}
+                            className={premiumInputCompact}
+                            placeholder="Type SKU or product name..."
+                          />
+                        </td>
+                        <td className="px-0.5 py-1 align-middle">
+                          <input
+                            type="number"
+                            min={0.0001}
+                            step="any"
+                            value={row.quantity_ordered}
+                            onChange={(e) =>
+                              updateRow(idx, { quantity_ordered: parseFloat(e.target.value) || 0 })
+                            }
+                            className={premiumInputCompact}
+                            title={
+                              moqWarn && lineCat
+                                ? `Below supplier MOQ (${lineCat.min_order_qty})`
+                                : undefined
+                            }
+                          />
+                          {moqWarn && lineCat ? (
+                            <p className="mt-0.5 text-[10px] leading-tight text-amber-600 dark:text-amber-400">
+                              MOQ {lineCat.min_order_qty}
+                            </p>
+                          ) : null}
+                        </td>
+                        <td className="px-0.5 py-1 align-middle">
+                          <input
+                            value={row.uom}
+                            onChange={(e) => updateRow(idx, { uom: e.target.value })}
+                            className={premiumInputCompact}
+                            placeholder="ea"
+                          />
+                        </td>
+                        <td className="px-0.5 py-1 align-middle">
+                          <input
+                            type="number"
+                            min={0}
+                            step="any"
+                            value={row.unit_price}
+                            onChange={(e) =>
+                              updateRow(idx, { unit_price: parseFloat(e.target.value) || 0 })
+                            }
+                            className={premiumInputCompact}
+                          />
+                        </td>
+                        <td className="px-0.5 py-1 align-middle">
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            step="any"
+                            value={row.discount_pct}
+                            onChange={(e) =>
+                              updateRow(idx, { discount_pct: parseFloat(e.target.value) || 0 })
+                            }
+                            className={premiumInputCompact}
+                          />
+                        </td>
+                        <td className="px-0.5 py-1 align-middle">
+                          <input
+                            type="number"
+                            min={0}
+                            step="any"
+                            value={row.discount_amount}
+                            onChange={(e) =>
+                              updateRow(idx, { discount_amount: parseFloat(e.target.value) || 0 })
+                            }
+                            className={premiumInputCompact}
+                          />
+                        </td>
+                        <td className="px-0.5 py-1 align-middle">
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            step="any"
+                            value={row.tax_rate_pct}
+                            onChange={(e) =>
+                              updateRow(idx, { tax_rate_pct: parseFloat(e.target.value) || 0 })
+                            }
+                            className={premiumInputCompact}
+                          />
+                        </td>
+                        <td className="px-0.5 py-1 align-middle">
+                          <div className="rounded-md bg-gray-50 px-1.5 py-0.5 text-right tabular-nums dark:bg-gray-900/50">
+                            <span className="font-semibold text-gray-900 dark:text-gray-100">
+                              {row.product_id ? formatMoney(netUnit, currency) : '—'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-0.5 py-1 align-middle">
+                          <div className="rounded-md bg-green-50 px-1.5 py-0.5 text-right tabular-nums dark:bg-green-900/20">
+                            <span className="font-semibold text-green-700 dark:text-green-300">
+                              {row.product_id ? formatMoney(netExt, currency) : '—'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-0.5 py-1 align-middle">
+                          <div className="rounded-md bg-gray-50 px-1.5 py-0.5 text-right tabular-nums dark:bg-gray-900/50">
+                            <span className="font-medium text-gray-700 dark:text-gray-300">
+                              {std != null && Number.isFinite(std)
+                                ? formatMoney(std, currency)
+                                : '—'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-0.5 py-1 align-middle">
+                          <div className="rounded-md bg-gray-50 px-1.5 py-0.5 text-right tabular-nums dark:bg-gray-900/50">
+                            <span className="font-medium text-gray-700 dark:text-gray-300">
+                              {wac != null && Number.isFinite(wac)
+                                ? formatMoney(wac, currency)
+                                : '—'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-1 pl-1 text-right align-middle">
+                          <button
+                            type="button"
+                            onClick={() => setRows((r) => r.filter((_, i) => i !== idx))}
+                            className={premiumDangerButton('sm', 'standard')}
+                          >
+                            <Trash2 size={12} /> Remove
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-4 border-t border-gray-200 pt-3 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => setRows((r) => [...r, emptyLine()])}
+                className={premiumSecondaryButton('businessCore', 'sm', 'standard')}
+              >
+                <Plus size={15} />
+                Add Line
+              </button>
+            </div>
+          </div>
+          <datalist id="po-products-list">
+            {products.map((pr) => (
+              <option key={pr.id} value={productDisplayText(pr)} />
+            ))}
+          </datalist>
         </div>
       </PageContainer>
     </ProtectedRoute>

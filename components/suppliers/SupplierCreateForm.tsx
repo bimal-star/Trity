@@ -9,7 +9,11 @@ interface SupplierCreateFormProps {
   onSuccess?: () => void;
 }
 
-export default function SupplierCreateForm({ onCreate, onCancel, onSuccess }: SupplierCreateFormProps) {
+export default function SupplierCreateForm({
+  onCreate,
+  onCancel,
+  onSuccess,
+}: SupplierCreateFormProps) {
   return (
     <SupplierForm
       mode="create"

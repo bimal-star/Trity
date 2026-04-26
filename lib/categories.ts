@@ -6,7 +6,8 @@ export interface CategoryTier {
   tier_number: number;
   name: string;
   is_multi_select: boolean;
-  is_required: boolean;
+  /** Present when the column exists in the tenant schema; omitted in current generated types. */
+  is_required?: boolean | null;
   sort_order: number;
 }
 
@@ -14,7 +15,7 @@ export interface CategoryNode {
   id: string;
   tenant_id: string;
   tier_number: number;
-  parent_node_id: string | null;
+  parent_id: string | null;
   name: string;
   sort_order: number;
   is_active: boolean;
@@ -68,8 +69,8 @@ export async function loadCategoryStructure(tenantId: string): Promise<CategoryS
   if (tiersResult.error) throw new Error(tiersResult.error.message);
   if (nodesResult.error) throw new Error(nodesResult.error.message);
 
-  const tiers = (tiersResult.data ?? []) as CategoryTier[];
-  const nodes = (nodesResult.data ?? []) as CategoryNode[];
+  const tiers = (tiersResult.data ?? []) as unknown as CategoryTier[];
+  const nodes = (nodesResult.data ?? []) as unknown as CategoryNode[];
 
   const nodesByTier: Record<number, CategoryNode[]> = {};
   for (const tier of tiers) {

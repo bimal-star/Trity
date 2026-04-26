@@ -11,7 +11,11 @@ import type { Supplier, SupplierFormData, SupplierStatus, SupplierType } from '@
 const supplierTypes: SupplierType[] = ['manufacturer', 'distributor', 'service', 'other'];
 const statusOptions: SupplierStatus[] = ['active', 'inactive', 'on_hold'];
 
-import { formCardShell, formInputClass as inputClass, formLabelClass as labelClass } from '@/lib/formTokens';
+import {
+  formCardShell,
+  formInputClass as inputClass,
+  formLabelClass as labelClass,
+} from '@/lib/formTokens';
 
 function supplierToForm(s: Supplier): SupplierFormData {
   return {
@@ -101,13 +105,15 @@ export default function SupplierForm({
 
   const hasAddressDetails = Boolean(
     formData.address_line1 ||
-      formData.address_line2 ||
-      formData.city ||
-      formData.state ||
-      formData.postcode ||
-      formData.country
+    formData.address_line2 ||
+    formData.city ||
+    formData.state ||
+    formData.postcode ||
+    formData.country
   );
-  const hasCommercialDetails = Boolean(formData.payment_terms || formData.currency || formData.tax_id);
+  const hasCommercialDetails = Boolean(
+    formData.payment_terms || formData.currency || formData.tax_id
+  );
   const hasMetaDetails = Boolean(formData.notes || metadataJson.trim() !== '{}');
 
   const sectionBtn = (id: SectionId, label: string, hasDetails: boolean) => {
@@ -135,7 +141,9 @@ export default function SupplierForm({
             {!hasDetails && <AlertCircle className="mr-1 h-3 w-3" aria-hidden />}
             {hasDetails ? 'Added' : 'Missing'}
           </span>
-          <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+          <ChevronDown
+            className={`h-4 w-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+          />
         </span>
       </button>
     );

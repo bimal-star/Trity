@@ -12,8 +12,13 @@ interface UseWarehousesReturn {
   warehouses: Warehouse[];
   isLoading: boolean;
   error: string | null;
-  createWarehouse: (data: WarehouseFormData) => Promise<{ success: boolean; id?: string; error?: string }>;
-  updateWarehouse: (id: string, data: Partial<WarehouseFormData>) => Promise<{ success: boolean; error?: string }>;
+  createWarehouse: (
+    data: WarehouseFormData
+  ) => Promise<{ success: boolean; id?: string; error?: string }>;
+  updateWarehouse: (
+    id: string,
+    data: Partial<WarehouseFormData>
+  ) => Promise<{ success: boolean; error?: string }>;
   archiveWarehouse: (id: string) => Promise<{ success: boolean; error?: string }>;
   restoreWarehouse: (id: string) => Promise<{ success: boolean; error?: string }>;
   refreshWarehouses: () => Promise<void>;
@@ -184,15 +189,19 @@ export function useWarehouses(
       if (data.warehouse_type !== undefined) patch.warehouse_type = data.warehouse_type;
       if (data.status !== undefined) patch.status = data.status;
       if (data.is_default !== undefined) patch.is_default = data.is_default;
-      if (data.address_line1 !== undefined) patch.address_line1 = data.address_line1?.trim() || null;
-      if (data.address_line2 !== undefined) patch.address_line2 = data.address_line2?.trim() || null;
+      if (data.address_line1 !== undefined)
+        patch.address_line1 = data.address_line1?.trim() || null;
+      if (data.address_line2 !== undefined)
+        patch.address_line2 = data.address_line2?.trim() || null;
       if (data.city !== undefined) patch.city = data.city?.trim() || null;
       if (data.state !== undefined) patch.state = data.state?.trim() || null;
       if (data.postcode !== undefined) patch.postcode = data.postcode?.trim() || null;
       if (data.country !== undefined) patch.country = data.country?.trim() || null;
       if (data.contact_name !== undefined) patch.contact_name = data.contact_name?.trim() || null;
-      if (data.contact_email !== undefined) patch.contact_email = data.contact_email?.trim() || null;
-      if (data.contact_phone !== undefined) patch.contact_phone = data.contact_phone?.trim() || null;
+      if (data.contact_email !== undefined)
+        patch.contact_email = data.contact_email?.trim() || null;
+      if (data.contact_phone !== undefined)
+        patch.contact_phone = data.contact_phone?.trim() || null;
       if (data.notes !== undefined) patch.notes = data.notes?.trim() || null;
       if (data.metadata !== undefined) patch.metadata = data.metadata;
 

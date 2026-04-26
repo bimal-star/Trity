@@ -296,8 +296,6 @@ export default function CategoryManagementPage() {
           subtitle="View and manage category tiers and nodes for this workspace"
           subtitleClassName={`${premiumTypography.pageSubtitle} ${bc.subtitleTint}`}
         />
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
-
         {pageError && (
           <div
             className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-400"

@@ -1,6 +1,6 @@
 /**
  * Permission checking utilities for multi-tenant access control
- * 
+ *
  * Provides functions to check user permissions and access levels
  * Used throughout the app for authorization decisions
  */
@@ -35,8 +35,7 @@ export function resolveProfileRole(
   appMetadataRole: string | null | undefined
 ): TenantRole {
   return (
-    mergeTenantRoles(normalizeTenantRole(dbRole), normalizeTenantRole(appMetadataRole)) ??
-    'member'
+    mergeTenantRoles(normalizeTenantRole(dbRole), normalizeTenantRole(appMetadataRole)) ?? 'member'
   );
 }
 
@@ -110,7 +109,10 @@ export function canUserPerform(
  * @param targetRole - Role of person being managed
  * @returns true if manager can manage target
  */
-export function canManageUser(managerRole: TenantRole | string, targetRole: TenantRole | string): boolean {
+export function canManageUser(
+  managerRole: TenantRole | string,
+  targetRole: TenantRole | string
+): boolean {
   const roleHierarchy: Record<TenantRole, number> = {
     member: 1,
     admin: 2,

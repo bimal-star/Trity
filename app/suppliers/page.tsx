@@ -11,7 +11,12 @@ import SupplierDetailsTabs from '@/components/suppliers/SupplierDetailsTabs';
 import { useSuppliers } from '@/hooks/useSuppliers';
 import { useTenant } from '@/contexts/TenantContext';
 import type { Supplier, SupplierRecordVisibility, SupplierStatus } from '@/types/supplier';
-import { pillarAccent, premiumPrimaryButton, premiumSurfaces, premiumTertiaryButton, premiumTypography } from '@/lib/premiumUi';
+import {
+  pillarAccent,
+  premiumPrimaryButton,
+  premiumTertiaryButton,
+  premiumTypography,
+} from '@/lib/premiumUi';
 import { Plus, Truck } from 'lucide-react';
 import { ExportFormatDropdown } from '@/components/common/ExportFormatDropdown';
 import { logSupplierArchived, logSupplierRestored } from '@/lib/auditLog';
@@ -127,9 +132,7 @@ export default function SuppliersPage() {
           }
         />
 
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
-
-        <div className="flex h-[calc(100vh-132px)] min-h-[min(560px,calc(100vh-132px))] w-full flex-col overflow-hidden">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden lg:grid-cols-3 lg:items-stretch">
             <div className="flex h-full min-h-0 flex-col lg:col-span-1">
               <SupplierList

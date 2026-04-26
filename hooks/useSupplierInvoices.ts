@@ -47,7 +47,9 @@ export interface UseSupplierInvoicesOptions {
   loadInvoices?: boolean;
 }
 
-export function useSupplierInvoices(options?: UseSupplierInvoicesOptions): UseSupplierInvoicesReturn {
+export function useSupplierInvoices(
+  options?: UseSupplierInvoicesOptions
+): UseSupplierInvoicesReturn {
   const loadList = options?.loadInvoices !== false;
   const { effectiveTenantId: tenant_id, user } = useTenant();
   const [invoices, setInvoices] = useState<SupplierInvoice[]>([]);

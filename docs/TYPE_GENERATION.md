@@ -3,6 +3,7 @@
 ## Current Status
 
 ✅ **Basic types generated using fallback method**
+
 - Core tables: `tenants`, `user_profiles`, `calendar`, `workstreams`, `workstream_tasks`
 - Materialized view: `cached_timezones` ✨ (read-only)
 - Functions: `get_user_tenant_id()`, `refresh_cached_timezones()`
@@ -20,11 +21,13 @@ npm run generate:types
 ```
 
 **Pros:**
+
 - ✅ Works without additional setup
 - ✅ Includes all core tables needed for the application
 - ✅ Fast generation
 
 **Cons:**
+
 - ⚠️ Limited to core tables only
 - ⚠️ Doesn't include all product-related tables
 
@@ -43,6 +46,7 @@ npm install -g supabase
 ```
 
 Or with Scoop (Windows):
+
 ```bash
 scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
 scoop install supabase
@@ -55,6 +59,7 @@ supabase link --project-ref <your-project-ref>
 ```
 
 When prompted:
+
 - **Database password:** Your Supabase database password
 - This is found in: Supabase Dashboard → Settings → Database → Connection String
 
@@ -111,13 +116,10 @@ const { data } = await supabase
 
 ```typescript
 // Query the cached timezone data
-const { data: timezones } = await supabase
-  .from('cached_timezones')
-  .select('*')
-  .order('name');
+const { data: timezones } = await supabase.from('cached_timezones').select('*').order('name');
 
 // TypeScript knows the structure:
-timezones?.forEach(tz => {
+timezones?.forEach((tz) => {
   console.log(tz.name); // ✅ Typed as string
   console.log(tz.abbrev); // ✅ Typed as string
   console.log(tz.is_dst); // ✅ Typed as boolean
@@ -147,6 +149,7 @@ Or better yet, set up the Supabase CLI for automatic generation.
 ### CLI Link Fails
 
 Make sure you have:
+
 - ✅ Correct project reference from the Supabase dashboard (Settings → General → Reference ID)
 - ✅ Database password (from Supabase Dashboard)
 - ✅ Internet connection
@@ -156,6 +159,7 @@ Make sure you have:
 ## When to Regenerate Types
 
 Regenerate types after:
+
 - ✅ Database schema changes (new tables, columns)
 - ✅ Migration deployments
 - ✅ Adding/modifying materialized views
@@ -170,6 +174,7 @@ npm run generate:types
 ## Current Generated Types
 
 ### Core Tables
+
 - `tenants` - Multi-tenant isolation
 - `user_profiles` - User data with tenant relationships
 - `calendar` - Calendar entries with bank holidays/events
@@ -177,14 +182,18 @@ npm run generate:types
 - `workstream_tasks` - Tasks within workstreams
 
 ### Materialized Views
+
 - `cached_timezones` - Optimized timezone data (read-only)
 
 ### Functions
+
 - `get_user_tenant_id()` - Get current user's tenant ID
 - `refresh_cached_timezones()` - Refresh timezone cache
 
 ### Additional Tables (with CLI)
+
 When using the Supabase CLI, you'll also get types for:
+
 - Product tables (products, variants, attributes, etc.)
 - Inventory tables (stock_levels, stock_transactions)
 - BOM tables (bom_headers, bom_lines)

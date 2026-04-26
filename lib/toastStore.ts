@@ -68,8 +68,7 @@ export function createToastStore(options: ToastStoreOptions = {}): ToastStore {
 
   const add = ({ variant, message, duration }: AddToastInput) => {
     const id = nextId++;
-    const resolvedDuration =
-      duration === undefined ? defaults[variant] : duration;
+    const resolvedDuration = duration === undefined ? defaults[variant] : duration;
     const item: ToastItem = {
       id,
       variant,
@@ -111,11 +110,7 @@ export function createToastStore(options: ToastStoreOptions = {}): ToastStore {
     const expired: ToastItem[] = [];
     const remaining: ToastItem[] = [];
     for (const t of toasts) {
-      if (
-        t.duration !== null &&
-        t.duration > 0 &&
-        atMs >= t.createdAt + t.duration
-      ) {
+      if (t.duration !== null && t.duration > 0 && atMs >= t.createdAt + t.duration) {
         expired.push(t);
       } else {
         remaining.push(t);

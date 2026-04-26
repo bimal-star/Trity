@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import PremiumCard from '@/components/layout/premium/PremiumCard';
-import { premiumInputCompact, premiumInputComfortableBase, premiumPrimaryButton, premiumSurfaces, premiumTypography } from '@/lib/premiumUi';
+import {
+  premiumInputCompact,
+  premiumInputComfortableBase,
+  premiumPrimaryButton,
+  premiumSurfaces,
+  premiumTypography,
+} from '@/lib/premiumUi';
 import { tenantedSupabase } from '@/lib/supabaseSchemaClient';
 import { useTenant } from '@/contexts/TenantContext';
 import type { Customer } from '@/types/customer';
@@ -291,7 +297,10 @@ export default function CustomerRelatedPanel({ customer }: CustomerRelatedPanelP
         <ul className="max-h-40 space-y-2 overflow-y-auto text-sm">
           {notes.length === 0 && <li className={premiumTypography.helper}>No notes yet.</li>}
           {notes.map((n) => (
-            <li key={n.id} className="rounded-md border border-gray-100 px-2 py-1 dark:border-gray-700">
+            <li
+              key={n.id}
+              className="rounded-md border border-gray-100 px-2 py-1 dark:border-gray-700"
+            >
               {n.note_text}
             </li>
           ))}
@@ -317,7 +326,9 @@ export default function CustomerRelatedPanel({ customer }: CustomerRelatedPanelP
           <Paperclip className="h-4 w-4 text-green-600 dark:text-green-400" aria-hidden />
           <h3 className={`${premiumTypography.sectionTitle} !normal-case`}>Attachments</h3>
         </div>
-        <p className={premiumTypography.helper}>Store links to files (e.g. signed PDFs in your storage).</p>
+        <p className={premiumTypography.helper}>
+          Store links to files (e.g. signed PDFs in your storage).
+        </p>
         <ul className="space-y-1 text-sm">
           {attachments.length === 0 && (
             <li className={premiumTypography.helper}>No attachments yet.</li>

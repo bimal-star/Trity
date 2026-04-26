@@ -16,6 +16,7 @@ import {
   Check,
   X,
   Loader2,
+  Info,
 } from 'lucide-react';
 import { useToast } from '@/lib/toast';
 import {
@@ -25,10 +26,9 @@ import {
   getNextChildPosition,
   getDescendants,
   recalculateDescendantPosition,
-  organizeHierarchy,
   getParentPosition,
+  renumberNavigationPositions,
 } from '@/lib/navigation-hierarchy';
-import { premiumSurfaces } from '@/lib/premiumUi';
 import { navigationPathLinkError } from '@/lib/navigationPath';
 import { seedTenantDefaultNavigation } from '@/lib/navigationSeed';
 
@@ -69,11 +69,9 @@ export default function NavigationManagerPage() {
   const lastFetchAt = useRef(0);
 
   // Build hierarchical tree and sort using the navigation hierarchy algorithm
-  const sortLabels = (labels: any[]): NavigationLabel[] => {
-    // Enrich labels with metadata using the hierarchy algorithm
-    const enriched = labels.map((l) => {
-      const enriched = enrichWithMetadata(l, labels);
-      // Ensure the return type matches NavigationLabel interface exactly
+  const sortLabels = useCallback((raw: any[]): NavigationLabel[] => {
+    const enriched = raw.map((l) => {
+      const enriched = enrichWithMetadata(l, raw);
       return {
         ...l,
         ...enriched,
@@ -82,10 +80,8 @@ export default function NavigationManagerPage() {
         order: enriched.order,
       } as NavigationLabel;
     });
-
-    // Sort by position string (preserves hierarchy)
     return enriched.sort((a, b) => comparePositions(a.position, b.position));
-  };
+  }, []);
 
   // Fetch labels from Supabase. When tenant_id exists, filter by it (tenant-scoped nav).
   // background=true: refetch without loading state (e.g. after mutations, tab return).
@@ -124,8 +120,36 @@ export default function NavigationManagerPage() {
         if (showLoading) setIsLoading(false);
       }
     },
-    [tenant_id]
+    [tenant_id, sortLabels]
   );
+
+  /** Refetch, renumber positions (active consecutive; soft-deleted tail per parent), apply sequentially. */
+  const applyCompactNavigationPositions = useCallback(async () => {
+    if (!tenant_id) return;
+    let query = supabase.from('navigation').select('*').order('position', { ascending: true });
+    query = query.eq('tenant_id', tenant_id);
+    const { data, error: fetchErr } = await query;
+    if (fetchErr) throw fetchErr;
+    const normalized = sortLabels(
+      (data || []).map((item: any) => ({
+        ...item,
+        position: String(item.position || '1'),
+      }))
+    );
+    const updates = renumberNavigationPositions(normalized);
+    for (const u of updates) {
+      const { error: upErr } = await supabase
+        .from('navigation')
+        .update({ position: u.position } as any)
+        .eq('id', u.id);
+      if (upErr) throw upErr;
+    }
+    if (updates.length > 0) {
+      await fetchLabels(true);
+      setRefreshKey((prev) => prev + 1);
+      window.dispatchEvent(new Event('navigation-updated'));
+    }
+  }, [tenant_id, fetchLabels, sortLabels]);
 
   useEffect(() => {
     fetchLabels();
@@ -233,6 +257,7 @@ export default function NavigationManagerPage() {
       if (updateError) throw updateError;
 
       await fetchLabels(true);
+      await applyCompactNavigationPositions();
       toast.success(`Label ${!currentStatus ? 'deleted' : 'restored'}!`);
 
       // Notify sidebar to refresh
@@ -252,6 +277,7 @@ export default function NavigationManagerPage() {
       if (deleteError) throw deleteError;
 
       await fetchLabels(true);
+      await applyCompactNavigationPositions();
       toast.success('Label deleted!');
 
       // Notify sidebar to refresh
@@ -399,68 +425,49 @@ export default function NavigationManagerPage() {
         // Insert dragged item at the correct position
         siblings.splice(insertIndex, 0, draggedItem);
 
-        // Calculate new positions for all siblings
-        const updates: Promise<any>[] = [];
-
-        siblings.forEach((sibling, idx) => {
+        let mutationCount = 0;
+        for (let idx = 0; idx < siblings.length; idx++) {
+          const sibling = siblings[idx];
           const oldPos = String(sibling.position);
           const newPos =
             targetParentPos === null ? String(idx + 1) : `${targetParentPos}.${idx + 1}`;
 
-          const needsUpdate = oldPos !== newPos;
+          if (oldPos === newPos) continue;
 
-          // Update if position changed
-          if (needsUpdate) {
-            // Update the sibling itself
-            const updatePromise = supabase
+          const { error: sibErr } = await supabase
+            .from('navigation')
+            .update({ position: newPos } as any)
+            .eq('id', sibling.id);
+          if (sibErr) throw sibErr;
+          mutationCount += 1;
+
+          const descendants = getDescendants(oldPos, labels);
+          for (const desc of descendants) {
+            const updatedPos = recalculateDescendantPosition(oldPos, newPos, desc);
+            const { error: dErr } = await supabase
               .from('navigation')
-              .update({ position: newPos } as any)
-              .eq('id', sibling.id);
-
-            updates.push(Promise.resolve(updatePromise));
-
-            // Update all descendants of this sibling using the hierarchy algorithm
-            const descendants = getDescendants(oldPos, labels);
-
-            descendants.forEach((desc) => {
-              const updatedPos = recalculateDescendantPosition(oldPos, newPos, desc);
-              const descUpdate = supabase
-                .from('navigation')
-                .update({ position: updatedPos } as any)
-                .eq('id', desc.id);
-              updates.push(Promise.resolve(descUpdate));
-            });
+              .update({ position: updatedPos } as any)
+              .eq('id', desc.id);
+            if (dErr) throw dErr;
+            mutationCount += 1;
           }
-        });
+        }
 
-        console.error(`🔄 Total updates queued: ${updates.length}`);
-
-        if (updates.length === 0) {
+        if (mutationCount === 0) {
           toast.info('No position changes detected.');
           setDraggedIndex(null);
           setDropZone(null);
           return;
         }
 
-        try {
-          await Promise.all(updates);
-        } catch (updateErr) {
-          console.error('Update failed:', updateErr);
-          toast.error('Failed to update positions. Please try again.');
-          setDraggedIndex(null);
-          setDropZone(null);
-          return;
-        }
-
-        // Refresh the list (same pattern as child case)
         await fetchLabels(true);
         setRefreshKey((prev) => prev + 1);
+        await applyCompactNavigationPositions();
 
         toast.success('Position updated!');
         setDraggedIndex(null);
         setDropZone(null);
 
-        // Notify sidebar to refresh
         window.dispatchEvent(new Event('navigation-updated'));
         return;
       }
@@ -479,24 +486,21 @@ export default function NavigationManagerPage() {
       // Update descendants using the hierarchy algorithm
       const descendants = getDescendants(draggedPosition, labels);
 
-      if (descendants.length > 0) {
-        const descendantUpdates = descendants.map((desc) => {
-          const updatedPos = recalculateDescendantPosition(draggedPosition, newPosition, desc);
-          return supabase
-            .from('navigation')
-            .update({ position: updatedPos } as any)
-            .eq('id', desc.id);
-        });
-        await Promise.all(descendantUpdates);
+      for (const desc of descendants) {
+        const updatedPos = recalculateDescendantPosition(draggedPosition, newPosition, desc);
+        const { error: dErr } = await supabase
+          .from('navigation')
+          .update({ position: updatedPos } as any)
+          .eq('id', desc.id);
+        if (dErr) throw dErr;
       }
 
-      // Refresh the list
       await fetchLabels(true);
       setRefreshKey((prev) => prev + 1);
+      await applyCompactNavigationPositions();
 
       toast.success('Position updated!');
 
-      // Notify sidebar to refresh
       window.dispatchEvent(new Event('navigation-updated'));
     } catch (err) {
       console.error('Drag error:', err);
@@ -518,7 +522,54 @@ export default function NavigationManagerPage() {
           subtitle="Customize and organize workspace navigation structure"
         />
 
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
+        <div
+          className="mb-4 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2.5 text-xs text-sky-950 dark:border-sky-800/80 dark:bg-sky-950/40 dark:text-sky-100"
+          role="note"
+          aria-label="How navigation appears in the app"
+        >
+          <div className="flex gap-2">
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400" aria-hidden />
+            <div>
+              <p className="font-semibold text-sky-950 dark:text-sky-50">
+                How this tree maps to the app (Supabase + TopNav)
+              </p>
+              <ul className="mt-1.5 list-disc space-y-1 pl-4 text-sky-900/95 dark:text-sky-100/90">
+                <li>
+                  Menu data is read from the{' '}
+                  <strong className="font-medium">public.navigation</strong> table (tenant-scoped).
+                  The signed-in shell only loads rows with{' '}
+                  <strong className="font-medium">is_enabled = true</strong>—disabled rows do not
+                  appear in TopNav or the sidebar.
+                </li>
+                <li>
+                  <strong className="font-medium">Position first segment (pillar contract):</strong>{' '}
+                  <code className="rounded bg-sky-100/80 px-1 dark:bg-sky-900/60">1</code> =
+                  Analytics,{' '}
+                  <code className="rounded bg-sky-100/80 px-1 dark:bg-sky-900/60">2</code> =
+                  Business Core,{' '}
+                  <code className="rounded bg-sky-100/80 px-1 dark:bg-sky-900/60">3</code> =
+                  Execution (see{' '}
+                  <code className="rounded bg-sky-100/80 px-1 dark:bg-sky-900/60">
+                    lib/navigationPillars.ts
+                  </code>
+                  ). Swapping these numbers while reusing pillar labels can mis-route pillar tabs
+                  and highlights even if this screen looks fine.
+                </li>
+                <li>
+                  <strong className="font-medium">TopNav row 2</strong> shows one level:{' '}
+                  <strong className="font-medium">direct children</strong> of the active pillar
+                  root. Deeper rows appear inside row-2 dropdowns, not as separate tabs.
+                </li>
+                <li>
+                  Rows with no route and no nested children are skipped in row 2. Paths must be real
+                  App Router URLs (no{' '}
+                  <code className="rounded bg-sky-100/80 px-1 dark:bg-sky-900/60">[id]</code>{' '}
+                  segments).
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
 
         <div className="space-y-4">
           {/* Top Section - Form and Info */}

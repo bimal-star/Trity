@@ -108,7 +108,7 @@ export function WorkspaceBrandStrip({
           onError={() => setImgFailed(true)}
         />
       ) : (
-        <span className="text-[11px] font-semibold tracking-tight text-gray-200">{initials}</span>
+        <span className="text-[11px] font-semibold text-gray-200">{initials}</span>
       )}
     </div>
   );
@@ -140,9 +140,7 @@ export function WorkspaceBrandStrip({
         </div>
       ) : (
         <div className="flex w-full min-w-0 items-center gap-2">
-          {exitButton ? (
-            <div className="flex h-11 shrink-0 items-center">{exitButton}</div>
-          ) : null}
+          {exitButton ? <div className="flex h-11 shrink-0 items-center">{exitButton}</div> : null}
           <div className="flex min-h-11 min-w-0 flex-1 items-center justify-end gap-2">
             <div
               ref={nameBoxRef}

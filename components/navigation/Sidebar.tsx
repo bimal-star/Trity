@@ -22,41 +22,47 @@ function stringSetsEqual(a: Set<string>, b: Set<string>): boolean {
 /**
  * Sidebar navigation item component - extracted for cleaner JSX
  */
-function NavItemContent({ 
-  item, 
-  isActive, 
-  isCollapsed, 
-  hasChildren, 
-  isExpanded, 
-  onToggleExpand 
-}: { 
-  item: NavigationItem; 
-  isActive: boolean; 
-  isCollapsed: boolean; 
-  hasChildren: boolean; 
+function NavItemContent({
+  item,
+  isActive,
+  isCollapsed,
+  hasChildren,
+  isExpanded,
+  onToggleExpand,
+}: {
+  item: NavigationItem;
+  isActive: boolean;
+  isCollapsed: boolean;
+  hasChildren: boolean;
   isExpanded: boolean;
   onToggleExpand: (e: React.MouseEvent) => void;
 }) {
   return (
     <>
       {/* Subtle left accent border - always visible when active */}
-      <div className={`absolute left-0 top-0 bottom-0 w-0.5 bg-blue-500 transition-all duration-200 ${isActive ? 'opacity-100' : 'opacity-0'}`} />
+      <div
+        className={`absolute left-0 top-0 bottom-0 w-0.5 bg-blue-500 transition-all duration-200 ${isActive ? 'opacity-100' : 'opacity-0'}`}
+      />
 
       {/* Icon - Fixed size and alignment */}
-      <span className={`relative z-10 flex-shrink-0 w-4 h-4 flex items-center justify-center transition-colors duration-200 ${isActive ? 'text-blue-400' : 'text-gray-500'}`}>
+      <span
+        className={`relative z-10 flex-shrink-0 w-4 h-4 flex items-center justify-center transition-colors duration-200 ${isActive ? 'text-blue-400' : 'text-gray-500'}`}
+      >
         {/* Icon will be rendered at size 16 by parent */}
       </span>
 
       {/* Label and chevron - only show when expanded */}
       {!isCollapsed && (
         <>
-          <span className={`relative z-10 flex-1 truncate transition-all duration-200 ${isActive ? 'text-white font-medium' : 'font-normal text-gray-300'}`}>
+          <span
+            className={`relative z-10 flex-1 truncate transition-all duration-200 ${isActive ? 'text-white font-medium' : 'font-normal text-gray-300'}`}
+          >
             {item.label}
           </span>
-          
+
           {/* Expand/collapse chevron for parents */}
           {hasChildren && (
-            <span 
+            <span
               className={`relative z-10 flex-shrink-0 w-4 h-4 flex items-center justify-center transition-all duration-200 ${isActive ? 'text-blue-400' : 'text-gray-500 group-hover:text-gray-400'}`}
               onClick={onToggleExpand}
             >
@@ -233,9 +239,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     const pendingPath = pendingPathRef.current;
     if (pendingTrail && normalizePath(pendingPath) === normalizePath(pathname)) {
       const nextExpanded = new Set(getExpandableTrail(pendingTrail));
-      setExpandedItems((prev) =>
-        stringSetsEqual(prev, nextExpanded) ? prev : nextExpanded
-      );
+      setExpandedItems((prev) => (stringSetsEqual(prev, nextExpanded) ? prev : nextExpanded));
       pendingTrailRef.current = null;
       pendingPathRef.current = null;
       return;
@@ -264,7 +268,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     };
 
     const matchedTrails = findPathTrails(navTreeItems, pathname);
-    
+
     if (matchedTrails.length > 0) {
       setExpandedItems((prev) => {
         const trailsEqual = (left: string[], right: string[]) =>
@@ -297,18 +301,14 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           return { overlap, depth, positionScore };
         };
 
-        
+        const preferredTrail = matchedTrails.slice().sort((a, b) => {
+          const as = scoreTrail(a);
+          const bs = scoreTrail(b);
 
-        const preferredTrail = matchedTrails
-          .slice()
-          .sort((a, b) => {
-            const as = scoreTrail(a);
-            const bs = scoreTrail(b);
-
-            if (as.overlap !== bs.overlap) return bs.overlap - as.overlap;
-            if (as.depth !== bs.depth) return bs.depth - as.depth;
-            return as.positionScore - bs.positionScore;
-          })[0];
+          if (as.overlap !== bs.overlap) return bs.overlap - as.overlap;
+          if (as.depth !== bs.depth) return bs.depth - as.depth;
+          return as.positionScore - bs.positionScore;
+        })[0];
 
         const expandedIds = preferredTrail.filter((id) => {
           const node = findNodeById(navTreeItems, id);
@@ -363,30 +363,53 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
 
     // Reduced indentation
     const indentClass = level === 0 ? 'pl-2' : level === 1 ? 'pl-4' : 'pl-6';
-    
+
     // Get icon and pillar
     const { icon: IconComponent, pillar } = getIconAndPillarForNavLabel(item.label);
     const effectivePillar = parentPillar || pillar;
-    
+
     // Color map based on pillar
     const colorMap = {
-      analytics: { icon: 'text-blue-400', accent: 'bg-blue-500', hover: 'hover:text-blue-300', bg: 'hover:bg-blue-200/95' },
-      businessCore: { icon: 'text-green-400', accent: 'bg-green-500', hover: 'hover:text-green-300', bg: 'hover:bg-green-200/95' },
-      execution: { icon: 'text-orange-400', accent: 'bg-orange-500', hover: 'hover:text-orange-300', bg: 'hover:bg-orange-200/95' },
-      other: { icon: 'text-gray-500', accent: 'bg-gray-500', hover: 'hover:text-gray-300', bg: 'bg-gray-800/50' },
+      analytics: {
+        icon: 'text-blue-400',
+        accent: 'bg-blue-500',
+        hover: 'hover:text-blue-300',
+        bg: 'hover:bg-blue-200/95',
+      },
+      businessCore: {
+        icon: 'text-green-400',
+        accent: 'bg-green-500',
+        hover: 'hover:text-green-300',
+        bg: 'hover:bg-green-200/95',
+      },
+      execution: {
+        icon: 'text-orange-400',
+        accent: 'bg-orange-500',
+        hover: 'hover:text-orange-300',
+        bg: 'hover:bg-orange-200/95',
+      },
+      other: {
+        icon: 'text-gray-500',
+        accent: 'bg-gray-500',
+        hover: 'hover:text-gray-300',
+        bg: 'bg-gray-800/50',
+      },
     } as const;
 
     type PillarKey = keyof typeof colorMap;
-    const pillarKey: PillarKey = effectivePillar in colorMap ? (effectivePillar as PillarKey) : 'other';
+    const pillarKey: PillarKey =
+      effectivePillar in colorMap ? (effectivePillar as PillarKey) : 'other';
     const colors = colorMap[pillarKey];
-    
+
     // Special styling for pillar roots
-    const baseClasses = isPillarRoot ? `
+    const baseClasses = isPillarRoot
+      ? `
       relative flex items-center gap-2 px-1.5 py-1.5 mx-1 mb-0 rounded-lg
       cursor-pointer transition-all duration-200 ease-out
       focus:outline-none focus:ring-2 focus:ring-blue-500
       ${isCollapsed ? 'justify-center px-1.5' : ''}
-    ` : `
+    `
+      : `
       relative flex items-center gap-2 px-2 py-1 mx-1 rounded-lg
       transition-all duration-200 ease-out group
       overflow-hidden focus:outline-none focus:ring-2 focus:ring-blue-500
@@ -398,20 +421,27 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     const itemContent = (
       <>
         {/* Left accent border - hidden for pillars */}
-        <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${colors.accent} transition-all duration-200 ${isPillarRoot ? 'opacity-0' : isActive ? 'opacity-100' : 'opacity-0'}`} />
+        <div
+          className={`absolute left-0 top-0 bottom-0 w-0.5 ${colors.accent} transition-all duration-200 ${isPillarRoot ? 'opacity-0' : isActive ? 'opacity-100' : 'opacity-0'}`}
+        />
 
         {/* Icon with pillar color */}
-        <span className={`relative z-10 flex-shrink-0 w-4 h-4 flex items-center justify-center transition-colors duration-200 ${colors.icon}`}>
+        <span
+          className={`relative z-10 flex-shrink-0 w-4 h-4 flex items-center justify-center transition-colors duration-200 ${colors.icon}`}
+        >
           <IconComponent size={isPillarRoot ? 18 : 16} />
         </span>
 
         {/* Label and chevron */}
         {!isCollapsed && (
           <>
-            <span className={`relative z-10 flex-1 truncate transition-all duration-200 ${isPillarRoot ? 'text-sm font-normal ' + colors.icon : isActive ? 'text-xs font-medium text-gray-300' : 'text-xs font-normal text-gray-400'}`} title={item.label}>
+            <span
+              className={`relative z-10 flex-1 truncate transition-all duration-200 ${isPillarRoot ? 'text-sm font-normal ' + colors.icon : isActive ? 'text-xs font-medium text-gray-300' : 'text-xs font-normal text-gray-400'}`}
+              title={item.label}
+            >
               {item.label}
             </span>
-            
+
             {hasChildren && !isPillarRoot && (
               <button
                 type="button"
@@ -424,7 +454,11 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
                   toggleExpanded(item, currentTrail);
                 }}
               >
-                {isExpanded ? <ChevronUp size={14} aria-hidden /> : <ChevronDown size={14} aria-hidden />}
+                {isExpanded ? (
+                  <ChevronUp size={14} aria-hidden />
+                ) : (
+                  <ChevronDown size={14} aria-hidden />
+                )}
               </button>
             )}
           </>
@@ -477,7 +511,13 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         {hasChildren && (isPillarRoot || isExpanded) && !isCollapsed && (
           <ul className="mt-0 space-y-0.5">
             {item.children!.map((child) =>
-              renderNavItem(child, level + 1, false, isPillarRoot ? pillar : parentPillar, currentTrail)
+              renderNavItem(
+                child,
+                level + 1,
+                false,
+                isPillarRoot ? pillar : parentPillar,
+                currentTrail
+              )
             )}
           </ul>
         )}
@@ -499,217 +539,297 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
           onClick={onMobileClose}
         />
       )}
-    <aside
-      aria-label="Sidebar"
-      className={[
-        'fixed left-0 top-0 h-screen bg-gray-900 border-r border-gray-800 shadow-2xl z-40 select-none pointer-events-auto flex flex-col',
-        // Width: mobile always full (246px); sm+ respects collapsed state
-        'w-[246px]',
-        isCollapsed ? 'sm:w-[70px]' : '',
-        // Slide in/out on mobile; always visible on sm+
-        'transition-transform sm:transition-all duration-500 ease-out',
-        mobileOpen ? 'translate-x-0' : '-translate-x-full sm:translate-x-0',
-      ].join(' ')}
-      draggable={false}
-      onDragStart={(e) => e.preventDefault()}
-    >
-      {/* Header with toggle */}
-      <div className="flex min-h-[3.5rem] items-center justify-between gap-2 border-b border-gray-800 px-3 py-2">
-        {!isCollapsed ? (
-          <Link
-            href="/"
-            className="flex min-w-0 flex-1 items-center gap-2.5 hover:opacity-90 transition-opacity cursor-pointer"
-            onClick={() => setExpandedItems(new Set())}
-          >
-            <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-gray-800/90 p-0.5">
+      <aside
+        aria-label="Sidebar"
+        className={[
+          'fixed left-0 top-0 h-screen bg-gray-900 border-r border-gray-800 shadow-2xl z-40 select-none pointer-events-auto flex flex-col',
+          // Width: mobile always full (246px); sm+ respects collapsed state
+          'w-[246px]',
+          isCollapsed ? 'sm:w-[70px]' : '',
+          // Slide in/out on mobile; always visible on sm+
+          'transition-transform sm:transition-all duration-500 ease-out',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full sm:translate-x-0',
+        ].join(' ')}
+        draggable={false}
+        onDragStart={(e) => e.preventDefault()}
+      >
+        {/* Header with toggle */}
+        <div className="flex min-h-[3.5rem] items-center justify-between gap-2 border-b border-gray-800 px-3 py-2">
+          {!isCollapsed ? (
+            <Link
+              href="/"
+              className="flex min-w-0 flex-1 items-center gap-2.5 hover:opacity-90 transition-opacity cursor-pointer"
+              onClick={() => setExpandedItems(new Set())}
+            >
+              <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-gray-800/90 p-0.5">
+                <style jsx>{`
+                  @keyframes shine {
+                    0%,
+                    100% {
+                      opacity: 0.6;
+                      filter: brightness(1);
+                    }
+                    50% {
+                      opacity: 1;
+                      filter: brightness(1.5) drop-shadow(0 0 4px currentColor);
+                    }
+                  }
+                  .dot-1 {
+                    animation: shine 3s ease-in-out infinite;
+                    animation-delay: 0s;
+                  }
+                  .dot-2 {
+                    animation: shine 3s ease-in-out infinite;
+                    animation-delay: 1s;
+                  }
+                  .dot-3 {
+                    animation: shine 3s ease-in-out infinite;
+                    animation-delay: 2s;
+                  }
+                `}</style>
+                <svg viewBox="0 0 24 24" className="h-8 w-8" aria-hidden="true">
+                  <circle cx="12" cy="6" r="2.5" className="fill-blue-400 dot-1" />
+                  <circle cx="7" cy="16" r="2.5" className="fill-green-400 dot-2" />
+                  <circle cx="17" cy="16" r="2.5" className="fill-orange-400 dot-3" />
+                  <line
+                    x1="12"
+                    y1="6"
+                    x2="7"
+                    y2="16"
+                    className="stroke-blue-400/60"
+                    strokeWidth="1.5"
+                  />
+                  <line
+                    x1="12"
+                    y1="6"
+                    x2="17"
+                    y2="16"
+                    className="stroke-blue-400/60"
+                    strokeWidth="1.5"
+                  />
+                  <line
+                    x1="7"
+                    y1="16"
+                    x2="17"
+                    y2="16"
+                    className="stroke-blue-400/60"
+                    strokeWidth="1.5"
+                  />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <h1 className="truncate text-xl font-bold leading-tight tracking-[0.08em] text-gray-100">
+                  Trity
+                </h1>
+              </div>
+            </Link>
+          ) : (
+            <Link
+              href="/"
+              className="mx-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-gray-800/90 p-0.5 hover:opacity-90 transition-opacity cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+              title="Trity Home"
+              aria-label="Trity Home"
+              onClick={() => setExpandedItems(new Set())}
+            >
               <style jsx>{`
                 @keyframes shine {
-                  0%, 100% { opacity: 0.6; filter: brightness(1); }
-                  50% { opacity: 1; filter: brightness(1.5) drop-shadow(0 0 4px currentColor); }
+                  0%,
+                  100% {
+                    opacity: 0.6;
+                    filter: brightness(1);
+                  }
+                  50% {
+                    opacity: 1;
+                    filter: brightness(1.5) drop-shadow(0 0 4px currentColor);
+                  }
                 }
-                .dot-1 { animation: shine 3s ease-in-out infinite; animation-delay: 0s; }
-                .dot-2 { animation: shine 3s ease-in-out infinite; animation-delay: 1s; }
-                .dot-3 { animation: shine 3s ease-in-out infinite; animation-delay: 2s; }
+                .dot-1 {
+                  animation: shine 3s ease-in-out infinite;
+                  animation-delay: 0s;
+                }
+                .dot-2 {
+                  animation: shine 3s ease-in-out infinite;
+                  animation-delay: 1s;
+                }
+                .dot-3 {
+                  animation: shine 3s ease-in-out infinite;
+                  animation-delay: 2s;
+                }
               `}</style>
-              <svg viewBox="0 0 24 24" className="h-8 w-8" aria-hidden="true">
+              <svg viewBox="0 0 24 24" className="w-8 h-8" aria-hidden="true">
                 <circle cx="12" cy="6" r="2.5" className="fill-blue-400 dot-1" />
                 <circle cx="7" cy="16" r="2.5" className="fill-green-400 dot-2" />
                 <circle cx="17" cy="16" r="2.5" className="fill-orange-400 dot-3" />
-                <line x1="12" y1="6" x2="7" y2="16" className="stroke-blue-400/60" strokeWidth="1.5" />
-                <line x1="12" y1="6" x2="17" y2="16" className="stroke-blue-400/60" strokeWidth="1.5" />
-                <line x1="7" y1="16" x2="17" y2="16" className="stroke-blue-400/60" strokeWidth="1.5" />
+                <line
+                  x1="12"
+                  y1="6"
+                  x2="7"
+                  y2="16"
+                  className="stroke-blue-400/60"
+                  strokeWidth="1.5"
+                />
+                <line
+                  x1="12"
+                  y1="6"
+                  x2="17"
+                  y2="16"
+                  className="stroke-blue-400/60"
+                  strokeWidth="1.5"
+                />
+                <line
+                  x1="7"
+                  y1="16"
+                  x2="17"
+                  y2="16"
+                  className="stroke-blue-400/60"
+                  strokeWidth="1.5"
+                />
               </svg>
+            </Link>
+          )}
+          {!isCollapsed && (
+            <button
+              onClick={toggleSidebar}
+              className="p-1.5 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-all duration-200 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-label="Collapse sidebar"
+              aria-expanded={!isCollapsed}
+              title="Collapse sidebar"
+            >
+              <X size={16} aria-hidden />
+            </button>
+          )}
+        </div>
+
+        {/* Navigation content */}
+        <nav aria-label="Main navigation" className="flex-1 overflow-y-auto py-3">
+          {/* Error state */}
+          {error && (
+            <div role="alert" className="flex flex-col items-center justify-center py-6 px-3">
+              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" aria-hidden />
+              {!isCollapsed && (
+                <p className="mt-2 text-xs text-red-400 text-center">{error.message}</p>
+              )}
             </div>
-            <div className="min-w-0">
-              <h1 className="truncate text-xl font-bold leading-tight tracking-[0.08em] text-gray-100">
-                Trity
-              </h1>
+          )}
+
+          {navigationItems === null && !error && tenantConfigError && (
+            <div className="flex flex-col items-center justify-center py-8 px-3 gap-2">
+              <AlertCircle className="w-6 h-6 text-amber-400 shrink-0" aria-hidden />
+              {!isCollapsed && (
+                <p className="text-xs text-amber-200/90 text-center">
+                  Account setup required — see the main panel or contact support.
+                </p>
+              )}
             </div>
-          </Link>
-        ) : (
-          <Link
-            href="/"
-            className="mx-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-gray-800/90 p-0.5 hover:opacity-90 transition-opacity cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
-            title="Trity Home"
-            aria-label="Trity Home"
-            onClick={() => setExpandedItems(new Set())}
-          >
-            <style jsx>{`
-              @keyframes shine {
-                0%, 100% { opacity: 0.6; filter: brightness(1); }
-                50% { opacity: 1; filter: brightness(1.5) drop-shadow(0 0 4px currentColor); }
-              }
-              .dot-1 { animation: shine 3s ease-in-out infinite; animation-delay: 0s; }
-              .dot-2 { animation: shine 3s ease-in-out infinite; animation-delay: 1s; }
-              .dot-3 { animation: shine 3s ease-in-out infinite; animation-delay: 2s; }
-            `}</style>
-            <svg viewBox="0 0 24 24" className="w-8 h-8" aria-hidden="true">
-              <circle cx="12" cy="6" r="2.5" className="fill-blue-400 dot-1" />
-              <circle cx="7" cy="16" r="2.5" className="fill-green-400 dot-2" />
-              <circle cx="17" cy="16" r="2.5" className="fill-orange-400 dot-3" />
-              <line x1="12" y1="6" x2="7" y2="16" className="stroke-blue-400/60" strokeWidth="1.5" />
-              <line x1="12" y1="6" x2="17" y2="16" className="stroke-blue-400/60" strokeWidth="1.5" />
-              <line x1="7" y1="16" x2="17" y2="16" className="stroke-blue-400/60" strokeWidth="1.5" />
-            </svg>
-          </Link>
-        )}
-        {!isCollapsed && (
-          <button
-            onClick={toggleSidebar}
-            className="p-1.5 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-all duration-200 flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            aria-label="Collapse sidebar"
-            aria-expanded={!isCollapsed}
-            title="Collapse sidebar"
-          >
-            <X size={16} aria-hidden />
-          </button>
-        )}
-      </div>
+          )}
 
-      {/* Navigation content */}
-      <nav aria-label="Main navigation" className="flex-1 overflow-y-auto py-3">
-        {/* Error state */}
-        {error && (
-          <div role="alert" className="flex flex-col items-center justify-center py-6 px-3">
-            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" aria-hidden />
-            {!isCollapsed && (
-              <p className="mt-2 text-xs text-red-400 text-center">
-                {error.message}
-              </p>
-            )}
-          </div>
-        )}
+          {navigationItems === null && !error && !tenantConfigError && (
+            <div
+              role="status"
+              aria-busy="true"
+              aria-label="Loading navigation"
+              className="flex flex-col items-center justify-center py-8 px-3 gap-2"
+            >
+              <Loader2 className="w-6 h-6 text-gray-500 animate-spin shrink-0" aria-hidden />
+              {!isCollapsed && (
+                <p className="text-xs text-gray-500 text-center" aria-hidden>
+                  Loading menu…
+                </p>
+              )}
+            </div>
+          )}
 
-        {navigationItems === null && !error && tenantConfigError && (
-          <div className="flex flex-col items-center justify-center py-8 px-3 gap-2">
-            <AlertCircle className="w-6 h-6 text-amber-400 shrink-0" aria-hidden />
-            {!isCollapsed && (
-              <p className="text-xs text-amber-200/90 text-center">
-                Account setup required — see the main panel or contact support.
-              </p>
-            )}
-          </div>
-        )}
-
-        {navigationItems === null && !error && !tenantConfigError && (
-          <div role="status" aria-busy="true" aria-label="Loading navigation" className="flex flex-col items-center justify-center py-8 px-3 gap-2">
-            <Loader2 className="w-6 h-6 text-gray-500 animate-spin shrink-0" aria-hidden />
-            {!isCollapsed && (
-              <p className="text-xs text-gray-500 text-center" aria-hidden>Loading menu…</p>
-            )}
-          </div>
-        )}
-
-        {/* Navigation items - separate pillars from other items, or unified if labels differ */}
-        {navTreeItems && navTreeItems.length > 0 && (
-          <>
-            {useUnifiedPillarLayout ? (
-              <div className="space-y-0.5 mb-0.5">
-                {navTreeItems.map((item) => (
-                  <div key={item.id}>{renderNavItem(item, 0, true)}</div>
-                ))}
-              </div>
-            ) : (
-              <>
+          {/* Navigation items - separate pillars from other items, or unified if labels differ */}
+          {navTreeItems && navTreeItems.length > 0 && (
+            <>
+              {useUnifiedPillarLayout ? (
                 <div className="space-y-0.5 mb-0.5">
-                  {pillarRoots.map((item) => (
+                  {navTreeItems.map((item) => (
                     <div key={item.id}>{renderNavItem(item, 0, true)}</div>
                   ))}
                 </div>
-                {otherRoots.length > 0 && (
-                  <>
-                    <div className="border-t border-gray-800 my-0.5 mx-3" />
-                    <ul className="space-y-0.5">
-                      {otherRoots.map((item) => renderNavItem(item))}
-                    </ul>
-                  </>
-                )}
-              </>
-            )}
-          </>
-        )}
+              ) : (
+                <>
+                  <div className="space-y-0.5 mb-0.5">
+                    {pillarRoots.map((item) => (
+                      <div key={item.id}>{renderNavItem(item, 0, true)}</div>
+                    ))}
+                  </div>
+                  {otherRoots.length > 0 && (
+                    <>
+                      <div className="border-t border-gray-800 my-0.5 mx-3" />
+                      <ul className="space-y-0.5">
+                        {otherRoots.map((item) => renderNavItem(item))}
+                      </ul>
+                    </>
+                  )}
+                </>
+              )}
+            </>
+          )}
 
-        {/* Empty state (not while navigation is still loading) */}
-        {navigationItems !== null && navTreeItems.length === 0 && !error && (
-          <div className="flex flex-col items-center justify-center py-6 px-3">
-            {tenantConfigError ? (
-              <>
-                <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0" aria-hidden />
-                {!isCollapsed && (
-                  <p className="mt-2 text-xs text-amber-200/90 text-center">
-                    Account setup required — see the main panel or contact support.
-                  </p>
-                )}
-              </>
-            ) : (
-              !isCollapsed && (
-                <p className="text-xs text-gray-500 text-center">
-                  No navigation items found
-                </p>
-              )
-            )}
-          </div>
-        )}
-      </nav>
+          {/* Empty state (not while navigation is still loading) */}
+          {navigationItems !== null && navTreeItems.length === 0 && !error && (
+            <div className="flex flex-col items-center justify-center py-6 px-3">
+              {tenantConfigError ? (
+                <>
+                  <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0" aria-hidden />
+                  {!isCollapsed && (
+                    <p className="mt-2 text-xs text-amber-200/90 text-center">
+                      Account setup required — see the main panel or contact support.
+                    </p>
+                  )}
+                </>
+              ) : (
+                !isCollapsed && (
+                  <p className="text-xs text-gray-500 text-center">No navigation items found</p>
+                )
+              )}
+            </div>
+          )}
+        </nav>
 
-      {/* Logout button */}
-      {user && (
-        <div className="border-t border-gray-800 p-3">
-          <button
-            onClick={handleLogout}
-            disabled={isLoggingOut}
-            className={`
+        {/* Logout button */}
+        {user && (
+          <div className="border-t border-gray-800 p-3">
+            <button
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className={`
               w-full flex items-center gap-2 px-2 py-1 rounded-lg
               transition-all duration-200 ease-out
               text-gray-400 hover:bg-gray-700/70 hover:text-white hover:shadow-lg
               disabled:opacity-50 disabled:cursor-not-allowed
               ${isCollapsed ? 'justify-center px-1.5' : ''}
             `}
-            title={isCollapsed ? 'Sign Out' : undefined}
-            aria-label={isCollapsed ? 'Sign Out' : undefined}
-          >
-            <LogOut size={16} className="flex-shrink-0" aria-hidden />
-            {!isCollapsed && (
-              <span className="text-xs font-medium truncate">
-                {isLoggingOut ? 'Signing out...' : 'Sign Out'}
-              </span>
-            )}
-          </button>
-        </div>
-      )}
+              title={isCollapsed ? 'Sign Out' : undefined}
+              aria-label={isCollapsed ? 'Sign Out' : undefined}
+            >
+              <LogOut size={16} className="flex-shrink-0" aria-hidden />
+              {!isCollapsed && (
+                <span className="text-xs font-medium truncate">
+                  {isLoggingOut ? 'Signing out...' : 'Sign Out'}
+                </span>
+              )}
+            </button>
+          </div>
+        )}
 
-      <WorkspaceBrandStrip
-        collapsed={isCollapsed}
-        hasWorkspace={Boolean(effectiveTenantId)}
-        displayName={effectiveTenantDisplayName}
-        logoUrl={effectiveTenantLogoUrl}
-        onExitWorkspace={
-          user && workspaceTenantId && isSuperAdminSession(user, profile)
-            ? () => { exitWorkspaceTenant(); router.push('/'); }
-            : undefined
-        }
-      />
-    </aside>
+        <WorkspaceBrandStrip
+          collapsed={isCollapsed}
+          hasWorkspace={Boolean(effectiveTenantId)}
+          displayName={effectiveTenantDisplayName}
+          logoUrl={effectiveTenantLogoUrl}
+          onExitWorkspace={
+            user && workspaceTenantId && isSuperAdminSession(user, profile)
+              ? () => {
+                  exitWorkspaceTenant();
+                  router.push('/');
+                }
+              : undefined
+          }
+        />
+      </aside>
     </>
   );
 }

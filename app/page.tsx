@@ -55,13 +55,15 @@ export default function HomePage() {
   const [stats, setStats] = useState({
     totalProducts: 0,
   });
-  const [navigationItems, setNavigationItems] = useState<{
-    id: string;
-    label: string;
-    position: string;
-    is_enabled: boolean;
-    is_deleted?: boolean | null;
-  }[]>([]);
+  const [navigationItems, setNavigationItems] = useState<
+    {
+      id: string;
+      label: string;
+      position: string;
+      is_enabled: boolean;
+      is_deleted?: boolean | null;
+    }[]
+  >([]);
   const [navigationLoading, setNavigationLoading] = useState(false);
 
   useEffect(() => {
@@ -119,59 +121,62 @@ export default function HomePage() {
     };
   }, [tenant_id]);
 
-  const labelIconMap = useMemo(() => ({
-    Analytics: BarChart3,
-    Integration: Plug,
-    Execution: Zap,
-    Calendar,
-    Product: Package,
-    Products: Package,
-    'Bills of Materials': Layers,
-    Supplier: Truck,
-    Warehouse,
-    'Stock Adjustments': ClipboardList,
-    'Stock Count': ClipboardCheck,
-    'Stock Transfer': ArrowLeftRight,
-    'Purchase Management': ShoppingCart,
-    'Purchase Orders': FileSpreadsheet,
-    'Goods Receipt': PackageCheck,
-    'Purchase Invoices': FileText,
-    'Goods Return': PackageX,
-    'Purchase Returns': PackageX,
-    Customer: Users,
-    Customers: Users,
-    'Delivery Locations': MapPin,
-    'Order Management': PackagePlus,
-    'Sales Orders': FileSpreadsheet,
-    'Order Fulfillment': PackageCheck,
-    'Sales Invoice': FileText,
-    'Sales Invoices': FileText,
-    'Sales Returns': RotateCcw,
-    'Customer Weeks': Calendar,
-    'Planning Board': GitBranch,
-    Scheduler: Calendar,
-    'Material Requirement Plan (MRP)': Layers,
-    MRP: Layers,
-    'Product Movement': Zap,
-    Forecast: TrendingUp,
-    'Forecast Model': BarChart2,
-    'Customer Forecast': TrendingUp,
-    'Cost File': FileText,
-    'Cost of Goods': FileBarChart,
-    'Logistics Costs': Truck,
-    Inventory: Boxes,
-    'Material Variance': BarChart2,
-    'Working Capital': PieChart,
-    'P&L': FileBarChart,
-    Reports: BookOpen,
-    Founder: UserCircle2,
-  }), []);
+  const labelIconMap = useMemo(
+    () => ({
+      Analytics: BarChart3,
+      Integration: Plug,
+      Execution: Zap,
+      Calendar,
+      Product: Package,
+      Products: Package,
+      'Bills of Materials': Layers,
+      Supplier: Truck,
+      Warehouse,
+      'Stock Adjustments': ClipboardList,
+      'Stock Count': ClipboardCheck,
+      'Stock Transfer': ArrowLeftRight,
+      'Purchase Management': ShoppingCart,
+      'Purchase Orders': FileSpreadsheet,
+      'Goods Receipt': PackageCheck,
+      'Purchase Invoices': FileText,
+      'Goods Return': PackageX,
+      'Purchase Returns': PackageX,
+      Customer: Users,
+      Customers: Users,
+      'Delivery Locations': MapPin,
+      'Order Management': PackagePlus,
+      'Sales Orders': FileSpreadsheet,
+      'Order Fulfillment': PackageCheck,
+      'Sales Invoice': FileText,
+      'Sales Invoices': FileText,
+      'Sales Returns': RotateCcw,
+      'Customer Weeks': Calendar,
+      'Planning Board': GitBranch,
+      Scheduler: Calendar,
+      'Material Requirement Plan (MRP)': Layers,
+      MRP: Layers,
+      'Product Movement': Zap,
+      Forecast: TrendingUp,
+      'Forecast Model': BarChart2,
+      'Customer Forecast': TrendingUp,
+      'Cost File': FileText,
+      'Cost of Goods': FileBarChart,
+      'Logistics Costs': Truck,
+      Inventory: Boxes,
+      'Material Variance': BarChart2,
+      'Working Capital': PieChart,
+      'P&L': FileBarChart,
+      Reports: BookOpen,
+      Founder: UserCircle2,
+    }),
+    []
+  );
 
   const getPillarItems = (pillarLabel: string) => {
-    const root = navigationItems.find(item => item.label === pillarLabel);
+    const root = navigationItems.find((item) => item.label === pillarLabel);
     if (!root) return [];
     const descendants = getDescendants(root.position, navigationItems)
-      .filter(item => item.is_enabled && !item.is_deleted)
+      .filter((item) => item.is_enabled && !item.is_deleted)
       .sort((a, b) => comparePositions(a.position, b.position));
     return descendants;
   };
@@ -196,7 +201,8 @@ export default function HomePage() {
         {items.map((item) => {
           const level = String(item.position).split('.').length - 1;
           const isTopLevel = level === 1;
-          const IconComp = (labelIconMap as Record<string, React.ElementType>)[item.label] ?? Circle;
+          const IconComp =
+            (labelIconMap as Record<string, React.ElementType>)[item.label] ?? Circle;
           return (
             <li key={item.id} className={`flex items-center gap-2 ${isTopLevel ? '' : 'pl-5'}`}>
               <IconComp
@@ -204,9 +210,7 @@ export default function HomePage() {
               />
               <span
                 className={`text-xs leading-tight ${
-                  isTopLevel
-                    ? `${titleColor} font-semibold`
-                    : 'text-gray-500 dark:text-gray-400'
+                  isTopLevel ? `${titleColor} font-semibold` : 'text-gray-500 dark:text-gray-400'
                 }`}
               >
                 {item.label}
@@ -229,8 +233,6 @@ export default function HomePage() {
           subtitleClassName={`${premiumTypography.pageSubtitle} ${analyticsAccent.subtitleTint}`}
         />
 
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
-
         {/* Stats Cards */}
         <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-2">
           <Link
@@ -240,7 +242,7 @@ export default function HomePage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className={`${premiumTypography.helper} mb-1`}>Total Products</p>
-                <p className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white">
                   {productsLoading ? '…' : stats.totalProducts}
                 </p>
               </div>
@@ -261,9 +263,7 @@ export default function HomePage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className={`${premiumTypography.helper} mb-1`}>Calendar</p>
-                <p className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
-                  2026
-                </p>
+                <p className="text-2xl font-semibold text-gray-900 dark:text-white">2026</p>
               </div>
               <div className={bc.iconTile}>
                 <Calendar className={`h-5 w-5 ${bc.iconColor}`} />
@@ -288,7 +288,6 @@ export default function HomePage() {
             </Link>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
-
             {/* Business Core */}
             <div className={premiumSurfaces.card}>
               <div className="mb-3 flex items-center gap-3">
@@ -324,11 +323,17 @@ export default function HomePage() {
                   <BarChart3 className={`h-5 w-5 ${analyticsAccent.iconColor}`} />
                 </div>
                 <div>
-                  <h3 className={`text-sm font-semibold ${analyticsAccent.titleText}`}>Analytics</h3>
+                  <h3 className={`text-sm font-semibold ${analyticsAccent.titleText}`}>
+                    Analytics
+                  </h3>
                   <p className={premiumTypography.helper}>Reporting and insights</p>
                 </div>
               </div>
-              {renderPillarItems(analyticsItems, analyticsAccent.titleText, analyticsAccent.iconColor)}
+              {renderPillarItems(
+                analyticsItems,
+                analyticsAccent.titleText,
+                analyticsAccent.iconColor
+              )}
             </div>
           </div>
         </div>
@@ -338,7 +343,9 @@ export default function HomePage() {
           <div className={premiumSurfaces.insetInfo}>
             <div className="flex items-center justify-between">
               <span className={premiumTypography.helper}>Signed in as</span>
-              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{user.email}</span>
+              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                {user.email}
+              </span>
             </div>
           </div>
         )}

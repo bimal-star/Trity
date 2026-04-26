@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu } from 'lucide-react';
-import { Sidebar } from '@/components/navigation/Sidebar';
+import { TopNav } from '@/components/navigation/TopNav';
 import { LayoutSkeleton } from '@/components/LayoutSkeleton';
-import { ImpersonationBanner } from '@/components/ImpersonationBanner';
 import { useTenant } from '@/contexts/TenantContext';
 import { supabase } from '@/lib/supabaseClient';
+import { mainTopNavSpacerClass } from '@/lib/appChrome';
 
 /**
  * Main content area. Stable across route changes – we avoid key={pathname} so the
@@ -15,24 +14,10 @@ import { supabase } from '@/lib/supabaseClient';
  * Page-level hooks (useCalendar, useProducts, etc.) refetch when pathname changes.
  */
 function Main({ children }: { children: React.ReactNode }) {
-  // Start with margin applied (desktop default). Effect corrects to no-margin on mobile
-  // without a visible flash on desktop initial render.
-  const [showMargin, setShowMargin] = useState(true);
-
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 640px)');
-    setShowMargin(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setShowMargin(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
-
   return (
-    <main
-      className="flex-1 transition-all duration-500"
-      style={showMargin ? { marginLeft: 'var(--sidebar-width, 246px)' } : {}}
-    >
-      {children}
+    <main className="flex min-h-0 w-full flex-1 flex-col transition-all duration-500">
+      <div aria-hidden className={`pointer-events-none ${mainTopNavSpacerClass}`} />
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
     </main>
   );
 }
@@ -49,7 +34,7 @@ function Main({ children }: { children: React.ReactNode }) {
  *   - !ready: show LayoutSkeleton (waiting for session + tenant resolution)
  *   - ready && !user: confirm with supabase.auth.getSession() before sending to /login — avoids
  *     bouncing right after sign-in when React context has not applied SIGNED_IN yet.
- *   - ready && user: render Sidebar + Main + children (Sidebar may still load menu items)
+ *   - ready && user: render TopNav + Main + children (primary nav in TopNav)
  *
  * Stability guarantees:
  * - Uses pathname ONLY for determining which layout to show
@@ -69,11 +54,11 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   /** `absent` = getSession() returned null → safe to send to /login */
-  const [guestSession, setGuestSession] = useState<
-    'unset' | 'checking' | 'present' | 'absent'
-  >('unset');
+  const [guestSession, setGuestSession] = useState<'unset' | 'checking' | 'present' | 'absent'>(
+    'unset'
+  );
 
-  // Close mobile sidebar on route change
+  // Close mobile navigation panel on route change
   useEffect(() => {
     setMobileSidebarOpen(false);
   }, [pathname]);
@@ -114,22 +99,12 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-950">
-      <div className="flex min-h-0 flex-1">
-        <Sidebar
-          mobileOpen={mobileSidebarOpen}
-          onMobileClose={() => setMobileSidebarOpen(false)}
-        />
-        {/* Hamburger button — visible only below sm: breakpoint when sidebar is closed */}
-        {!mobileSidebarOpen && (
-          <button
-            className="fixed left-3 top-3 z-50 flex h-9 w-9 items-center justify-center rounded-lg bg-gray-900 text-white shadow-lg sm:hidden focus:outline-none focus:ring-2 focus:ring-blue-500"
-            aria-label="Open navigation"
-            onClick={() => setMobileSidebarOpen(true)}
-          >
-            <Menu size={18} aria-hidden />
-          </button>
-        )}
+    <div className="flex min-h-dvh flex-col bg-gray-50 dark:bg-gray-950">
+      <TopNav
+        mobileSidebarOpen={mobileSidebarOpen}
+        onMobileSidebarToggle={() => setMobileSidebarOpen((v) => !v)}
+      />
+      <div className="flex min-h-0 w-full flex-1 flex-col">
         <Main>{children}</Main>
       </div>
     </div>

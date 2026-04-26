@@ -15,7 +15,6 @@ import {
   premiumDangerButton,
   premiumPrimaryButton,
   premiumSecondaryButton,
-  premiumSurfaces,
   premiumTypography,
 } from '@/lib/premiumUi';
 import { useToast } from '@/lib/toast';
@@ -45,14 +44,7 @@ export default function PurchaseInvoicesPage() {
   const [loadingLines, setLoadingLines] = useState(false);
   const { toast } = useToast();
 
-  const {
-    invoices,
-    isLoading,
-    error,
-    fetchLines,
-    runMatch,
-    replaceLines,
-  } = useSupplierInvoices();
+  const { invoices, isLoading, error, fetchLines, runMatch, replaceLines } = useSupplierInvoices();
 
   const { fetchLines: fetchPoLines } = usePurchaseOrders(undefined, {
     loadPurchaseOrders: false,
@@ -133,8 +125,6 @@ export default function PurchaseInvoicesPage() {
           }
         />
 
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
-
         <div className="grid min-h-[480px] grid-cols-1 gap-4 lg:grid-cols-3">
           <div className="rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 lg:col-span-1">
             <div className="border-b border-gray-200 px-3 py-2 text-sm font-medium dark:border-gray-700">
@@ -207,7 +197,10 @@ export default function PurchaseInvoicesPage() {
                         {lines.map((ln) => {
                           const p = productMap.get(ln.product_id);
                           return (
-                            <tr key={ln.id} className="border-t border-gray-100 dark:border-gray-700">
+                            <tr
+                              key={ln.id}
+                              className="border-t border-gray-100 dark:border-gray-700"
+                            >
                               <td className="px-2 py-2">{ln.line_no}</td>
                               <td className="px-2 py-2">
                                 {p ? `${p.sku} — ${p.name}` : ln.product_id}
@@ -215,7 +208,9 @@ export default function PurchaseInvoicesPage() {
                               <td className="px-2 py-2">{ln.quantity_invoiced}</td>
                               <td className="px-2 py-2">{Number(ln.unit_price).toFixed(2)}</td>
                               <td className="px-2 py-2">
-                                <span className={matchBadge(ln.match_status)}>{ln.match_status}</span>
+                                <span className={matchBadge(ln.match_status)}>
+                                  {ln.match_status}
+                                </span>
                               </td>
                               <td className="px-2 py-2 text-xs text-gray-600 dark:text-gray-400">
                                 {ln.qty_ordered_snapshot != null && (
@@ -329,7 +324,10 @@ function InvoiceLineEditor({
       </p>
       <div className="space-y-2">
         {rows.map((row, idx) => (
-          <div key={idx} className="flex flex-wrap items-end gap-2 border-b border-gray-100 pb-2 dark:border-gray-700">
+          <div
+            key={idx}
+            className="flex flex-wrap items-end gap-2 border-b border-gray-100 pb-2 dark:border-gray-700"
+          >
             <select
               value={row.product_id}
               onChange={(e) => {

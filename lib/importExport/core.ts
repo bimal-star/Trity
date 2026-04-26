@@ -43,7 +43,13 @@ export async function getTables(tenantId: string): Promise<TableMetadata[]> {
     // Fallback: return hardcoded common tables for tenant-accessible schemas
     // Excludes: users, user_profiles, and tenants (system tables)
     return [
-      { name: 'customers', label: 'Customers', columns: [], primaryKey: 'id', softDeleteField: 'deleted_at' },
+      {
+        name: 'customers',
+        label: 'Customers',
+        columns: [],
+        primaryKey: 'id',
+        softDeleteField: 'deleted_at',
+      },
       {
         name: 'products',
         label: 'Products',
@@ -51,9 +57,27 @@ export async function getTables(tenantId: string): Promise<TableMetadata[]> {
         primaryKey: 'id',
         softDeleteField: 'is_deleted',
       },
-      { name: 'calendar', label: 'Calendar', columns: [], primaryKey: 'id', softDeleteField: 'is_deleted' },
-      { name: 'suppliers', label: 'Suppliers', columns: [], primaryKey: 'id', softDeleteField: 'deleted_at' },
-      { name: 'warehouses', label: 'Warehouses', columns: [], primaryKey: 'id', softDeleteField: 'deleted_at' },
+      {
+        name: 'calendar',
+        label: 'Calendar',
+        columns: [],
+        primaryKey: 'id',
+        softDeleteField: 'is_deleted',
+      },
+      {
+        name: 'suppliers',
+        label: 'Suppliers',
+        columns: [],
+        primaryKey: 'id',
+        softDeleteField: 'deleted_at',
+      },
+      {
+        name: 'warehouses',
+        label: 'Warehouses',
+        columns: [],
+        primaryKey: 'id',
+        softDeleteField: 'deleted_at',
+      },
     ];
   } catch (err) {
     console.error('Error fetching tables:', err);
@@ -81,9 +105,17 @@ export async function getTableColumns(tableName: string): Promise<ColumnInfo[]> 
       isNullable: col.is_nullable === 'YES',
       isRequired:
         col.is_nullable === 'NO' &&
-        !['created_at', 'updated_at', 'id', 'tenant_id', 'created_by', 'updated_by', 'deleted_at', 'deleted_by', 'version'].includes(
-          col.column_name
-        ),
+        ![
+          'created_at',
+          'updated_at',
+          'id',
+          'tenant_id',
+          'created_by',
+          'updated_by',
+          'deleted_at',
+          'deleted_by',
+          'version',
+        ].includes(col.column_name),
       isForeignKey: false,
     }));
   } catch (err) {
@@ -226,12 +258,7 @@ const EXPORT_COLUMN_ORDER_BY_TABLE: Record<string, string[]> = {
     'tags',
     'categories',
   ],
-  calendar: [
-    'date',
-    'bank_holiday',
-    'events',
-    'notes',
-  ],
+  calendar: ['date', 'bank_holiday', 'events', 'notes'],
   suppliers: [
     'supplier_code',
     'supplier_type',
@@ -347,7 +374,9 @@ function isEmptyCell(v: unknown): boolean {
 }
 
 function isUuid(s: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s.trim());
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    s.trim()
+  );
 }
 
 function excelSerialToISODate(serial: number): string | null {
@@ -474,13 +503,17 @@ function rowNaturalKey(tableName: string, data: Record<string, any>): string | n
     case 'customers': {
       const code = String(data.customer_code ?? '').trim();
       if (code) return `code:${code.toLowerCase()}`;
-      const email = String(data.email ?? '').trim().toLowerCase();
+      const email = String(data.email ?? '')
+        .trim()
+        .toLowerCase();
       return email ? `email:${email}` : null;
     }
     case 'suppliers': {
       const code = String(data.supplier_code ?? '').trim();
       if (code) return `code:${code.toLowerCase()}`;
-      const email = String(data.email ?? '').trim().toLowerCase();
+      const email = String(data.email ?? '')
+        .trim()
+        .toLowerCase();
       return email ? `email:${email}` : null;
     }
     case 'warehouses': {
@@ -488,7 +521,9 @@ function rowNaturalKey(tableName: string, data: Record<string, any>): string | n
       return code ? `code:${code.toLowerCase()}` : null;
     }
     case 'calendar': {
-      const d = String(data.date ?? '').trim().slice(0, 10);
+      const d = String(data.date ?? '')
+        .trim()
+        .slice(0, 10);
       return d ? `date:${d}` : null;
     }
     default:
@@ -512,7 +547,10 @@ async function fetchImportLookups(tableName: string, tenantId: string): Promise<
   };
 
   if (tableName === 'calendar') {
-    const { data, error } = await (supabase as any).from('calendar').select('id, date').eq('tenant_id', tenantId);
+    const { data, error } = await (supabase as any)
+      .from('calendar')
+      .select('id, date')
+      .eq('tenant_id', tenantId);
     if (error) throw error;
     for (const r of data || []) {
       const id = r.id as number;
@@ -529,7 +567,10 @@ async function fetchImportLookups(tableName: string, tenantId: string): Promise<
   else if (tableName === 'suppliers') select = 'id, supplier_code, email';
   else if (tableName === 'warehouses') select = 'id, warehouse_code';
 
-  const { data, error } = await (supabase as any).from(tableName).select(select).eq('tenant_id', tenantId);
+  const { data, error } = await (supabase as any)
+    .from(tableName)
+    .select(select)
+    .eq('tenant_id', tenantId);
   if (error) throw error;
 
   for (const r of data || []) {
@@ -555,7 +596,11 @@ async function fetchImportLookups(tableName: string, tenantId: string): Promise<
         empty.byNatural.set(`email:${String(r.email).trim().toLowerCase()}`, id);
       }
     }
-    if (tableName === 'warehouses' && r.warehouse_code != null && String(r.warehouse_code).trim() !== '') {
+    if (
+      tableName === 'warehouses' &&
+      r.warehouse_code != null &&
+      String(r.warehouse_code).trim() !== ''
+    ) {
       empty.byNatural.set(`code:${String(r.warehouse_code).trim().toLowerCase()}`, id);
     }
   }
@@ -641,7 +686,10 @@ function resolveExportColumnOrder(tableName: string, keySet: Set<string>): strin
 }
 
 /** Strip internals, unify column order across all rows, fill missing cells for stable CSV headers. */
-export function buildExportRows(tableName: string, rows: Record<string, unknown>[]): Record<string, unknown>[] {
+export function buildExportRows(
+  tableName: string,
+  rows: Record<string, unknown>[]
+): Record<string, unknown>[] {
   const stripped = stripInternalExportFields(tableName, rows);
   if (stripped.length === 0) return [];
 
@@ -776,7 +824,12 @@ export async function validateAndClassifyRows(
   return results;
 }
 
-function withInsertServerFields(tableName: string, row: Record<string, any>, tenantId: string, userId: string) {
+function withInsertServerFields(
+  tableName: string,
+  row: Record<string, any>,
+  tenantId: string,
+  userId: string
+) {
   if (tableName === 'calendar') {
     return { ...enrichCalendarRowForDb({ ...row }), tenant_id: tenantId };
   }
@@ -816,7 +869,9 @@ export async function applyImportChanges(
       deletes = 0;
 
     if (newRows.length > 0) {
-      const insertData = newRows.map((r) => withInsertServerFields(tableName, r.originalData, tenantId, userId));
+      const insertData = newRows.map((r) =>
+        withInsertServerFields(tableName, r.originalData, tenantId, userId)
+      );
       const { error } = await (supabase as any).from(tableName).insert(insertData);
       if (error) throw error;
       inserts = newRows.length;

@@ -1,9 +1,9 @@
 /**
  * Data Sanitization Utilities
- * 
+ *
  * This module provides input sanitization helpers using DOMPurify.
  * These are isolated utilities that can be integrated into forms as needed.
- * 
+ *
  * @module lib/sanitization
  * @requires dompurify
  * @requires isomorphic-dompurify
@@ -16,7 +16,7 @@ type DOMPurifyConfig = Parameters<typeof DOMPurify.setConfig>[0];
 /**
  * Sanitize HTML content - removes all HTML tags and dangerous content
  * Suitable for plain text inputs
- * 
+ *
  * @param {string} input - The input string to sanitize
  * @returns {string} Sanitized string with all HTML removed
  */
@@ -35,7 +35,7 @@ export function sanitizeText(input: string): string {
 /**
  * Sanitize HTML content - allows safe HTML tags
  * Suitable for rich text inputs
- * 
+ *
  * @param {string} input - The HTML string to sanitize
  * @returns {string} Sanitized HTML string
  */
@@ -46,8 +46,25 @@ export function sanitizeHTML(input: string): string {
 
   return DOMPurify.sanitize(input, {
     ALLOWED_TAGS: [
-      'p', 'br', 'strong', 'em', 'u', 's', 'a', 'ul', 'ol', 'li',
-      'blockquote', 'code', 'pre', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'p',
+      'br',
+      'strong',
+      'em',
+      'u',
+      's',
+      'a',
+      'ul',
+      'ol',
+      'li',
+      'blockquote',
+      'code',
+      'pre',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
     ],
     ALLOWED_ATTR: ['href', 'title', 'target', 'rel'],
     ALLOW_DATA_ATTR: false,
@@ -57,7 +74,7 @@ export function sanitizeHTML(input: string): string {
 /**
  * Sanitize URL - ensures URL is safe
  * Removes javascript:, data:, and other dangerous protocols
- * 
+ *
  * @param {string} url - The URL to sanitize
  * @returns {string} Sanitized URL or empty string if invalid
  */
@@ -77,7 +94,7 @@ export function sanitizeURL(url: string): string {
 
   // Allow only http, https, mailto, tel
   const safeProtocols = /^(https?|mailto|tel):/i;
-  
+
   // If it has a protocol, ensure it's safe
   if (url.includes(':') && !safeProtocols.test(url)) {
     return '';
@@ -92,7 +109,7 @@ export function sanitizeURL(url: string): string {
 /**
  * Sanitize email address
  * Basic validation and sanitization
- * 
+ *
  * @param {string} email - The email to sanitize
  * @returns {string} Sanitized email or empty string if invalid
  */
@@ -118,7 +135,7 @@ export function sanitizeEmail(email: string): string {
 
 /**
  * Sanitize filename - removes path traversal attempts and dangerous characters
- * 
+ *
  * @param {string} filename - The filename to sanitize
  * @returns {string} Sanitized filename
  */
@@ -141,7 +158,7 @@ export function sanitizeFilename(filename: string): string {
 
 /**
  * Sanitize JSON string - validates and sanitizes JSON input
- * 
+ *
  * @param {string} jsonString - The JSON string to sanitize
  * @returns {string} Valid JSON string or '{}'
  */
@@ -153,7 +170,7 @@ export function sanitizeJSON(jsonString: string): string {
   try {
     // Parse to validate
     const parsed = JSON.parse(jsonString);
-    
+
     // Re-stringify to ensure clean JSON
     return JSON.stringify(parsed);
   } catch (error) {
@@ -165,7 +182,7 @@ export function sanitizeJSON(jsonString: string): string {
 /**
  * Sanitize SQL-like input - removes common SQL injection patterns
  * Note: Always use parameterized queries. This is a secondary defense layer.
- * 
+ *
  * @param {string} input - The input to sanitize
  * @returns {string} Sanitized input
  */
@@ -195,15 +212,12 @@ export function sanitizeSQLInput(input: string): string {
 
 /**
  * Sanitize object - recursively sanitize all string properties
- * 
+ *
  * @param {any} obj - The object to sanitize
  * @param {Function} sanitizer - The sanitization function to use (default: sanitizeText)
  * @returns {any} Sanitized object
  */
-export function sanitizeObject(
-  obj: any,
-  sanitizer: (input: string) => string = sanitizeText
-): any {
+export function sanitizeObject(obj: any, sanitizer: (input: string) => string = sanitizeText): any {
   if (obj === null || obj === undefined) {
     return obj;
   }
@@ -213,7 +227,7 @@ export function sanitizeObject(
   }
 
   if (Array.isArray(obj)) {
-    return obj.map(item => sanitizeObject(item, sanitizer));
+    return obj.map((item) => sanitizeObject(item, sanitizer));
   }
 
   if (typeof obj === 'object') {
@@ -231,7 +245,7 @@ export function sanitizeObject(
 
 /**
  * Configure DOMPurify with custom settings
- * 
+ *
  * @param {object} config - Custom DOMPurify configuration
  */
 export function configureDOMPurify(config: DOMPurifyConfig): void {
@@ -240,7 +254,7 @@ export function configureDOMPurify(config: DOMPurifyConfig): void {
 
 /**
  * Add custom hook to DOMPurify
- * 
+ *
  * @param {string} hookName - The hook name (e.g., 'afterSanitizeAttributes')
  * @param {Function} hookFunction - The hook function
  */
@@ -266,7 +280,7 @@ export const SanitizationProfiles = {
 
 /**
  * Batch sanitize multiple inputs
- * 
+ *
  * @param {object} inputs - Object with key-value pairs to sanitize
  * @param {string} profile - Sanitization profile to use (default: 'STRICT')
  * @returns {object} Object with sanitized values

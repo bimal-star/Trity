@@ -44,11 +44,12 @@ export function useCalendar(year: number, month?: number) {
         query = query.eq('month', month);
       }
 
-      const { data: calendarData, error: fetchError } = await query
-        .order('date', { ascending: true });
+      const { data: calendarData, error: fetchError } = await query.order('date', {
+        ascending: true,
+      });
 
       if (fetchError) throw fetchError;
-      
+
       setData((calendarData || []) as unknown as CalendarEntry[]);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch calendar'));
@@ -70,9 +71,7 @@ export function useCalendar(year: number, month?: number) {
       if (updateError) throw updateError;
 
       // Update local state
-      setData(prev =>
-        prev.map(entry => (entry.id === id ? { ...entry, ...updates } : entry))
-      );
+      setData((prev) => prev.map((entry) => (entry.id === id ? { ...entry, ...updates } : entry)));
 
       return { success: true };
     } catch (err) {

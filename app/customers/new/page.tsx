@@ -9,7 +9,7 @@ import { useCustomers } from '@/hooks/useCustomers';
 import type { CustomerFormData } from '@/types/customer';
 import { logCustomerCreated } from '@/lib/auditLog';
 import { useTenant } from '@/contexts/TenantContext';
-import { pillarAccent, premiumSurfaces, premiumTypography } from '@/lib/premiumUi';
+import { pillarAccent, premiumTypography } from '@/lib/premiumUi';
 import { Users } from 'lucide-react';
 
 const bc = pillarAccent('businessCore');
@@ -45,8 +45,6 @@ export default function NewCustomerPage() {
           subtitle="Add a customer record with contact, commercial terms, and metadata"
           subtitleClassName={`${premiumTypography.pageSubtitle} ${bc.subtitleTint}`}
         />
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
-
         {/* Same viewport band as /customers — form scrolls inside the card */}
         <div className="flex h-[calc(100vh-168px)] min-h-[min(560px,calc(100vh-168px))] w-full flex-col overflow-hidden">
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

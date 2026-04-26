@@ -1,7 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function isValidUuid(value: string | null | undefined): boolean {
   return typeof value === 'string' && UUID_RE.test(value.trim());
@@ -33,7 +32,10 @@ export async function getResolvedTemplateTenantId(
     .maybeSingle();
 
   if (error) {
-    console.error('[templateTenant] Failed to resolve template tenant (is_template query):', error.message);
+    console.error(
+      '[templateTenant] Failed to resolve template tenant (is_template query):',
+      error.message
+    );
     return { templateId: null, lookupError: error.message };
   }
 
@@ -66,7 +68,10 @@ export function formatProvisionResultMessage(payload: unknown): {
 } {
   const p = payload as Record<string, unknown> | null;
   if (!p || typeof p !== 'object') {
-    return { variant: 'warning', message: 'Provisioning finished with no result details from the server.' };
+    return {
+      variant: 'warning',
+      message: 'Provisioning finished with no result details from the server.',
+    };
   }
 
   if (p.skipped === true) {

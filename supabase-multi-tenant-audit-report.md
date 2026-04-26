@@ -11,12 +11,14 @@
 This audit identified **4 critical issues** and **4 recommended improvements** for the multi-tenant SaaS architecture. All issues have SQL fixes provided in separate files.
 
 ### Critical Issues Found:
+
 1. ❌ **Missing `tenants` table** - No referential integrity for tenant_id
 2. ❌ **`user_profiles` table may not exist** - Core table missing from CSV export
 3. ❌ **`calendar.tenant_id` is nullable** - Security vulnerability
 4. ❌ **Missing RLS policies for 16+ tables** - Incomplete tenant isolation
 
 ### Recommended Improvements:
+
 1. ⚠️ Missing trigger for auto-creating user profiles
 2. ⚠️ Missing foreign key from user_profiles to tenants
 3. ⚠️ Missing validation functions
@@ -32,6 +34,7 @@ This audit identified **4 critical issues** and **4 recommended improvements** f
 **Issue:** No `public.tenants` table exists in the database schema.
 
 **Impact:**
+
 - No referential integrity for tenant_id values
 - Cannot store tenant metadata (name, company_name, etc.)
 - Cannot enforce tenant existence at database level
@@ -39,10 +42,12 @@ This audit identified **4 critical issues** and **4 recommended improvements** f
 - No way to validate tenant_id values
 
 **Evidence:**
+
 - CSV search for "tenants" returned no matches
 - All `tenant_id` columns have `foreign_table=null` in CSV
 
 **SQL Fix:** `sql/create-tenants-table.sql`
+
 - Creates `public.tenants` table with: id, name, company_name, slug, is_active
 - Enables RLS with SELECT policy
 - Creates indexes for performance
@@ -56,6 +61,7 @@ This audit identified **4 critical issues** and **4 recommended improvements** f
 **Issue:** `public.user_profiles` table is defined in SQL files but NOT present in schema CSV export.
 
 **Impact:**
+
 - Table may not exist in actual database
 - Users cannot be linked to tenants
 - `get_user_tenant_id()` function will fail
@@ -63,11 +69,13 @@ This audit identified **4 critical issues** and **4 recommended improvements** f
 - Authentication flow will break
 
 **Evidence:**
+
 - SQL file `sql/multi-tenant-setup.sql` defines the table (lines 15-21)
 - CSV search for "user_profiles" returned no matches
 - Function `get_user_tenant_id()` queries this table
 
 **SQL Fix:** `sql/verify-user-profiles.sql`
+
 - Creates table if missing: id, user_id (UNIQUE), tenant_id (NOT NULL)
 - Adds foreign key to tenants table (if tenants exists)
 - Creates indexes
@@ -83,12 +91,14 @@ This audit identified **4 critical issues** and **4 recommended improvements** f
 **Location:** CSV line 74: `calendar,tenant_id,uuid,YES,null,NO,null,null,null`
 
 **Impact:**
+
 - Users could insert calendar entries without tenant_id
 - Breaks tenant isolation security
 - RLS policies may not work correctly
 - Data integrity issue
 
 **SQL Fix:** `sql/fix-calendar-tenant-id.sql`
+
 - Updates NULL values (requires manual intervention first)
 - Sets tenant_id to NOT NULL
 - Adds check constraint
@@ -103,6 +113,7 @@ This audit identified **4 critical issues** and **4 recommended improvements** f
 **Issue:** Only 7 tables have RLS policies, but 23+ tenant-scoped tables exist.
 
 **Tables with RLS policies (from SQL):**
+
 - products
 - categories
 - product_barcodes
@@ -112,6 +123,7 @@ This audit identified **4 critical issues** and **4 recommended improvements** f
 - navigation
 
 **Tables missing RLS policies:**
+
 - attribute_definitions
 - bom_headers
 - bom_lines
@@ -132,6 +144,7 @@ This audit identified **4 critical issues** and **4 recommended improvements** f
 - units
 
 **SQL Fix:** `sql/create-missing-rls-policies.sql`
+
 - Uses helper function to create SELECT, INSERT, UPDATE, DELETE policies
 - All policies enforce: `tenant_id = public.get_user_tenant_id()`
 - Creates policies for all 18 confirmed tables
@@ -146,12 +159,14 @@ This audit identified **4 critical issues** and **4 recommended improvements** f
 **Issue:** No automatic creation of `user_profiles` entry when user signs up.
 
 **Impact:**
+
 - Manual profile creation is error-prone
 - Users may be created without profiles
 - RLS policies will deny access if profile doesn't exist
 - Poor user experience
 
 **SQL Fix:** `sql/create-user-profile-trigger.sql`
+
 - Creates `handle_new_user()` function
 - Provides 4 implementation options:
   1. Database trigger (via Supabase Dashboard)
@@ -169,11 +184,13 @@ This audit identified **4 critical issues** and **4 recommended improvements** f
 **Issue:** No referential integrity between `user_profiles.tenant_id` and `tenants.id`.
 
 **Impact:**
+
 - Orphaned tenant_id values possible
 - No cascade delete behavior
 - Cannot validate tenant_id at database level
 
 **SQL Fix:** Already included in `sql/verify-user-profiles.sql`
+
 - Adds foreign key constraint with ON DELETE RESTRICT
 - Prevents deletion of tenants with active users
 
@@ -185,6 +202,7 @@ This audit identified **4 critical issues** and **4 recommended improvements** f
 **Issue:** No functions to validate tenant_id or get tenant information.
 
 **SQL Fix:** `sql/create-tenant-validation-functions.sql`
+
 - `validate_tenant_id(uuid)` - Checks if tenant exists and is active
 - `get_tenant_name(uuid)` - Returns tenant name for display
 - `get_tenant_company_name(uuid)` - Returns company name
@@ -198,6 +216,7 @@ This audit identified **4 critical issues** and **4 recommended improvements** f
 **Issue:** Need to verify all tenant_id columns have indexes for RLS performance.
 
 **SQL Fix:** `sql/verify-tenant-id-indexes.sql`
+
 - Creates indexes on all 23 tenant-scoped tables
 - Verifies indexes exist
 - Reports missing indexes
@@ -209,12 +228,15 @@ This audit identified **4 critical issues** and **4 recommended improvements** f
 ## C. OPTIONAL ENHANCEMENTS
 
 ### C1. Add Tenant Metadata Fields
+
 Enhance tenants table with: domain, logo_url, settings, subscription_tier, etc.
 
 ### C2. Add Audit Fields to user_profiles
+
 Add: created_by, updated_by, is_deleted, metadata
 
 ### C3. Create Tenant Management Functions
+
 Helper functions for tenant operations and lookups
 
 ---
@@ -252,25 +274,25 @@ Run these in Supabase SQL Editor to verify current state:
 ```sql
 -- 1. Check if tenants table exists
 SELECT EXISTS (
-  SELECT 1 FROM information_schema.tables 
+  SELECT 1 FROM information_schema.tables
   WHERE table_schema = 'public' AND table_name = 'tenants'
 ) AS tenants_table_exists;
 
 -- 2. Check if user_profiles table exists
 SELECT EXISTS (
-  SELECT 1 FROM information_schema.tables 
+  SELECT 1 FROM information_schema.tables
   WHERE table_schema = 'public' AND table_name = 'user_profiles'
 ) AS user_profiles_table_exists;
 
 -- 3. Check calendar.tenant_id nullability
-SELECT is_nullable 
-FROM information_schema.columns 
-WHERE table_schema = 'public' 
-  AND table_name = 'calendar' 
+SELECT is_nullable
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'calendar'
   AND column_name = 'tenant_id';
 
 -- 4. Count RLS policies per table
-SELECT 
+SELECT
   schemaname,
   tablename,
   COUNT(*) as policy_count
@@ -280,7 +302,7 @@ GROUP BY schemaname, tablename
 ORDER BY tablename;
 
 -- 5. List tables with RLS enabled but no policies
-SELECT 
+SELECT
   t.tablename,
   c.relrowsecurity as rls_enabled
 FROM pg_tables t
@@ -288,8 +310,8 @@ JOIN pg_class c ON c.relname = t.tablename
 WHERE t.schemaname = 'public'
   AND c.relrowsecurity = true
   AND NOT EXISTS (
-    SELECT 1 FROM pg_policies p 
-    WHERE p.schemaname = 'public' 
+    SELECT 1 FROM pg_policies p
+    WHERE p.schemaname = 'public'
       AND p.tablename = t.tablename
   )
 ORDER BY t.tablename;

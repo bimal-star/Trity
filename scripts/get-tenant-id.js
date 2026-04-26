@@ -3,7 +3,8 @@ const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
 const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
 if (!supabaseUrl || !supabaseKey) {
   console.error(
     'Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY).'
@@ -14,11 +15,7 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function getTenantId() {
-  const { data, error } = await supabase
-    .from('tenants')
-    .select('id, name')
-    .limit(1)
-    .single();
+  const { data, error } = await supabase.from('tenants').select('id, name').limit(1).single();
 
   if (error) {
     console.error('Error fetching tenant:', error);

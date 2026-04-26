@@ -40,10 +40,11 @@ export function parseAttributeDimensions(json: unknown): { key: string; values: 
   if (!json || typeof json !== 'object' || Array.isArray(json)) return [];
   const o = json as Record<string, unknown>;
   const order = Array.isArray(o.dimensions)
-    ? (o.dimensions as unknown[]).filter((x): x is string => typeof x === 'string' && x.trim() !== '')
+    ? (o.dimensions as unknown[]).filter(
+        (x): x is string => typeof x === 'string' && x.trim() !== ''
+      )
     : [];
-  const keys =
-    order.length > 0 ? order : Object.keys(o).filter((k) => k !== 'dimensions');
+  const keys = order.length > 0 ? order : Object.keys(o).filter((k) => k !== 'dimensions');
   const result: { key: string; values: string[] }[] = [];
   for (const k of keys) {
     const v = o[k];
@@ -84,7 +85,11 @@ function slugSegment(s: string): string {
 }
 
 /** Build SKU from user-provided prefix and variant attribute values (order = dimension order). */
-export function skuFromPrefix(prefix: string, attrs: Record<string, string>, dimensionOrder: string[]): string {
+export function skuFromPrefix(
+  prefix: string,
+  attrs: Record<string, string>,
+  dimensionOrder: string[]
+): string {
   const p = prefix.trim().replace(/\s+/g, '-');
   const segs: string[] = [];
   for (const key of dimensionOrder) {

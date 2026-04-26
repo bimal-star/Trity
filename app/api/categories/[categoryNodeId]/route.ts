@@ -68,12 +68,12 @@ export async function DELETE(request: Request, { params }: { params: { categoryN
 
     if (prodErr) return NextResponse.json({ error: prodErr.message }, { status: 500 });
 
-    // Count child nodes (only if parent_node_id column exists — ignore column errors)
+    // Count child nodes under parent_id
     let childCount = 0;
     const { count: cc, error: childErr } = await db
       .from('category_nodes')
       .select('*', { count: 'exact', head: true })
-      .eq('parent_node_id', categoryNodeId)
+      .eq('parent_id', categoryNodeId)
       .eq('tenant_id', node.tenant_id);
 
     if (!childErr) {

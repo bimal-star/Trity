@@ -9,15 +9,11 @@ function clampMin(value: number, min: number): number {
   return value < min ? min : value;
 }
 
-export function getPoLineDiscountPct(
-  line: Pick<PurchaseOrderLine, 'discount_pct'>
-): number {
+export function getPoLineDiscountPct(line: Pick<PurchaseOrderLine, 'discount_pct'>): number {
   return clampMin(toNum(line.discount_pct, 0), 0);
 }
 
-export function getPoLineDiscountAmount(
-  line: Pick<PurchaseOrderLine, 'discount_amount'>
-): number {
+export function getPoLineDiscountAmount(line: Pick<PurchaseOrderLine, 'discount_amount'>): number {
   return clampMin(toNum(line.discount_amount, 0), 0);
 }
 
@@ -60,7 +56,10 @@ export function poLineTaxAmount(
 }
 
 export function poLineNetUnitFromRow(
-  line: Pick<PurchaseOrderLine, 'quantity_ordered' | 'unit_price' | 'discount_pct' | 'discount_amount'>
+  line: Pick<
+    PurchaseOrderLine,
+    'quantity_ordered' | 'unit_price' | 'discount_pct' | 'discount_amount'
+  >
 ): number {
   return poLineNetUnitPrice(
     toNum(line.quantity_ordered, 0),

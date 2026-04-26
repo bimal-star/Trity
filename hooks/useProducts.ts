@@ -5,7 +5,7 @@
  * Provides CRUD operations, filtering, sorting, and category management
  */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import type { Database, Json } from '@/types/database';
 import { packingConfigurationInserts } from '@/lib/productPacking';
@@ -20,10 +20,19 @@ import { useTenant } from '@/contexts/TenantContext';
 
 type VwProductRow = Database['public']['Views']['vw_products_full']['Row'];
 
+/** Matches `ProductCategoryOption` in `ProductCreateForm` (kept here to avoid a hook → component import). */
+export type ProductCategoryOption = {
+  id: string;
+  name: string;
+  industry_type: string | null;
+};
+
 interface UseProductsReturn {
   products: Product[];
   isLoading: boolean;
   error: string | null;
+  availableCategories: ProductCategoryOption[];
+  refreshCategories: () => Promise<void>;
   createProduct: (
     data: ProductFormData
   ) => Promise<{ success: boolean; error?: string; data?: Product }>;
@@ -108,7 +117,9 @@ function messageForProductCreateError(err: unknown): string {
 export function buildProductInsertPayload(
   data: ProductFormData,
   tenantId: string,
-  userId: string
+  userId: string,
+  /** When bulk-creating from a product group, set the group's primary category on the row. */
+  categoryId?: string | null
 ): Database['public']['Tables']['products']['Insert'] {
   return {
     tenant_id: tenantId,
@@ -117,7 +128,7 @@ export function buildProductInsertPayload(
     industry_type: data.industry_type,
     product_type: data.product_type ?? 'finished_good',
     status: data.status ?? 'active',
-    category_id: null,
+    category_id: categoryId ?? null,
     description: data.description ?? null,
     short_description: data.short_description ?? null,
     cost_price: data.cost_price ?? null,
@@ -166,6 +177,32 @@ export function useProducts(
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [availableCategories, setAvailableCategories] = useState<ProductCategoryOption[]>([]);
+
+  const refreshCategories = useCallback(async () => {
+    if (!tenant_id) {
+      setAvailableCategories([]);
+      return;
+    }
+    const { data, error: catErr } = await supabase
+      .from('categories')
+      .select('id,name,industry_type')
+      .eq('tenant_id', tenant_id)
+      .eq('is_deleted', false)
+      .order('name', { ascending: true });
+    if (catErr) {
+      console.error('Error loading categories:', catErr);
+      setAvailableCategories([]);
+      return;
+    }
+    setAvailableCategories(
+      (data ?? []).map((row) => ({
+        id: row.id,
+        name: row.name,
+        industry_type: row.industry_type != null ? String(row.industry_type) : null,
+      }))
+    );
+  }, [tenant_id]);
 
   const fetchProducts = async (): Promise<Product[]> => {
     if (!tenant_id) {
@@ -206,7 +243,7 @@ export function useProducts(
           if (tierMatchedProductIds === null) {
             tierMatchedProductIds = Array.from(idsForTier);
           } else {
-            const currentSet = new Set(tierMatchedProductIds);
+            const currentSet: Set<string> = new Set(tierMatchedProductIds);
             tierMatchedProductIds = Array.from(idsForTier).filter((id) => currentSet.has(id));
           }
         }
@@ -311,6 +348,18 @@ export function useProducts(
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, sortField, sortDirection, tenant_id, loadProducts]);
+
+  useEffect(() => {
+    if (!tenant_id) {
+      setAvailableCategories([]);
+      return;
+    }
+    if (!loadProducts) {
+      void refreshCategories();
+    } else {
+      setAvailableCategories([]);
+    }
+  }, [tenant_id, loadProducts, refreshCategories]);
 
   const createProduct = async (
     data: ProductFormData
@@ -526,6 +575,8 @@ export function useProducts(
     products,
     isLoading,
     error,
+    availableCategories,
+    refreshCategories,
     createProduct,
     updateProduct,
     deleteProduct,

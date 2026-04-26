@@ -18,7 +18,7 @@ interface UseProfileReturn {
 
 /**
  * Hook to access and update the current user's profile.
- * 
+ *
  * Uses cached profile from TenantContext (loaded once on app mount).
  * Only fetches from database when explicitly refreshing or updating.
  * This ensures instant access without blocking navigation.
@@ -26,7 +26,7 @@ interface UseProfileReturn {
 export function useProfile(userId?: string): UseProfileReturn {
   const { profile: cachedProfile, user } = useTenant();
   const [error, setError] = useState<string | null>(null);
-  
+
   // Use cached profile from TenantContext - no loading state needed as it's already loaded
   const profile = cachedProfile;
   const isLoading = false; // Profile is already loaded in TenantContext
@@ -38,7 +38,7 @@ export function useProfile(userId?: string): UseProfileReturn {
     async (updates: UserProfileUpdate): Promise<{ success: boolean; error?: string }> => {
       const currentUserId = userId || user?.id;
       if (!currentUserId) return { success: false, error: 'Not authenticated' };
-      
+
       try {
         setError(null);
         const { error: err } = await supabase
@@ -51,7 +51,7 @@ export function useProfile(userId?: string): UseProfileReturn {
           setError(errorMsg);
           return { success: false, error: errorMsg };
         }
-        
+
         // Profile updated successfully - the cached profile in TenantContext will be
         // refreshed on next session change. For immediate updates, we could call
         // refreshTenant() here, but that would cause a full revalidation which is

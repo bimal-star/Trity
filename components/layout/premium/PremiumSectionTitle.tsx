@@ -9,7 +9,5 @@ export default function PremiumSectionTitle({
   className?: string;
   as?: 'h2' | 'h3';
 }) {
-  return (
-    <Tag className={`${premiumTypography.sectionTitle} ${className}`.trim()}>{children}</Tag>
-  );
+  return <Tag className={`${premiumTypography.sectionTitle} ${className}`.trim()}>{children}</Tag>;
 }

@@ -6,7 +6,7 @@ One **template (developer) tenant** holds the canonical **navigation** and **per
 
 ## Configuration
 
-1. **Mark a tenant** as template: Admin → Tenants → Edit → check **Template (developer workspace)**, or  
+1. **Mark a tenant** as template: Admin → Tenants → Edit → check **Template (developer workspace)**, or
 2. Set **`NEXT_PUBLIC_TEMPLATE_TENANT_ID`** to that tenant’s UUID (takes precedence over the flag).
 
 ## Allowlist (copied by `provision_tenant_from_template`)

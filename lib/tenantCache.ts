@@ -7,10 +7,7 @@ export function getTenantCache(): { userId: string; tenant_id: string } | null {
     const raw = localStorage.getItem(TENANT_CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as { userId?: string; tenant_id?: string };
-    if (
-      typeof parsed?.userId === 'string' &&
-      typeof parsed?.tenant_id === 'string'
-    )
+    if (typeof parsed?.userId === 'string' && typeof parsed?.tenant_id === 'string')
       return parsed as { userId: string; tenant_id: string };
     return null;
   } catch {
@@ -36,8 +33,7 @@ export function clearTenantCache(): void {
   }
 }
 
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function isValidTenantId(value: unknown): value is string {
   return typeof value === 'string' && UUID_REGEX.test(value);

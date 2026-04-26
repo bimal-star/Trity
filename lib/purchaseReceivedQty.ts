@@ -26,7 +26,9 @@ export async function fetchQtyReceivedByPoLineIds(
     .eq('tenant_id', tenantId);
 
   const posted = new Set(
-    (grs || []).filter((g: { status: string }) => g.status === 'posted').map((g: { id: string }) => g.id)
+    (grs || [])
+      .filter((g: { status: string }) => g.status === 'posted')
+      .map((g: { id: string }) => g.id)
   );
 
   for (const row of data as {

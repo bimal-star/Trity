@@ -1,7 +1,4 @@
-import {
-  normalizeSubscriptionTier,
-  type SubscriptionTier,
-} from '@/lib/featureFlags';
+import { normalizeSubscriptionTier, type SubscriptionTier } from '@/lib/featureFlags';
 import {
   allIdsInSubtreeByLabel,
   PILLAR_ROOT_LABEL_ORDER,

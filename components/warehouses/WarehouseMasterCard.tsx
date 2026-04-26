@@ -19,7 +19,11 @@ const WAREHOUSE_STATUS_MAP: Record<string, string> = {
   closed: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
 };
 
-export default function WarehouseMasterCard({ warehouse, onArchive, onRestore }: WarehouseMasterCardProps) {
+export default function WarehouseMasterCard({
+  warehouse,
+  onArchive,
+  onRestore,
+}: WarehouseMasterCardProps) {
   if (!warehouse) {
     return (
       <MasterCardEmptyState
@@ -52,7 +56,7 @@ export default function WarehouseMasterCard({ warehouse, onArchive, onRestore }:
         <p className={`truncate ${premiumTypography.helper}`}>
           {formatWarehouseCode(warehouse.warehouse_code)}
         </p>
-        <h2 className="truncate text-base font-semibold tracking-tight text-gray-900 dark:text-white">
+        <h2 className="truncate text-base font-semibold text-gray-900 dark:text-white">
           {warehouse.name}
         </h2>
         {warehouse.city && (

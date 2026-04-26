@@ -12,7 +12,9 @@ export interface UseGoodsReceiptsReturn {
   isLoading: boolean;
   error: string | null;
   refreshGoodsReceipts: () => Promise<void>;
-  createDraftForPo: (purchaseOrderId: string) => Promise<{ success: boolean; id?: string; error?: string }>;
+  createDraftForPo: (
+    purchaseOrderId: string
+  ) => Promise<{ success: boolean; id?: string; error?: string }>;
   fetchLines: (goodsReceiptId: string) => Promise<GoodsReceiptLine[]>;
   upsertLines: (
     goodsReceiptId: string,
@@ -159,7 +161,9 @@ export function useGoodsReceipts(purchaseOrderId?: string | null): UseGoodsRecei
     }
   };
 
-  const postReceipt = async (goodsReceiptId: string): Promise<{ success: boolean; error?: string }> => {
+  const postReceipt = async (
+    goodsReceiptId: string
+  ): Promise<{ success: boolean; error?: string }> => {
     if (!tenant_id) return { success: false, error: 'No tenant' };
     try {
       const { error: err } = await db
@@ -176,7 +180,9 @@ export function useGoodsReceipts(purchaseOrderId?: string | null): UseGoodsRecei
     }
   };
 
-  const deleteDraft = async (goodsReceiptId: string): Promise<{ success: boolean; error?: string }> => {
+  const deleteDraft = async (
+    goodsReceiptId: string
+  ): Promise<{ success: boolean; error?: string }> => {
     if (!tenant_id) return { success: false, error: 'No tenant' };
     try {
       const { error: err } = await db

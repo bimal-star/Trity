@@ -49,7 +49,12 @@ export default function SubscriptionPackagesPage() {
   }, [isSuperAdmin]);
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this package? Tenants using it will have subscription_package_id cleared.')) return;
+    if (
+      !window.confirm(
+        'Delete this package? Tenants using it will have subscription_package_id cleared.'
+      )
+    )
+      return;
     setDeletingId(id);
     const { success } = await removePackage(id);
     setDeletingId(null);
@@ -89,17 +94,20 @@ export default function SubscriptionPackagesPage() {
           backHref="/admin/tenants"
           backLabel="Back to tenants"
         />
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
-
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <Link href="/admin/subscription-packages/new" className={premiumPrimaryButton('platform', 'md', 'wide')}>
+          <Link
+            href="/admin/subscription-packages/new"
+            className={premiumPrimaryButton('platform', 'md', 'wide')}
+          >
             <Plus className="h-4 w-4" aria-hidden />
             New package
           </Link>
         </div>
 
         {error && (
-          <div className={`mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300`}>
+          <div
+            className={`mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300`}
+          >
             {error}
           </div>
         )}
@@ -110,17 +118,23 @@ export default function SubscriptionPackagesPage() {
               <Loader2 className={`h-8 w-8 animate-spin ${pa.iconColor}`} />
             </div>
           ) : rows.length === 0 ? (
-            <p className={`p-6 ${premiumTypography.helper}`}>No packages yet. Create one or run DB migrations to seed defaults.</p>
+            <p className={`p-6 ${premiumTypography.helper}`}>
+              No packages yet. Create one or run DB migrations to seed defaults.
+            </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className={`border-b border-gray-200 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-900/40`}>
+                <thead
+                  className={`border-b border-gray-200 bg-gray-50/80 dark:border-gray-700 dark:bg-gray-900/40`}
+                >
                   <tr>
                     <th className={`px-4 py-3 ${premiumTypography.tableHeader}`}>Name</th>
                     <th className={`px-4 py-3 ${premiumTypography.tableHeader}`}>Mapped tier</th>
                     <th className={`px-4 py-3 ${premiumTypography.tableHeader}`}>Active</th>
                     <th className={`px-4 py-3 ${premiumTypography.tableHeader}`}>Sort</th>
-                    <th className={`px-4 py-3 text-right ${premiumTypography.tableHeader}`}>Actions</th>
+                    <th className={`px-4 py-3 text-right ${premiumTypography.tableHeader}`}>
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -129,11 +143,17 @@ export default function SubscriptionPackagesPage() {
                       <td className={`px-4 py-3 ${premiumTypography.tableCell}`}>
                         <div className="font-medium text-gray-900 dark:text-white">{r.name}</div>
                         {r.description ? (
-                          <div className={`mt-0.5 max-w-md truncate ${premiumTypography.helper}`}>{r.description}</div>
+                          <div className={`mt-0.5 max-w-md truncate ${premiumTypography.helper}`}>
+                            {r.description}
+                          </div>
                         ) : null}
                       </td>
-                      <td className={`px-4 py-3 capitalize ${premiumTypography.tableCell}`}>{r.mapped_tier}</td>
-                      <td className={`px-4 py-3 ${premiumTypography.tableCell}`}>{r.is_active ? 'Yes' : 'No'}</td>
+                      <td className={`px-4 py-3 capitalize ${premiumTypography.tableCell}`}>
+                        {r.mapped_tier}
+                      </td>
+                      <td className={`px-4 py-3 ${premiumTypography.tableCell}`}>
+                        {r.is_active ? 'Yes' : 'No'}
+                      </td>
                       <td className={`px-4 py-3 ${premiumTypography.tableCell}`}>{r.sort_order}</td>
                       <td className="px-4 py-3 text-right">
                         <div className="inline-flex flex-wrap justify-end gap-1">

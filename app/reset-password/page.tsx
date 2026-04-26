@@ -33,14 +33,12 @@ export default function ResetPasswordPage() {
 
     checkSession();
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'PASSWORD_RECOVERY' && session) {
-          setIsReady(true);
-          setIsChecking(false);
-        }
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' && session) {
+        setIsReady(true);
+        setIsChecking(false);
       }
-    );
+    });
 
     return () => {
       mounted = false;
@@ -97,12 +95,8 @@ export default function ResetPasswordPage() {
   if (!isReady) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-        <div
-          className={`w-full max-w-md ${premiumSurfaces.cardElevated} !p-8 dark:!bg-gray-800`}
-        >
-          <h1
-            className={`${premiumTypography.pageTitle} mb-2 text-gray-900 dark:text-white`}
-          >
+        <div className={`w-full max-w-md ${premiumSurfaces.cardElevated} !p-8 dark:!bg-gray-800`}>
+          <h1 className={`${premiumTypography.pageTitle} mb-2 text-gray-900 dark:text-white`}>
             Invalid or expired link
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
@@ -121,12 +115,8 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-      <div
-        className={`w-full max-w-md ${premiumSurfaces.cardElevated} !p-8 dark:!bg-gray-800`}
-      >
-        <h1
-          className={`${premiumTypography.pageTitle} mb-2 text-gray-900 dark:text-white`}
-        >
+      <div className={`w-full max-w-md ${premiumSurfaces.cardElevated} !p-8 dark:!bg-gray-800`}>
+        <h1 className={`${premiumTypography.pageTitle} mb-2 text-gray-900 dark:text-white`}>
           Reset your password
         </h1>
         <p className={`${premiumTypography.body} mb-6 text-gray-600 dark:text-gray-400`}>

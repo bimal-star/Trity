@@ -19,7 +19,11 @@ const SUPPLIER_STATUS_MAP: Record<string, string> = {
   on_hold: 'bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200',
 };
 
-export default function SupplierMasterCard({ supplier, onArchive, onRestore }: SupplierMasterCardProps) {
+export default function SupplierMasterCard({
+  supplier,
+  onArchive,
+  onRestore,
+}: SupplierMasterCardProps) {
   if (!supplier) {
     return (
       <MasterCardEmptyState
@@ -52,11 +56,13 @@ export default function SupplierMasterCard({ supplier, onArchive, onRestore }: S
         <p className={`truncate ${premiumTypography.helper}`}>
           {formatSupplierCode(supplier.supplier_code)}
         </p>
-        <h2 className="truncate text-base font-semibold tracking-tight text-gray-900 dark:text-white">
+        <h2 className="truncate text-base font-semibold text-gray-900 dark:text-white">
           {supplier.legal_name}
         </h2>
         {supplier.trading_name && (
-          <p className="truncate text-xs text-gray-600 dark:text-gray-400">{supplier.trading_name}</p>
+          <p className="truncate text-xs text-gray-600 dark:text-gray-400">
+            {supplier.trading_name}
+          </p>
         )}
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-2">

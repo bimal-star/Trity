@@ -1,6 +1,6 @@
 /**
  * Audit logging utilities for tracking tenant and user changes
- * 
+ *
  * Logs all significant actions (user creation, role changes, tenant updates)
  * for compliance and security audit trails
  */
@@ -25,7 +25,9 @@ export interface AuditLogEntry {
  * @param entry - Audit log entry to save
  * @returns Promise with result or error
  */
-export async function logAuditAction(entry: AuditLogEntry): Promise<{ success: boolean; error?: string }> {
+export async function logAuditAction(
+  entry: AuditLogEntry
+): Promise<{ success: boolean; error?: string }> {
   try {
     // Capture additional metadata
     const metadata = {
@@ -47,10 +49,7 @@ export async function logAuditAction(entry: AuditLogEntry): Promise<{ success: b
     };
 
     // Try to insert into audit_logs table
-    const { error, data } = await supabase
-      .from('audit_logs')
-      .insert([metadata])
-      .select();
+    const { error, data } = await supabase.from('audit_logs').insert([metadata]).select();
 
     if (error) {
       // Table might not exist yet or RLS policy issue - log to console
@@ -610,7 +609,7 @@ export async function logCustomerUpdated(
   updatedByUserId: string | null
 ): Promise<void> {
   const delta: Record<string, any> = {};
-  
+
   Object.keys(newData).forEach((key) => {
     if (previousData[key] !== newData[key]) {
       delta[key] = {

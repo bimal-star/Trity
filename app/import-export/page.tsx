@@ -17,7 +17,7 @@ import {
   type ImportRow,
 } from '@/lib/importExportUtils';
 import { supabase } from '@/lib/supabaseClient';
-import { premiumPrimaryButton, premiumTertiaryButton, premiumSurfaces } from '@/lib/premiumUi';
+import { premiumPrimaryButton, premiumTertiaryButton } from '@/lib/premiumUi';
 import { useToast } from '@/lib/toast';
 import {
   Loader2,
@@ -214,8 +214,6 @@ export default function ImportExportPage() {
           title="Import/Export"
           subtitle="Manage data ingestion and export with validation and classification"
         />
-
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
 
         <div className="space-y-4">
           {/* Hero Matrix */}

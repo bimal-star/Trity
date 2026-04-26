@@ -40,7 +40,6 @@ export default function AiLabPage() {
           title="AI lab"
           subtitle="Path A: chat + system prompt · Path B: OpenAI Assistant + thread"
         />
-        <div className={`mb-6 ${premiumSurfaces.divider}`} />
         <div className="mx-auto flex max-w-3xl flex-col gap-10 pb-8">
           <PathAChatSection />
           <PathBAssistantSection />

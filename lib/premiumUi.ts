@@ -7,18 +7,19 @@
 export type PremiumModule = 'businessCore' | 'analytics' | 'execution' | 'platform';
 
 export const premiumTypography = {
-  pageTitle: 'text-2xl font-semibold tracking-tight',
+  pageTitle: 'text-2xl font-semibold',
   pageSubtitle: 'text-xs text-gray-500 dark:text-gray-400',
-  sectionTitle: 'text-xs font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400',
+  sectionTitle:
+    'text-xs font-semibold uppercase tracking-[0.12em] text-gray-500 dark:text-gray-400',
   label: 'text-sm font-medium text-gray-700 dark:text-gray-300',
   body: 'text-sm',
   tableCell: 'text-xs',
   tableHeader: 'text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400',
-  tableHeaderDense: 'text-[9px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400',
+  tableHeaderDense:
+    'text-[9px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400',
   helper: 'text-xs text-gray-500 dark:text-gray-400',
   button: 'text-sm font-medium',
-  backLink:
-    'text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white',
+  backLink: 'text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white',
 } as const;
 
 /** Compact control chrome (PO line-item inputs). */
@@ -30,22 +31,21 @@ export const premiumInputComfortableBase =
   'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-all dark:border-gray-600 dark:bg-gray-900 text-gray-900 dark:text-white';
 
 export const premiumSurfaces = {
-  pageRoot: 'min-h-screen bg-gray-50 px-4 pb-4 pt-4 dark:bg-gray-900 sm:px-5',
-  pageInnerWide: 'mx-auto w-full max-w-none',
-  pageRootDefault: 'min-h-screen bg-gray-50 dark:bg-gray-900 pt-4 pb-2 px-6',
-  pageInnerDefault: 'mx-auto w-full max-w-[1600px]',
+  pageRoot: 'flex min-h-0 flex-1 flex-col bg-gray-50 px-4 pb-4 pt-4 dark:bg-gray-900 sm:px-5',
+  pageInnerWide: 'mx-auto flex min-h-0 w-full max-w-none flex-1 flex-col',
+  pageRootDefault: 'flex min-h-0 flex-1 flex-col bg-gray-50 dark:bg-gray-900 pt-4 pb-2 px-6',
+  pageInnerDefault: 'mx-auto flex min-h-0 w-full max-w-none flex-1 flex-col',
   /** Super-admin tenant routes: subtle amber wash over default gray page root. No top padding — put it on `PremiumStickyHeader` via `platformStickyHeaderOffset` so sticky chrome does not jump when it pins. */
   platformPageRoot:
-    'min-h-screen bg-gradient-to-b from-amber-50/80 via-gray-50 to-gray-50 pb-2 px-6 dark:from-amber-950/25 dark:via-gray-900 dark:to-gray-900',
-  platformPageInner: 'mx-auto w-full max-w-[1600px]',
+    'flex min-h-0 flex-1 flex-col bg-gradient-to-b from-amber-50/80 via-gray-50 to-gray-50 pb-2 px-6 dark:from-amber-950/25 dark:via-gray-900 dark:to-gray-900',
+  platformPageInner: 'mx-auto flex min-h-0 w-full max-w-none flex-1 flex-col',
   /** Use on `PremiumStickyHeader` `className` with `platformPageRoot` (replaces top half of `py-2` with former outer pt-4 + header top padding). */
   platformStickyHeaderOffset: '!pt-6',
   stickyHeaderShell:
-    'sm:sticky sm:top-0 z-30 mb-3 border-b border-gray-200/70 bg-gray-50 py-2 dark:border-gray-700 dark:bg-gray-900',
+    'sticky shrink-0 top-16 z-30 mb-3 border-b border-gray-200/70 bg-gray-50 py-2 dark:border-gray-700 dark:bg-gray-900 sm:top-[7rem]',
   /** Same separation as sticky header without fixed positioning (long admin forms). */
   staticHeaderShell:
-    'relative z-auto mb-3 border-b border-gray-200/70 py-2 dark:border-gray-700',
-  divider: 'h-px bg-gradient-to-r from-gray-200 to-transparent dark:from-gray-700',
+    'relative z-auto mb-3 shrink-0 border-b border-gray-200/70 py-2 dark:border-gray-700',
   card: 'rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-5',
   cardElevated:
     'rounded-2xl border border-gray-200 bg-white p-4 shadow-lg ring-1 ring-black/[0.03] dark:border-gray-700 dark:bg-gray-800 dark:ring-white/[0.04] sm:p-5',
@@ -133,7 +133,7 @@ const analytics: PillarAccent = {
   outlineAccent:
     'border-blue-200 text-blue-700 hover:bg-blue-50 dark:border-blue-900/40 dark:text-blue-400 dark:hover:bg-blue-900/20',
   outlineAccentHover: '',
-  pillSelected: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+  pillSelected: 'bg-blue-200 text-blue-950 dark:bg-blue-900/40 dark:text-blue-100',
   pillIdle:
     'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700',
   focusRing: 'focus:outline-none focus:ring-2 focus:ring-blue-500',

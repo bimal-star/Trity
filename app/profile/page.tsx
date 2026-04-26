@@ -7,7 +7,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useTenant } from '@/contexts/TenantContext';
 import { useProfile } from '@/hooks/useProfile';
 import type { UserProfileUpdate } from '@/types/profile';
-import { premiumPrimaryButton, premiumSurfaces } from '@/lib/premiumUi';
+import { premiumPrimaryButton } from '@/lib/premiumUi';
 import { useToast } from '@/lib/toast';
 import { RoleBadge } from '@/components/access/RoleBadge';
 import { User, Loader2, AlertCircle, Save } from 'lucide-react';
@@ -51,8 +51,6 @@ export default function ProfilePage() {
           subtitle="Manage your account information and preferences"
         />
 
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
-
         <div className="max-w-2xl">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
@@ -86,7 +84,9 @@ export default function ProfilePage() {
                       Your profile
                     </h2>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {tenant_id ? 'Tenant-scoped • Updates save to public.user_profiles' : 'Complete your profile'}
+                      {tenant_id
+                        ? 'Tenant-scoped • Updates save to public.user_profiles'
+                        : 'Complete your profile'}
                     </p>
                   </div>
                 </div>
@@ -128,7 +128,9 @@ export default function ProfilePage() {
                 </div>
 
                 <div>
-                  <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Role</p>
+                  <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Role
+                  </p>
                   <div className="flex flex-wrap items-center gap-2">
                     <RoleBadge role={roleValue} size="md" />
                   </div>

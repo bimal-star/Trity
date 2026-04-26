@@ -82,10 +82,13 @@ export default function SupplierDetailsTabs({
             <PremiumCard className={premiumSurfaces.card}>
               <div className="mb-2 flex items-center gap-2">
                 <Tags className="h-4 w-4 text-green-600 dark:text-green-400" aria-hidden />
-                <h3 className={`${premiumTypography.sectionTitle} !normal-case`}>Supplier pricing</h3>
+                <h3 className={`${premiumTypography.sectionTitle} !normal-case`}>
+                  Supplier pricing
+                </h3>
               </div>
               <p className={`mb-3 ${premiumTypography.helper}`}>
-                Manage negotiated unit prices and MOQs per product for this supplier (defaults PO lines).
+                Manage negotiated unit prices and MOQs per product for this supplier (defaults PO
+                lines).
               </p>
               <Link
                 href="/suppliers/pricing"
@@ -98,7 +101,9 @@ export default function SupplierDetailsTabs({
             <PremiumCard className={premiumSurfaces.card}>
               <div className="mb-2 flex items-center gap-2">
                 <ShoppingCart className="h-4 w-4 text-green-600 dark:text-green-400" aria-hidden />
-                <h3 className={`${premiumTypography.sectionTitle} !normal-case`}>Purchase orders</h3>
+                <h3 className={`${premiumTypography.sectionTitle} !normal-case`}>
+                  Purchase orders
+                </h3>
               </div>
               <p className={`mb-3 ${premiumTypography.helper}`}>
                 Create or review purchase orders; select this supplier on the new PO form.

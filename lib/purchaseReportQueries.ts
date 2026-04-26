@@ -54,8 +54,7 @@ export async function runPurchaseReport(
   }
 
   if (preset === 'invoice_price_exceptions' || preset === 'invoice_qty_exceptions') {
-    const match =
-      preset === 'invoice_price_exceptions' ? 'price_variance' : 'qty_variance';
+    const match = preset === 'invoice_price_exceptions' ? 'price_variance' : 'qty_variance';
     let q = db
       .from('supplier_invoice_lines')
       .select(
@@ -65,8 +64,13 @@ export async function runPurchaseReport(
       .eq('match_status', match);
     const { data: lines, error: lErr } = await q;
     if (lErr) throw lErr;
-    const invIds = [...new Set((lines || []).map((l: { supplier_invoice_id: string }) => l.supplier_invoice_id))];
-    let invMap = new Map<string, { invoice_number: string; invoice_date: string; supplier_id: string }>();
+    const invIds = [
+      ...new Set((lines || []).map((l: { supplier_invoice_id: string }) => l.supplier_invoice_id)),
+    ];
+    let invMap = new Map<
+      string,
+      { invoice_number: string; invoice_date: string; supplier_id: string }
+    >();
     if (invIds.length) {
       const { data: invs, error: iErr } = await db
         .from('supplier_invoices')

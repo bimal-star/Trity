@@ -24,10 +24,8 @@ import {
   clearTenantCache,
   isValidTenantId,
 } from '@/lib/tenantCache';
-import {
-  type CatalogueMode,
-  normalizeCatalogueMode,
-} from '@/lib/productCatalogue';
+import { type CatalogueMode, normalizeCatalogueMode } from '@/lib/productCatalogue';
+import { getImpersonationFromSession, endTenantImpersonation } from '@/lib/impersonation';
 
 /**
  * TenantContext - Global Authentication & Tenant State Provider
@@ -64,7 +62,7 @@ import {
  *    - Cached in memory (React state)
  *    - Never re-fetched unless session changes (user signs out/in)
  *    - Updates only when explicitly refreshed via refreshTenant() or refreshCatalogueMode()
- * 
+ *
  * 3. Tenant ID:
  *    - Cached in localStorage (userId + tenant_id) for fast rehydration
  *    - Fetched ONCE on initial load
@@ -180,7 +178,8 @@ function tenantRowToSurface(data: Record<string, unknown> | null): EffectiveTena
       ? data.company_name.trim()
       : null;
   const name = typeof data?.name === 'string' && data.name.trim() ? data.name.trim() : null;
-  const logoRaw = typeof data?.logo_url === 'string' && data.logo_url.trim() ? data.logo_url.trim() : null;
+  const logoRaw =
+    typeof data?.logo_url === 'string' && data.logo_url.trim() ? data.logo_url.trim() : null;
   return {
     mode: normalizeCatalogueMode(
       typeof data?.catalogue_mode === 'string' ? data.catalogue_mode : undefined
@@ -235,11 +234,6 @@ function tenantIdFromUserAndProfile(u: User, profile: UserProfile | null): strin
   return null;
 }
 
-export interface TenantImpersonationState {
-  targetTenantId: string;
-  readOnly: boolean;
-}
-
 export interface TenantContextType {
   /** Home tenant from profile / JWT (unchanged by workspace mode). */
   tenant_id: string | null;
@@ -270,7 +264,8 @@ export interface TenantContextType {
   /** Re-fetch catalogue mode and workspace branding for the current effective tenant. Use after admin or settings update the tenant row. */
   refreshCatalogueMode: () => Promise<void>;
   signOut: () => Promise<void>;
-  startTenantImpersonation: (tenantId: string, options?: { readOnly?: boolean }) => Promise<void>;
+  /** Super-admin JWT impersonation (see `lib/impersonation.ts`). */
+  impersonation: { targetTenantId: string; readOnly: boolean } | null;
   endTenantImpersonation: () => Promise<void>;
 }
 
@@ -294,19 +289,22 @@ const TenantContext = createContext<TenantContextType>({
   refreshTenant: async () => {},
   refreshCatalogueMode: async () => {},
   signOut: async () => {},
-  startTenantImpersonation: async () => {},
+  impersonation: null,
   endTenantImpersonation: async () => {},
 });
 
-async function fetchNavigation(tenantId?: string | null): Promise<{
+async function fetchNavigation(
+  tenantId?: string | null,
+  skipEnabledFilter = false
+): Promise<{
   data: NavigationItem[] | null;
   error: Error | null;
 }> {
-  let query = supabase
-    .from('navigation')
-    .select('*')
-    .eq('is_enabled', true)
-    .order('position', { ascending: true });
+  let query = supabase.from('navigation').select('*').order('position', { ascending: true });
+
+  if (!skipEnabledFilter) {
+    query = query.eq('is_enabled', true);
+  }
 
   if (tenantId) {
     query = query.eq('tenant_id', tenantId);
@@ -315,7 +313,10 @@ async function fetchNavigation(tenantId?: string | null): Promise<{
   try {
     type NavRow = Record<string, unknown>;
     const navPromise = Promise.resolve(
-      query as unknown as Promise<{ data: NavRow[] | null; error: { message: string; code?: string } | null }>
+      query as unknown as Promise<{
+        data: NavRow[] | null;
+        error: { message: string; code?: string } | null;
+      }>
     );
     const { data, error: fetchError } = await withTimeout(
       navPromise,
@@ -335,17 +336,13 @@ async function fetchNavigation(tenantId?: string | null): Promise<{
 
       return {
         data: null,
-        error: new Error(
-          `Supabase error: ${fetchError.message} (${fetchError.code || 'no code'})`
-        ),
+        error: new Error(`Supabase error: ${fetchError.message} (${fetchError.code || 'no code'})`),
       };
     }
     const raw = (data || []) as NavigationItem[];
     let organized = organizeHierarchy(raw);
     if (organized.length === 0 && raw.length === 0) {
-      console.warn(
-        '[navigation] public.navigation returned no rows; using built-in default menu.'
-      );
+      console.warn('[navigation] public.navigation returned no rows; using built-in default menu.');
       organized = organizeHierarchy(defaultNavigationItems) as NavigationItem[];
     }
     return { data: organized as NavigationItem[], error: null };
@@ -359,10 +356,8 @@ async function fetchNavigation(tenantId?: string | null): Promise<{
 
 export function TenantProvider({ children }: { children: ReactNode }) {
   const [tenant_id, setTenantId] = useState<string | null>(null);
-  const [homeTenantId, setHomeTenantId] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [impersonation, setImpersonation] = useState<TenantImpersonationState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [navigationItems, setNavigationItems] = useState<NavigationItem[] | null>(null);
@@ -379,8 +374,6 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   /** In-memory cache: we only re-fetch tenant/profile/features when session or tenant_id changes. */
   const lastUserIdRef = useRef<string | null>(null);
   const lastTenantIdRef = useRef<string | null>(null);
-  /** Effective tenant (includes impersonation); used to detect JWT tenant switches without user change. */
-  const lastEffectiveTenantRef = useRef<string | null>(null);
   /** Track if we've already loaded profile to prevent re-fetching on navigation */
   const profileLoadedRef = useRef(false);
   /** Same-user session resolved as super_admin with no tenant_id (platform shell). */
@@ -388,6 +381,9 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   /** Latest profile for callbacks (revalidate) without adding profile to useCallback deps. */
   const profileRef = useRef<UserProfile | null>(null);
   profileRef.current = profile;
+  /** Whether the current session is a super-admin — updated each render so stable callbacks can read it. */
+  const isSuperAdminRef = useRef(false);
+  isSuperAdminRef.current = user ? isSuperAdminSession(user, profile) : false;
   /** True after navigation fetch completed at least once for this session (or boot cache applied it). */
   const navigationHydratedRef = useRef(false);
   const workspaceTenantIdRef = useRef<string | null>(null);
@@ -416,8 +412,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     ): Promise<UserProfile | null> => {
       const authUser = options?.authUser;
       const tenantHint = options?.tenantIdHint;
-      const columns =
-        'id, user_id, tenant_id, full_name, email, role, created_at, updated_at';
+      const columns = 'id, user_id, tenant_id, full_name, email, role, created_at, updated_at';
 
       try {
         return await withTimeout(
@@ -483,61 +478,64 @@ export function TenantProvider({ children }: { children: ReactNode }) {
    * Fetch tenant_id from user metadata or profile.
    * This is called once when user is authenticated and cached in memory.
    */
-  const fetchTenantId = useCallback(async (currentUser: User, userProfile?: UserProfile | null): Promise<string | null> => {
-    try {
-      // First check user metadata
-      let tid = currentUser.user_metadata?.tenant_id;
-      if (isValidTenantId(tid)) return tid;
-      
-      tid = currentUser.app_metadata?.tenant_id;
-      if (isValidTenantId(tid)) return tid;
-      
-      // If we have profile, use it
-      if (userProfile?.tenant_id && isValidTenantId(userProfile.tenant_id)) {
-        return userProfile.tenant_id;
+  const fetchTenantId = useCallback(
+    async (currentUser: User, userProfile?: UserProfile | null): Promise<string | null> => {
+      try {
+        // First check user metadata
+        let tid = currentUser.user_metadata?.tenant_id;
+        if (isValidTenantId(tid)) return tid;
+
+        tid = currentUser.app_metadata?.tenant_id;
+        if (isValidTenantId(tid)) return tid;
+
+        // If we have profile, use it
+        if (userProfile?.tenant_id && isValidTenantId(userProfile.tenant_id)) {
+          return userProfile.tenant_id;
+        }
+
+        // Otherwise fetch from profile table (timeout so revalidate can always finish)
+        const { data: profile, error: profileError } = await withTimeout(
+          (async () =>
+            supabase
+              .from('user_profiles')
+              .select('tenant_id')
+              .eq('user_id', currentUser.id)
+              .single())(),
+          PROFILE_FETCH_TIMEOUT_MS,
+          'tenant_id from user_profiles'
+        );
+        if (!profileError && profile?.tenant_id && isValidTenantId(profile.tenant_id)) {
+          console.log('✓ Tenant ID from profile:', profile.tenant_id);
+          return profile.tenant_id;
+        }
+
+        console.error('✗ No valid tenant_id found for user:', currentUser.id);
+        return null;
+      } catch (err) {
+        console.error('Error fetching tenant_id:', err);
+        return null;
       }
-      
-      // Otherwise fetch from profile table (timeout so revalidate can always finish)
-      const { data: profile, error: profileError } = await withTimeout(
-        (async () =>
-          supabase
-            .from('user_profiles')
-            .select('tenant_id')
-            .eq('user_id', currentUser.id)
-            .single())(),
-        PROFILE_FETCH_TIMEOUT_MS,
-        'tenant_id from user_profiles'
-      );
-      if (!profileError && profile?.tenant_id && isValidTenantId(profile.tenant_id)) {
-        console.log('✓ Tenant ID from profile:', profile.tenant_id);
-        return profile.tenant_id;
-      }
-      
-      console.error('✗ No valid tenant_id found for user:', currentUser.id);
-      return null;
-    } catch (err) {
-      console.error('Error fetching tenant_id:', err);
-      return null;
-    }
-  }, []);
+    },
+    []
+  );
 
   const loadNavigation = useCallback(
     async (background: boolean, tenantIdOverride?: string | null) => {
-    if (!background) {
-      setNavigationError(null);
-    }
-    // Explicit `null` = no tenant filter (platform super shell / RLS-wide read). Do not use
-    // `??` here: `null ?? lastTenantIdRef` would incorrectly fall back to the ref.
-    const tid =
-      tenantIdOverride !== undefined
-        ? tenantIdOverride
-        : (lastTenantIdRef.current ?? null);
-    const { data, error: navErr } = await fetchNavigation(tid);
-    lastNavigationFetchAt.current = Date.now();
-    setNavigationItems(data);
-    setNavigationError(navErr);
-    navigationHydratedRef.current = true;
-  }, []);
+      if (!background) {
+        setNavigationError(null);
+      }
+      // Explicit `null` = no tenant filter (platform super shell / RLS-wide read). Do not use
+      // `??` here: `null ?? lastTenantIdRef` would incorrectly fall back to the ref.
+      const tid =
+        tenantIdOverride !== undefined ? tenantIdOverride : (lastTenantIdRef.current ?? null);
+      const { data, error: navErr } = await fetchNavigation(tid, isSuperAdminRef.current);
+      lastNavigationFetchAt.current = Date.now();
+      setNavigationItems(data);
+      setNavigationError(navErr);
+      navigationHydratedRef.current = true;
+    },
+    []
+  );
 
   const enterWorkspaceTenant = useCallback(
     (targetId: string, displayLabel?: string | null) => {
@@ -626,12 +624,9 @@ export function TenantProvider({ children }: { children: ReactNode }) {
             superAdminNoTenantRef.current = false;
             lastUserIdRef.current = null;
             lastTenantIdRef.current = null;
-            lastEffectiveTenantRef.current = null;
             profileLoadedRef.current = false;
             setUser(null);
             setProfile(null);
-            setHomeTenantId(null);
-            setImpersonation(null);
             setTenantId(null);
             setCatalogueMode('simple');
             setEffectiveTenantDisplayName(null);
@@ -644,12 +639,8 @@ export function TenantProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Stable check: same user, same effective tenant (profile + JWT impersonation).
-        const tentativeProfile =
-          profileLoadedRef.current && currentUser.id === lastUserIdRef.current
-            ? profileRef.current
-            : null;
-        const tentativeEffective = getEffectiveTenantIdFromSession(currentUser, tentativeProfile);
+        // Stable check: same user ID and already loaded → no re-fetch. Ensures session
+        // refresh / tab return never triggers profile/tenant/features reload.
         if (
           currentUser.id === lastUserIdRef.current &&
           profileLoadedRef.current &&
@@ -671,6 +662,8 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         const prevUserId = lastUserIdRef.current;
         const userChanged = prevUserId !== currentUser.id;
 
+        // Fetch profile only when user changed or not yet loaded. Never re-fetch on
+        // session refresh (same user).
         let userProfile: UserProfile | null = null;
         if (userChanged || !profileLoadedRef.current) {
           console.log('📝 Fetching user profile...');
@@ -683,8 +676,6 @@ export function TenantProvider({ children }: { children: ReactNode }) {
             setProfile(userProfile);
             profileLoadedRef.current = true;
           }
-        } else {
-          userProfile = profileRef.current;
         }
 
         console.log('🏢 Fetching tenant ID...');
@@ -745,9 +736,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
                   `Invalid tenant ID format: "${invalidTenantId}". Expected a valid UUID. Please contact support to fix your account configuration.`
                 );
               } else {
-                setError(
-                  'Your account is not associated with a tenant. Please contact support.'
-                );
+                setError('Your account is not associated with a tenant. Please contact support.');
               }
             }
           }
@@ -761,40 +750,25 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
         if (hasSignedOutRef.current) return;
 
-        const homeFromProfile =
-          userProfile?.tenant_id && isValidTenantId(userProfile.tenant_id)
-            ? userProfile.tenant_id
-            : null;
-        const homeFromMeta = isValidTenantId(currentUser.user_metadata?.tenant_id)
-          ? (currentUser.user_metadata?.tenant_id as string)
-          : isValidTenantId(currentUser.app_metadata?.tenant_id)
-            ? (currentUser.app_metadata?.tenant_id as string)
-            : null;
-        setHomeTenantId(homeFromProfile ?? homeFromMeta);
-        setImpersonation(getImpersonationFromSession(currentUser));
-
-        const prevEffective = lastEffectiveTenantRef.current;
         const prevTenantId = lastTenantIdRef.current;
         hasUserAndTenantRef.current = true;
         superAdminNoTenantRef.current = false;
         lastUserIdRef.current = currentUser.id;
-        lastTenantIdRef.current = effectiveTid;
-        lastEffectiveTenantRef.current = effectiveTid;
+        lastTenantIdRef.current = tid;
         setUser(currentUser);
-        setTenantId(effectiveTid);
-        tenantedSupabase.setTenantId(effectiveTid);
+        setTenantId(tid);
+        // IMPORTANT: Set tenant ID on schema-aware client
+        // This enables automatic schema routing for all queries
+        tenantedSupabase.setTenantId(tid);
         setError(null);
-        setTenantCache(currentUser.id, effectiveTid);
-        console.log('✓ User authenticated with tenant:', effectiveTid);
+        setTenantCache(currentUser.id, tid);
+        console.log('✓ User authenticated with tenant:', tid);
 
         const sessionOrTenantChanged = userChanged || prevTenantId !== tid;
         const navPromise = (async () => {
           if (tid !== tidHint) {
             await loadNavigation(background, tid);
-          } else if (
-            !tidHint &&
-            (sessionOrTenantChanged || !navigationHydratedRef.current)
-          ) {
+          } else if (!tidHint && (sessionOrTenantChanged || !navigationHydratedRef.current)) {
             await loadNavigation(background, tid);
           }
         })();
@@ -807,8 +781,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         await Promise.all([navPromise, surfacePromise]);
       } catch (err: unknown) {
         if (!background) {
-          const msg =
-            err instanceof Error ? err.message : 'Failed to load tenant information';
+          const msg = err instanceof Error ? err.message : 'Failed to load tenant information';
           setError(msg);
 
           const recovered =
@@ -857,7 +830,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         if (!background) setIsLoading(false);
       }
     },
-    [fetchProfile, loadNavigation]
+    [fetchTenantId, fetchProfile, loadNavigation]
   );
 
   const refreshTenant = useCallback(() => revalidate(false), [revalidate]);
@@ -906,13 +879,10 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       superAdminNoTenantRef.current = false;
       lastUserIdRef.current = null;
       lastTenantIdRef.current = null;
-      lastEffectiveTenantRef.current = null;
       profileLoadedRef.current = false;
       clearTenantCache();
       setUser(null);
       setProfile(null);
-      setHomeTenantId(null);
-      setImpersonation(null);
       setTenantId(null);
       setCatalogueMode('simple');
       setEffectiveTenantDisplayName(null);
@@ -924,19 +894,6 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }
   }, []);
-
-  const startTenantImpersonation = useCallback(
-    async (targetTenantId: string, options?: { readOnly?: boolean }) => {
-      await apiStartImpersonation(targetTenantId, options);
-      await revalidate(false);
-    },
-    [revalidate]
-  );
-
-  const endTenantImpersonation = useCallback(async () => {
-    await apiEndImpersonation();
-    await revalidate(false);
-  }, [revalidate]);
 
   /**
    * BOOT SEQUENCE - Runs ONCE on initial mount
@@ -992,11 +949,8 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         superAdminNoTenantRef.current = false;
         lastUserIdRef.current = null;
         lastTenantIdRef.current = null;
-        lastEffectiveTenantRef.current = null;
         setUser(null);
         setTenantId(null);
-        setHomeTenantId(null);
-        setImpersonation(null);
         setError(null);
         setNavigationItems(null);
         setNavigationError(null);
@@ -1006,21 +960,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const userProfileBoot = await fetchProfile(session.user.id);
-      if (cancelled) return;
-      if (userProfileBoot) {
-        setProfile(userProfileBoot);
-        profileLoadedRef.current = true;
-        profileRef.current = userProfileBoot;
-      }
-      const effectiveBoot = getEffectiveTenantIdFromSession(session.user, userProfileBoot);
-
-      if (
-        cache &&
-        cache.userId === session.user.id &&
-        isValidTenantId(cache.tenant_id) &&
-        cache.tenant_id === effectiveBoot
-      ) {
+      if (cache && cache.userId === session.user.id && isValidTenantId(cache.tenant_id)) {
         try {
           // Fast path: restore from cache. Load profile + nav once; do NOT revalidate.
           // Session refresh must not trigger full reloads; only login/logout reset data.
@@ -1032,17 +972,24 @@ export function TenantProvider({ children }: { children: ReactNode }) {
           lastUserIdRef.current = session.user.id;
           lastTenantIdRef.current = cache.tenant_id;
 
-          const [userProfile, navResult] = await Promise.all([
+          const [userProfile, navResult, surface] = await Promise.all([
             fetchProfile(session.user.id, {
               authUser: session.user,
               tenantIdHint: cache.tenant_id,
             }),
             fetchNavigation(cache.tenant_id),
+            fetchEffectiveTenantSurface(cache.tenant_id),
           ]);
 
           if (cancelled) {
             setIsLoading(false);
             return;
+          }
+
+          if (!hasSignedOutRef.current) {
+            setCatalogueMode(surface.mode);
+            setEffectiveTenantDisplayName(surface.displayName);
+            setEffectiveTenantLogoUrl(surface.logoUrl);
           }
 
           if (userProfile) {
@@ -1054,8 +1001,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
           setNavigationItems(navResult.data);
           setNavigationError(navResult.error);
           // Only mark hydrated when we have a real outcome; otherwise a later revalidate must load.
-          navigationHydratedRef.current =
-            navResult.error != null || navResult.data != null;
+          navigationHydratedRef.current = navResult.error != null || navResult.data != null;
           if (!navigationHydratedRef.current) {
             await loadNavigation(false, cache.tenant_id);
           }
@@ -1097,19 +1043,8 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'TOKEN_REFRESHED') {
-        if (!session?.user) return;
-        const nextEffective = getEffectiveTenantIdFromSession(session.user, profileRef.current);
-        if (
-          nextEffective &&
-          nextEffective !== lastEffectiveTenantRef.current &&
-          session.user.id === lastUserIdRef.current
-        ) {
-          await revalidate(true);
-        }
-        return;
-      }
-      if (event === 'INITIAL_SESSION') {
+      if (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+        // Same user, new tokens only. Do nothing. Prevents slow reload on tab return.
         return;
       }
       if (event === 'SIGNED_OUT' || !session) {
@@ -1129,13 +1064,10 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         superAdminNoTenantRef.current = false;
         lastUserIdRef.current = null;
         lastTenantIdRef.current = null;
-        lastEffectiveTenantRef.current = null;
         profileLoadedRef.current = false;
         clearTenantCache();
         setUser(null);
         setProfile(null);
-        setHomeTenantId(null);
-        setImpersonation(null);
         setTenantId(null);
         setError(null);
         setNavigationItems(null);
@@ -1174,7 +1106,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     };
     // revalidate is stable (useCallback with stable deps), so this effect
     // will only run once on mount, never on route changes
-  }, [revalidate, fetchProfile]);
+  }, [revalidate]);
 
   /**
    * Listen for navigation-updated events to refresh navigation items.
@@ -1200,8 +1132,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   }, [effectiveTenantId]);
 
   /** Primitive deps only — avoids effect storms when `profile`/`user` object identity churns. */
-  const jwtAppRoleHint =
-    typeof user?.app_metadata?.role === 'string' ? user.app_metadata.role : '';
+  const jwtAppRoleHint = typeof user?.app_metadata?.role === 'string' ? user.app_metadata.role : '';
   const jwtUserRoleHint =
     typeof user?.user_metadata?.role === 'string' ? user.user_metadata.role : '';
   // Intentionally omit `user`/`profile` object deps — reference churn re-ran workspace effects every render.
@@ -1295,6 +1226,8 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       refreshTenant,
       refreshCatalogueMode,
       signOut,
+      impersonation: user ? getImpersonationFromSession(user) : null,
+      endTenantImpersonation,
     }),
     [
       tenant_id,
@@ -1319,11 +1252,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     ]
   );
 
-  return (
-    <TenantContext.Provider value={contextValue}>
-      {children}
-    </TenantContext.Provider>
-  );
+  return <TenantContext.Provider value={contextValue}>{children}</TenantContext.Provider>;
 }
 
 export function useTenant() {

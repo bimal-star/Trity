@@ -103,9 +103,7 @@ export default function PriceListEditorModal({
   if (!open) return null;
 
   const roundingMode =
-    roundingPreset === '__custom__'
-      ? roundingCustom.trim() || null
-      : roundingPreset || null;
+    roundingPreset === '__custom__' ? roundingCustom.trim() || null : roundingPreset || null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,12 +147,15 @@ export default function PriceListEditorModal({
         className={`${premiumSurfaces.cardElevated} max-h-[90vh] w-full max-w-lg overflow-y-auto shadow-xl`}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id="price-list-editor-title" className={`${premiumTypography.pageTitle} ${a.titleText}`}>
+        <h2
+          id="price-list-editor-title"
+          className={`${premiumTypography.pageTitle} ${a.titleText}`}
+        >
           {initial ? 'Edit price tier' : 'New price tier'}
         </h2>
         <p className={`mt-1 ${premiumTypography.helper}`}>
-          This defines the tier header (currency, validity, default tier). Set each product&apos;s price on that
-          tier from the product&apos;s Pricing tab.
+          This defines the tier header (currency, validity, default tier). Set each product&apos;s
+          price on that tier from the product&apos;s Pricing tab.
         </p>
 
         <form onSubmit={(e) => void handleSubmit(e)} className="mt-5 space-y-4">
@@ -272,7 +273,11 @@ export default function PriceListEditorModal({
           )}
 
           <div className="flex flex-wrap justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className={premiumSecondaryButton(module, 'md', 'auto')}>
+            <button
+              type="button"
+              onClick={onClose}
+              className={premiumSecondaryButton(module, 'md', 'auto')}
+            >
               Cancel
             </button>
             <button

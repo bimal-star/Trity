@@ -5,7 +5,11 @@ import { supabase } from '@/lib/supabaseClient';
 import type { TenantInvite } from '@/types/profile';
 
 interface UseTenantInvitesReturn {
-  createInvite: (email: string, role: string, groupId?: string | null) => Promise<{ success: boolean; inviteLink?: string; error?: string }>;
+  createInvite: (
+    email: string,
+    role: string,
+    groupId?: string | null
+  ) => Promise<{ success: boolean; inviteLink?: string; error?: string }>;
   pendingInvites: TenantInvite[];
   fetchPending: (tenantId: string | null) => Promise<void>;
   isLoading: boolean;
@@ -16,7 +20,10 @@ interface UseTenantInvitesReturn {
  * Create tenant invites and optionally list pending ones.
  * All operations filter by tenant_id and require tenant admin.
  */
-export function useTenantInvites(tenantId: string | null, userId: string | undefined): UseTenantInvitesReturn {
+export function useTenantInvites(
+  tenantId: string | null,
+  userId: string | undefined
+): UseTenantInvitesReturn {
   const [pendingInvites, setPendingInvites] = useState<TenantInvite[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +51,11 @@ export function useTenantInvites(tenantId: string | null, userId: string | undef
   }, []);
 
   const createInvite = useCallback(
-    async (email: string, role: string, groupId?: string | null): Promise<{ success: boolean; inviteLink?: string; error?: string }> => {
+    async (
+      email: string,
+      role: string,
+      groupId?: string | null
+    ): Promise<{ success: boolean; inviteLink?: string; error?: string }> => {
       if (!tenantId || !userId) return { success: false, error: 'Missing tenant or user' };
       setIsLoading(true);
       setError(null);
@@ -62,7 +73,8 @@ export function useTenantInvites(tenantId: string | null, userId: string | undef
           .single();
 
         if (insertErr) {
-          if (insertErr.code === '23505') return { success: false, error: 'An invite for this email already exists.' };
+          if (insertErr.code === '23505')
+            return { success: false, error: 'An invite for this email already exists.' };
           throw insertErr;
         }
         const origin = typeof window !== 'undefined' ? window.location.origin : '';

@@ -20,31 +20,31 @@ Column lists below follow **`types/database.ts`** `Row` types (TypeScript names;
 
 #### `products` (lines ~2592–2772 in `types/database.ts`)
 
-| Column | TS / logical type | Notes |
-|--------|-------------------|--------|
-| `id` | `string` (uuid) | PK |
-| `tenant_id` | `string` | Tenant scope |
-| `sku` | `string` | Unique per tenant (`uq_products_tenant_sku`, migration §9) |
-| `name` | `string` | |
-| `description`, `short_description` | `string \| null` | |
-| `product_type` | enum `product_type` | |
-| `industry_type` | enum `industry_type` | |
-| `status` | enum `status_type \| null` | |
-| `category_id` | `string \| null` | FK → `categories` (single “primary” category on master) |
-| `cost_price`, `sell_price` | `number \| null` | `numeric(18,6)` in DB; CHECK ≥ 0 (consolidation §6) |
-| `weighted_avg_unit_cost` | `number \| null` | Inventory costing |
-| `currency` | `string \| null` | |
-| `tracks_inventory` | `boolean` | Default true; `NOT NULL` added in `20260406100000_product_tracks_inventory_packaging_type.sql` |
-| `min_stock_level`, `max_stock_level`, `reorder_point`, `reorder_quantity` | `number \| null` | |
-| `lead_time_days` | `number \| null` | |
-| Physical / units | `weight`, `length`, `width`, `height`, `volume`, `*_unit_id` | FKs to `units` where set |
-| Quality | `shelf_life_days`, `storage_conditions`, `allergens`, `certifications`, `safety_rating` | |
-| Manufacturing / traceability | `default_supplier_id`, `manufacturer_part_number`, `batch_tracked`, `serial_tracked`, `lot_controlled` | |
-| Media | `image_url`, `images`, `documents`, `specifications_url` | JSON / text |
-| `attributes`, `metadata`, `tags` | JSON / arrays | |
-| Integration | `external_system`, `external_id`, `integration_metadata`, `last_synced_at` | Consolidation §4 |
-| Audit | `user_id`, `created_by`, `updated_by`, `created_at`, `updated_at`, `version` | |
-| `is_active`, `is_deleted` | flags | App uses **`is_deleted`** for soft archive |
+| Column                                                                    | TS / logical type                                                                                      | Notes                                                                                          |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| `id`                                                                      | `string` (uuid)                                                                                        | PK                                                                                             |
+| `tenant_id`                                                               | `string`                                                                                               | Tenant scope                                                                                   |
+| `sku`                                                                     | `string`                                                                                               | Unique per tenant (`uq_products_tenant_sku`, migration §9)                                     |
+| `name`                                                                    | `string`                                                                                               |                                                                                                |
+| `description`, `short_description`                                        | `string \| null`                                                                                       |                                                                                                |
+| `product_type`                                                            | enum `product_type`                                                                                    |                                                                                                |
+| `industry_type`                                                           | enum `industry_type`                                                                                   |                                                                                                |
+| `status`                                                                  | enum `status_type \| null`                                                                             |                                                                                                |
+| `category_id`                                                             | `string \| null`                                                                                       | FK → `categories` (single “primary” category on master)                                        |
+| `cost_price`, `sell_price`                                                | `number \| null`                                                                                       | `numeric(18,6)` in DB; CHECK ≥ 0 (consolidation §6)                                            |
+| `weighted_avg_unit_cost`                                                  | `number \| null`                                                                                       | Inventory costing                                                                              |
+| `currency`                                                                | `string \| null`                                                                                       |                                                                                                |
+| `tracks_inventory`                                                        | `boolean`                                                                                              | Default true; `NOT NULL` added in `20260406100000_product_tracks_inventory_packaging_type.sql` |
+| `min_stock_level`, `max_stock_level`, `reorder_point`, `reorder_quantity` | `number \| null`                                                                                       |                                                                                                |
+| `lead_time_days`                                                          | `number \| null`                                                                                       |                                                                                                |
+| Physical / units                                                          | `weight`, `length`, `width`, `height`, `volume`, `*_unit_id`                                           | FKs to `units` where set                                                                       |
+| Quality                                                                   | `shelf_life_days`, `storage_conditions`, `allergens`, `certifications`, `safety_rating`                |                                                                                                |
+| Manufacturing / traceability                                              | `default_supplier_id`, `manufacturer_part_number`, `batch_tracked`, `serial_tracked`, `lot_controlled` |                                                                                                |
+| Media                                                                     | `image_url`, `images`, `documents`, `specifications_url`                                               | JSON / text                                                                                    |
+| `attributes`, `metadata`, `tags`                                          | JSON / arrays                                                                                          |                                                                                                |
+| Integration                                                               | `external_system`, `external_id`, `integration_metadata`, `last_synced_at`                             | Consolidation §4                                                                               |
+| Audit                                                                     | `user_id`, `created_by`, `updated_by`, `created_at`, `updated_at`, `version`                           |                                                                                                |
+| `is_active`, `is_deleted`                                                 | flags                                                                                                  | App uses **`is_deleted`** for soft archive                                                     |
 
 **Indexes (non-exhaustive):** `idx_products_tenant_id`, partial unique `uq_products_tenant_external`, `idx_products_tenant_external_system` (consolidation §9–§11).
 
@@ -52,13 +52,13 @@ Column lists below follow **`types/database.ts`** `Row` types (TypeScript names;
 
 Replaces legacy `product_variants` (dropped in `20260419105000_tenant_catalogue_settings.sql`). Each **variant is a full `products` row** linked by `product_group_id`.
 
-| Column | Notes |
-|--------|--------|
-| `tenant_id`, `name`, `description` | |
-| `category_id` | Optional FK → `categories` |
-| `attribute_dimensions` | `jsonb` — matrix axes, e.g. `dimensions` order + value arrays per key |
-| `image_url`, `tags`, `is_active`, `is_deleted` | |
-| `created_by`, `created_at`, `updated_at` | `updated_at` maintained by trigger |
+| Column                                         | Notes                                                                 |
+| ---------------------------------------------- | --------------------------------------------------------------------- |
+| `tenant_id`, `name`, `description`             |                                                                       |
+| `category_id`                                  | Optional FK → `categories`                                            |
+| `attribute_dimensions`                         | `jsonb` — matrix axes, e.g. `dimensions` order + value arrays per key |
+| `image_url`, `tags`, `is_active`, `is_deleted` |                                                                       |
+| `created_by`, `created_at`, `updated_at`       | `updated_at` maintained by trigger                                    |
 
 **Products:** `product_group_id` (nullable FK), `variant_attributes` (`jsonb`, e.g. `{ "size": "M", "colour": "Red" }`).
 
@@ -66,24 +66,24 @@ Replaces legacy `product_variants` (dropped in `20260419105000_tenant_catalogue_
 
 #### `product_barcodes` (~2043–2135)
 
-| Column | Notes |
-|--------|--------|
-| `product_id` | FK → `products` |
-| `barcode` | Text |
-| `barcode_type` | Enum `barcode_type` |
-| `packing_level` | Enum `packing_level \| null` |
-| `quantity` | Units per barcode (e.g. case pack) |
-| `is_primary`, `is_active`, `description` | |
-| `metadata`, integration fields | |
+| Column                                   | Notes                              |
+| ---------------------------------------- | ---------------------------------- |
+| `product_id`                             | FK → `products`                    |
+| `barcode`                                | Text                               |
+| `barcode_type`                           | Enum `barcode_type`                |
+| `packing_level`                          | Enum `packing_level \| null`       |
+| `quantity`                               | Units per barcode (e.g. case pack) |
+| `is_primary`, `is_active`, `description` |                                    |
+| `metadata`, integration fields           |                                    |
 
 #### `product_categories` (~2137–2206) — junction
 
 Many-to-many **product ↔ category** (in addition to `products.category_id`).
 
-| Column | Notes |
-|--------|--------|
-| `product_id`, `category_id` | FKs |
-| Partial unique | `uq_product_categories_alive` on `(tenant_id, product_id, category_id) WHERE is_deleted = false` |
+| Column                      | Notes                                                                                            |
+| --------------------------- | ------------------------------------------------------------------------------------------------ |
+| `product_id`, `category_id` | FKs                                                                                              |
+| Partial unique              | `uq_product_categories_alive` on `(tenant_id, product_id, category_id) WHERE is_deleted = false` |
 
 #### `categories` (~556–639)
 
@@ -95,45 +95,45 @@ Master category tree per tenant: `name`, `industry_type` (enum), `parent_id` (se
 
 Per-product packing hierarchy (level, quantity, dimensions, GTIN, optional barcode).
 
-| Column | Notes |
-|--------|--------|
-| `product_id`, `tenant_id` | |
-| `level` | Enum `packing_level` |
-| `previous_level` | Prior level in hierarchy |
-| `quantity` | e.g. units per inner/case |
-| `barcode`, `gtin` | |
-| `length`, `width`, `height`, `weight`, unit FKs | |
+| Column                                          | Notes                     |
+| ----------------------------------------------- | ------------------------- |
+| `product_id`, `tenant_id`                       |                           |
+| `level`                                         | Enum `packing_level`      |
+| `previous_level`                                | Prior level in hierarchy  |
+| `quantity`                                      | e.g. units per inner/case |
+| `barcode`, `gtin`                               |                           |
+| `length`, `width`, `height`, `weight`, unit FKs |                           |
 
 #### `price_lists` (~1890–1959)
 
 Header for sell-side price lists.
 
-| Column | Notes |
-|--------|--------|
-| `name`, `description`, `currency` | |
-| `effective_from`, `effective_to` | Dates (nullable) |
-| `is_active`, `is_default` | App clears other defaults when one is set default (`usePriceLists`) |
-| `rounding_mode`, `tax_inclusive` | Added in consolidation §6 |
-| `metadata`, `is_deleted` | |
+| Column                            | Notes                                                               |
+| --------------------------------- | ------------------------------------------------------------------- |
+| `name`, `description`, `currency` |                                                                     |
+| `effective_from`, `effective_to`  | Dates (nullable)                                                    |
+| `is_active`, `is_default`         | App clears other defaults when one is set default (`usePriceLists`) |
+| `rounding_mode`, `tax_inclusive`  | Added in consolidation §6                                           |
+| `metadata`, `is_deleted`          |                                                                     |
 
 #### `price_list_items` (~1807–1888)
 
-| Column | Notes |
-|--------|--------|
-| `price_list_id`, `product_id` | FKs; **no `variant_id`** — prices are per product, not per variant |
-| `unit_price` | `numeric(18,6)` |
+| Column                         | Notes                                                                           |
+| ------------------------------ | ------------------------------------------------------------------------------- |
+| `price_list_id`, `product_id`  | FKs; **no `variant_id`** — prices are per product, not per variant              |
+| `unit_price`                   | `numeric(18,6)`                                                                 |
 | `min_quantity`, `max_quantity` | Tier / band quantities; CHECKs `min_quantity > 0`, max ≥ min (consolidation §6) |
-| `currency` | Nullable line-level override (consolidation §6) |
+| `currency`                     | Nullable line-level override (consolidation §6)                                 |
 
 #### `product_cost_history` (~2208–2282)
 
 Time-bounded cost snapshots.
 
-| Column | Notes |
-|--------|--------|
-| `product_id`, `cost_price` | |
+| Column                           | Notes                                                                    |
+| -------------------------------- | ------------------------------------------------------------------------ |
+| `product_id`, `cost_price`       |                                                                          |
 | `effective_from`, `effective_to` | `effective_to` nullable; CHECK `effective_to >= effective_from` when set |
-| `cost_method`, `notes` | |
+| `cost_method`, `notes`           |                                                                          |
 
 #### `product_metrics` (~2284–2362)
 
@@ -180,14 +180,14 @@ Rolls up BOM component costs per `bom_headers` row.
 
 Relevant to products:
 
-| Enum | Values |
-|------|--------|
-| `product_type` | `raw_material`, `semi_finished`, `finished_good`, `service`, `assembly`, `packaging` |
-| `industry_type` | `bakery`, `ready_meals`, `pizza`, `construction`, `manufacturing`, `retail`, `other` |
-| `status_type` | `active`, `inactive`, `discontinued`, `planned`, `development` |
-| `barcode_type` | `ean13`, `ean8`, `upc`, `code128`, `qr`, `datamatrix`, `internal` |
-| `packing_level` | `unit`, `inner`, `case`, `pallet`, `container` |
-| `transaction_type` | `purchase`, `sale`, `production`, `adjustment`, `transfer`, `waste` |
+| Enum               | Values                                                                               |
+| ------------------ | ------------------------------------------------------------------------------------ |
+| `product_type`     | `raw_material`, `semi_finished`, `finished_good`, `service`, `assembly`, `packaging` |
+| `industry_type`    | `bakery`, `ready_meals`, `pizza`, `construction`, `manufacturing`, `retail`, `other` |
+| `status_type`      | `active`, `inactive`, `discontinued`, `planned`, `development`                       |
+| `barcode_type`     | `ean13`, `ean8`, `upc`, `code128`, `qr`, `datamatrix`, `internal`                    |
+| `packing_level`    | `unit`, `inner`, `case`, `pallet`, `container`                                       |
+| `transaction_type` | `purchase`, `sale`, `production`, `adjustment`, `transfer`, `waste`                  |
 
 ### 1.4 Primary keys, foreign keys, indexes
 
@@ -265,7 +265,7 @@ erDiagram
 
 ### 3.4 Categories
 
-- **Two mechanisms:** (1) `products.category_id` → `categories`; (2) **`product_categories`** for many-to-many.  
+- **Two mechanisms:** (1) `products.category_id` → `categories`; (2) **`product_categories`** for many-to-many.
 - **`useProducts`** loads category **names** via `product_categories` join to `categories` (~148–166 in `hooks/useProducts.ts`), not only `category_id`.
 
 ### 3.5 Pricing
@@ -293,10 +293,10 @@ erDiagram
 
 ### 4.1 Schema summary
 
-| Object | Role |
-|--------|------|
-| `price_lists` | Header: name, currency, validity dates, default flag, tax/rounding |
-| `price_list_items` | Lines: `(price_list_id, product_id)` + `unit_price` + qty band |
+| Object             | Role                                                               |
+| ------------------ | ------------------------------------------------------------------ |
+| `price_lists`      | Header: name, currency, validity dates, default flag, tax/rounding |
+| `price_list_items` | Lines: `(price_list_id, product_id)` + `unit_price` + qty band     |
 
 ### 4.2 Relation to products / variants
 
@@ -321,24 +321,24 @@ erDiagram
 
 ### 5.1 `useProducts` (`hooks/useProducts.ts`)
 
-| Operation | Approx. lines | Pattern |
-|-----------|---------------|---------|
-| List categories | 66–70 | `from('categories').select(...).eq('tenant_id', tenant_id)` via **`supabase`** cast `as any` (~14–16) |
-| List products | 91–142 | **`tenantedSupabase`** `from('products').select('*')` + filters + `order` |
-| N+1 category names | 148–166 | Per product: `from('product_categories').select('categories(id,name)').eq('product_id',...).eq('tenant_id',...)` |
-| Insert product | 220–231 | `tenantedSupabase` insert + `tenant_id` |
-| Junction insert | 256–258 | `from('product_categories').insert(...)` |
-| Update / soft delete | 321–414 | `tenantedSupabase` update on `products` |
+| Operation            | Approx. lines | Pattern                                                                                                          |
+| -------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------- |
+| List categories      | 66–70         | `from('categories').select(...).eq('tenant_id', tenant_id)` via **`supabase`** cast `as any` (~14–16)            |
+| List products        | 91–142        | **`tenantedSupabase`** `from('products').select('*')` + filters + `order`                                        |
+| N+1 category names   | 148–166       | Per product: `from('product_categories').select('categories(id,name)').eq('product_id',...).eq('tenant_id',...)` |
+| Insert product       | 220–231       | `tenantedSupabase` insert + `tenant_id`                                                                          |
+| Junction insert      | 256–258       | `from('product_categories').insert(...)`                                                                         |
+| Update / soft delete | 321–414       | `tenantedSupabase` update on `products`                                                                          |
 
 **Pain point:** **N+1 queries** for categories after each product list fetch (~148–166).
 
 ### 5.2 `usePriceLists` (`hooks/usePriceLists.ts`)
 
-| Operation | Lines | Pattern |
-|-----------|-------|---------|
-| List | 45–50 | `from('price_lists').select('*').eq('tenant_id', tenant_id).eq('is_deleted', false)` |
-| Clear defaults | 20–26 | Update all lists for tenant |
-| CRUD | 76–156 | Insert/update/archive |
+| Operation      | Lines  | Pattern                                                                              |
+| -------------- | ------ | ------------------------------------------------------------------------------------ |
+| List           | 45–50  | `from('price_lists').select('*').eq('tenant_id', tenant_id).eq('is_deleted', false)` |
+| Clear defaults | 20–26  | Update all lists for tenant                                                          |
+| CRUD           | 76–156 | Insert/update/archive                                                                |
 
 ### 5.3 `ProductDetailsTabs` (`components/products/ProductDetailsTabs.tsx`)
 
@@ -360,10 +360,10 @@ Despite the schema-routing design comments (~1–20), **`from()` resolves to `pu
 
 ## 6. Hooks and state
 
-| Hook | File | Responsibility |
-|------|------|----------------|
-| **`useProducts`** | `hooks/useProducts.ts` | Products CRUD (soft delete/restore), filters, sort, category picklist, junction categories; optional `loadProducts: false` for category-only pages (~40–43, ~179–188) |
-| **`usePriceLists`** | `hooks/usePriceLists.ts` | Price list headers CRUD, default flag handling |
+| Hook                | File                     | Responsibility                                                                                                                                                        |
+| ------------------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`useProducts`**   | `hooks/useProducts.ts`   | Products CRUD (soft delete/restore), filters, sort, category picklist, junction categories; optional `loadProducts: false` for category-only pages (~40–43, ~179–188) |
+| **`usePriceLists`** | `hooks/usePriceLists.ts` | Price list headers CRUD, default flag handling                                                                                                                        |
 
 No `useVariants` / `useStock` hooks — detail data is local state inside **`ProductDetailsTabs`**.
 
@@ -394,29 +394,29 @@ No `useVariants` / `useStock` hooks — detail data is local state inside **`Pro
 
 ## 9. Current gaps
 
-| Area | Gap |
-|------|-----|
-| **Typing** | Widespread `supabase as any` / `tenantedSupabase as any` instead of `Database` types |
-| **Variants vs pricing** | No `variant_id` on `price_list_items`; variant pricing is adjustment-only |
-| **View usage** | `vw_products_full` unused by main product list; `total_stock` / barcodes denormalized there but list uses raw `products` |
-| **`products.category_id`** | May diverge from `product_categories` if only one side updated |
-| **`ProductFormData.packing_configurations`** | Declared in `types/product.ts` (~395–397) but **not** wired in `useProducts` create/update whitelist (~282–291) |
-| **BOM / metrics / forecasts** | Schema present; UI is largely CRUD surfaces without deeper validation workflows |
-| **Customer price list** | Schema supports `price_list_id` on customer; end-to-end pricing resolution (pick list → line → variant adjustment) not centralized in one module |
-| **Supplier pricing** | `supplier_product_prices` is purchase-side; not surfaced in Products UI in the files reviewed |
+| Area                                         | Gap                                                                                                                                              |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Typing**                                   | Widespread `supabase as any` / `tenantedSupabase as any` instead of `Database` types                                                             |
+| **Variants vs pricing**                      | No `variant_id` on `price_list_items`; variant pricing is adjustment-only                                                                        |
+| **View usage**                               | `vw_products_full` unused by main product list; `total_stock` / barcodes denormalized there but list uses raw `products`                         |
+| **`products.category_id`**                   | May diverge from `product_categories` if only one side updated                                                                                   |
+| **`ProductFormData.packing_configurations`** | Declared in `types/product.ts` (~395–397) but **not** wired in `useProducts` create/update whitelist (~282–291)                                  |
+| **BOM / metrics / forecasts**                | Schema present; UI is largely CRUD surfaces without deeper validation workflows                                                                  |
+| **Customer price list**                      | Schema supports `price_list_id` on customer; end-to-end pricing resolution (pick list → line → variant adjustment) not centralized in one module |
+| **Supplier pricing**                         | `supplier_product_prices` is purchase-side; not surfaced in Products UI in the files reviewed                                                    |
 
 ---
 
 ## Appendix: related migrations (quick index)
 
-| File | Topic |
-|------|--------|
-| `20260405103000_business_core_schema_consolidation.sql` | Money precision, checks, indexes, `vw_products_full`, `vw_bom_costing`, bulk RLS |
-| `20260406100000_product_tracks_inventory_packaging_type.sql` | `tracks_inventory`, enum `packaging` |
-| `20260405120000_product_images_storage_bucket.sql` | Storage bucket + policies |
-| `20260410120000_supplier_product_prices.sql` | Supplier × product purchase prices |
-| `20260415120000_platform_super_admin_workspace_select.sql` | Super-admin SELECT on business tables |
+| File                                                         | Topic                                                                            |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| `20260405103000_business_core_schema_consolidation.sql`      | Money precision, checks, indexes, `vw_products_full`, `vw_bom_costing`, bulk RLS |
+| `20260406100000_product_tracks_inventory_packaging_type.sql` | `tracks_inventory`, enum `packaging`                                             |
+| `20260405120000_product_images_storage_bucket.sql`           | Storage bucket + policies                                                        |
+| `20260410120000_supplier_product_prices.sql`                 | Supplier × product purchase prices                                               |
+| `20260415120000_platform_super_admin_workspace_select.sql`   | Super-admin SELECT on business tables                                            |
 
 ---
 
-*Generated from repository state for AI/architecture context. Reconcile with a live `pg_dump` / Supabase dashboard before making irreversible schema changes.*
+_Generated from repository state for AI/architecture context. Reconcile with a live `pg_dump` / Supabase dashboard before making irreversible schema changes._

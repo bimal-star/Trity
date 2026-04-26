@@ -19,10 +19,7 @@ export interface MatchLineResult {
   po_unit_price_snapshot: number | null;
 }
 
-function qtyReceivedForPol(
-  polId: string,
-  receivedByPol: Map<string, number>
-): number {
+function qtyReceivedForPol(polId: string, receivedByPol: Map<string, number>): number {
   return receivedByPol.get(polId) ?? 0;
 }
 

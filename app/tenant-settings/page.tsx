@@ -9,7 +9,7 @@ import { useTenant } from '@/contexts/TenantContext';
 import { useProfile } from '@/hooks/useProfile';
 import { useTenantDetails } from '@/hooks/useTenantDetails';
 import type { TenantDetailsUpdate } from '@/types/profile';
-import { pillarAccent, premiumPrimaryButton, premiumSurfaces, premiumTypography } from '@/lib/premiumUi';
+import { pillarAccent, premiumPrimaryButton, premiumTypography } from '@/lib/premiumUi';
 import { useToast } from '@/lib/toast';
 import TenantLogoField from '@/components/tenants/TenantLogoField';
 import { Building2, Loader2, AlertCircle, Save, Settings } from 'lucide-react';
@@ -20,7 +20,13 @@ export default function TenantSettingsPage() {
   const router = useRouter();
   const { user, effectiveTenantId: tenant_id, refreshCatalogueMode } = useTenant();
   const { profile, isLoading: profileLoading } = useProfile(user?.id);
-  const { tenant, isLoading: tenantLoading, error, updateTenant, refresh } = useTenantDetails(tenant_id);
+  const {
+    tenant,
+    isLoading: tenantLoading,
+    error,
+    updateTenant,
+    refresh,
+  } = useTenantDetails(tenant_id);
   const { toast } = useToast();
   const [name, setName] = useState('');
   const [companyName, setCompanyName] = useState('');
@@ -124,8 +130,6 @@ export default function TenantSettingsPage() {
           subtitleClassName={`${premiumTypography.pageSubtitle} ${ex.subtitleTint}`}
         />
 
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
-
         <div className="max-w-2xl">
           {tenantLoading ? (
             <div className="flex flex-col items-center justify-center py-12 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
@@ -149,126 +153,126 @@ export default function TenantSettingsPage() {
             </div>
           ) : (
             <>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6 space-y-4">
-                <div className="flex items-center gap-3 pb-4 border-b border-gray-200 dark:border-gray-700">
-                  <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                    <Building2 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6 space-y-4">
+                  <div className="flex items-center gap-3 pb-4 border-b border-gray-200 dark:border-gray-700">
+                    <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                      <Building2 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        Tenant details
+                      </h2>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Loaded from public.tenants • Filtered by tenant_id
+                      </p>
+                    </div>
                   </div>
+
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      Tenant details
-                    </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Loaded from public.tenants • Filtered by tenant_id
+                    <label
+                      htmlFor="tenant-name"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >
+                      Name
+                    </label>
+                    <input
+                      id="tenant-name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      placeholder="Acme Inc"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="tenant-company_name"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >
+                      Company name
+                    </label>
+                    <input
+                      id="tenant-company_name"
+                      type="text"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      placeholder="Acme Corporation"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="tenant-slug"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >
+                      Slug
+                    </label>
+                    <input
+                      id="tenant-slug"
+                      type="text"
+                      value={slug}
+                      onChange={(e) => setSlug(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      placeholder="acme"
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Optional. Unique identifier for URLs.
                     </p>
                   </div>
-                </div>
 
-                <div>
-                  <label
-                    htmlFor="tenant-name"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >
-                    Name
-                  </label>
-                  <input
-                    id="tenant-name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    placeholder="Acme Inc"
-                  />
-                </div>
+                  <div>
+                    <TenantLogoField
+                      logoUrl={logoUrl.trim() ? logoUrl : null}
+                      onLogoUrlChange={(url) => setLogoUrl(url ?? '')}
+                      disabled={isSaving}
+                      label="Logo"
+                      labelClassName="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Optional.</p>
+                  </div>
 
-                <div>
-                  <label
-                    htmlFor="tenant-company_name"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >
-                    Company name
-                  </label>
-                  <input
-                    id="tenant-company_name"
-                    type="text"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    placeholder="Acme Corporation"
-                  />
-                </div>
+                  <div>
+                    <label
+                      htmlFor="tenant-settings"
+                      className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >
+                      Settings (JSON)
+                    </label>
+                    <textarea
+                      id="tenant-settings"
+                      value={settingsJson}
+                      onChange={(e) => setSettingsJson(e.target.value)}
+                      rows={4}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-mono text-sm"
+                      placeholder='{"theme": "dark", "locale": "en"}'
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Optional. Valid JSON object. Invalid JSON is ignored on save.
+                    </p>
+                  </div>
 
-                <div>
-                  <label
-                    htmlFor="tenant-slug"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >
-                    Slug
-                  </label>
-                  <input
-                    id="tenant-slug"
-                    type="text"
-                    value={slug}
-                    onChange={(e) => setSlug(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    placeholder="acme"
-                  />
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Optional. Unique identifier for URLs.
-                  </p>
-                </div>
-
-                <div>
-                  <TenantLogoField
-                    logoUrl={logoUrl.trim() ? logoUrl : null}
-                    onLogoUrlChange={(url) => setLogoUrl(url ?? '')}
-                    disabled={isSaving}
-                    label="Logo"
-                    labelClassName="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  />
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Optional.</p>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="tenant-settings"
-                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >
-                    Settings (JSON)
-                  </label>
-                  <textarea
-                    id="tenant-settings"
-                    value={settingsJson}
-                    onChange={(e) => setSettingsJson(e.target.value)}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-mono text-sm"
-                    placeholder='{"theme": "dark", "locale": "en"}'
-                  />
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Optional. Valid JSON object. Invalid JSON is ignored on save.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3 pt-2">
-                  <button
-                    type="submit"
-                    disabled={isSaving || !isFormDirty}
-                    className={premiumPrimaryButton('execution', 'md', 'wide')}
-                  >
-                    {isSaving ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Save className="w-4 h-4" />
+                  <div className="flex items-center gap-3 pt-2">
+                    <button
+                      type="submit"
+                      disabled={isSaving || !isFormDirty}
+                      className={premiumPrimaryButton('execution', 'md', 'wide')}
+                    >
+                      {isSaving ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4" />
+                      )}
+                      {isSaving ? 'Saving…' : 'Save'}
+                    </button>
+                    {!isFormDirty && (
+                      <span className="text-sm text-gray-500 dark:text-gray-400">No changes</span>
                     )}
-                    {isSaving ? 'Saving…' : 'Save'}
-                  </button>
-                  {!isFormDirty && (
-                    <span className="text-sm text-gray-500 dark:text-gray-400">No changes</span>
-                  )}
+                  </div>
                 </div>
-              </div>
-            </form>
+              </form>
             </>
           )}
         </div>

@@ -360,7 +360,7 @@ Pattern: `createClient(url, anonKey, { global: { headers: { Authorization: Beare
 | API authorization               | **Mixed** — access update is admin/tenant-aware; AI routes are not.                                                             |
 | Data to OpenAI                  | **Controlled docs path** for optional context; user/chat content is client-driven; model not allowlisted.                       |
 | RLS / tenancy                   | **Database layer** — migrations show tenant-aware policies; app `tenantedSupabase` still uses public tables + RLS per comments. |
-| Middleware / rate limits / CORS | **Gaps** — no active middleware on app routes; no rate limits; no explicit CORS config in reviewed files.                      |
+| Middleware / rate limits / CORS | **Gaps** — no active middleware on app routes; no rate limits; no explicit CORS config in reviewed files.                       |
 
 ---
 

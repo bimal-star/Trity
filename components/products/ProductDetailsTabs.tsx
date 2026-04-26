@@ -983,9 +983,7 @@ export default function ProductDetailsTabs({
     if (!editingChip || !editingChip.name.trim() || !tenant_id) return;
     setSavingChipEdit(true);
     try {
-      const { error } = await (
-        supabase as unknown as { from: (t: string) => ReturnType<typeof supabase.from> }
-      )
+      const { error } = await supabase
         .from('category_nodes')
         .update({ name: editingChip.name.trim() })
         .eq('id', editingChip.id)

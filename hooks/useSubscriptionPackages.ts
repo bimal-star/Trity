@@ -71,7 +71,9 @@ export function useSubscriptionPackages() {
   }, []);
 
   const createPackage = useCallback(
-    async (row: SubscriptionPackageInsert): Promise<{ data: SubscriptionPackageRow | null; error: string | null }> => {
+    async (
+      row: SubscriptionPackageInsert
+    ): Promise<{ data: SubscriptionPackageRow | null; error: string | null }> => {
       setError(null);
       try {
         const { data, error: err } = await supabase
@@ -109,12 +111,17 @@ export function useSubscriptionPackages() {
         if (patch.name !== undefined) payload.name = String(patch.name).trim();
         if (patch.description !== undefined) {
           payload.description =
-            typeof patch.description === 'string' ? patch.description.trim() || null : patch.description;
+            typeof patch.description === 'string'
+              ? patch.description.trim() || null
+              : patch.description;
         }
         if (patch.mapped_tier !== undefined) payload.mapped_tier = patch.mapped_tier;
         if (patch.is_active !== undefined) payload.is_active = patch.is_active;
         if (patch.sort_order !== undefined) payload.sort_order = patch.sort_order;
-        const { error: err } = await supabase.from('subscription_packages').update(payload).eq('id', id);
+        const { error: err } = await supabase
+          .from('subscription_packages')
+          .update(payload)
+          .eq('id', id);
         if (err) throw err;
         return { success: true, error: null };
       } catch (e) {
@@ -126,18 +133,21 @@ export function useSubscriptionPackages() {
     []
   );
 
-  const removePackage = useCallback(async (id: string): Promise<{ success: boolean; error: string | null }> => {
-    setError(null);
-    try {
-      const { error: err } = await supabase.from('subscription_packages').delete().eq('id', id);
-      if (err) throw err;
-      return { success: true, error: null };
-    } catch (e) {
-      const msg = getErrorMessage(e, 'Failed to delete package');
-      setError(msg);
-      return { success: false, error: msg };
-    }
-  }, []);
+  const removePackage = useCallback(
+    async (id: string): Promise<{ success: boolean; error: string | null }> => {
+      setError(null);
+      try {
+        const { error: err } = await supabase.from('subscription_packages').delete().eq('id', id);
+        if (err) throw err;
+        return { success: true, error: null };
+      } catch (e) {
+        const msg = getErrorMessage(e, 'Failed to delete package');
+        setError(msg);
+        return { success: false, error: msg };
+      }
+    },
+    []
+  );
 
   return {
     isLoading,

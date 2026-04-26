@@ -9,8 +9,13 @@ interface UseSuppliersReturn {
   suppliers: Supplier[];
   isLoading: boolean;
   error: string | null;
-  createSupplier: (data: SupplierFormData) => Promise<{ success: boolean; id?: string; error?: string }>;
-  updateSupplier: (id: string, data: Partial<SupplierFormData>) => Promise<{ success: boolean; error?: string }>;
+  createSupplier: (
+    data: SupplierFormData
+  ) => Promise<{ success: boolean; id?: string; error?: string }>;
+  updateSupplier: (
+    id: string,
+    data: Partial<SupplierFormData>
+  ) => Promise<{ success: boolean; error?: string }>;
   archiveSupplier: (id: string) => Promise<{ success: boolean; error?: string }>;
   restoreSupplier: (id: string) => Promise<{ success: boolean; error?: string }>;
   refreshSuppliers: () => Promise<void>;
@@ -22,7 +27,11 @@ export interface UseSuppliersOptions {
 
 function searchPattern(raw: string | undefined): string | null {
   if (!raw) return null;
-  const t = raw.trim().replace(/[,()\[\]]/g, ' ').replace(/\s+/g, ' ').trim();
+  const t = raw
+    .trim()
+    .replace(/[,()\[\]]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (!t) return null;
   const safe = t.replace(/[%_]/g, '');
   if (!safe) return null;
@@ -163,13 +172,16 @@ export function useSuppliers(
       if (data.email !== undefined) patch.email = data.email?.trim() || null;
       if (data.phone !== undefined) patch.phone = data.phone?.trim() || null;
       if (data.status !== undefined) patch.status = data.status;
-      if (data.address_line1 !== undefined) patch.address_line1 = data.address_line1?.trim() || null;
-      if (data.address_line2 !== undefined) patch.address_line2 = data.address_line2?.trim() || null;
+      if (data.address_line1 !== undefined)
+        patch.address_line1 = data.address_line1?.trim() || null;
+      if (data.address_line2 !== undefined)
+        patch.address_line2 = data.address_line2?.trim() || null;
       if (data.city !== undefined) patch.city = data.city?.trim() || null;
       if (data.state !== undefined) patch.state = data.state?.trim() || null;
       if (data.postcode !== undefined) patch.postcode = data.postcode?.trim() || null;
       if (data.country !== undefined) patch.country = data.country?.trim() || null;
-      if (data.payment_terms !== undefined) patch.payment_terms = data.payment_terms?.trim() || null;
+      if (data.payment_terms !== undefined)
+        patch.payment_terms = data.payment_terms?.trim() || null;
       if (data.currency !== undefined) patch.currency = data.currency?.trim() || null;
       if (data.tax_id !== undefined) patch.tax_id = data.tax_id?.trim() || null;
       if (data.notes !== undefined) patch.notes = data.notes?.trim() || null;

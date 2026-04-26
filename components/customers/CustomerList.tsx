@@ -108,7 +108,9 @@ export default function CustomerList({
         </div>
       </div>
 
-      <div className={`flex min-h-0 flex-1 flex-col overflow-hidden ${premiumTypography.tableCell}`}>
+      <div
+        className={`flex min-h-0 flex-1 flex-col overflow-hidden ${premiumTypography.tableCell}`}
+      >
         {error && !isLoading && (
           <div className={`shrink-0 p-3 text-red-500 ${premiumTypography.helper}`} role="alert">
             {error}
@@ -137,8 +139,8 @@ export default function CustomerList({
               >
                 Create Customer
               </Link>{' '}
-              to add your first record, or use <span className="font-medium">New Customer</span> in the
-              header.
+              to add your first record, or use <span className="font-medium">New Customer</span> in
+              the header.
             </p>
           </div>
         )}

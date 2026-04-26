@@ -3,26 +3,31 @@
 **Last Updated:** January 31, 2026
 
 ## Overview
+
 Implemented a complete role-based access control (RBAC) system for multi-tenant SaaS application with granular permissions, audit logging, feature flags, team groups management, and user access level editing.
 
 ---
 
 ## Core Components Built
 
-### 1. **Permission Types & Hierarchy** 
+### 1. **Permission Types & Hierarchy**
+
 **Files**: `types/access.ts`, `types/profile.ts`
 
 #### Role Hierarchy
+
 ```
 member < admin < super_admin
 ```
 
 #### Tenant Roles
+
 - **Member**: Basic access to apps and resources
 - **Admin**: Can manage users, groups, and tenant settings
 - **Super Admin**: Full access including feature flags and multi-tenant admin
 
 #### 15 Granular Permissions
+
 1. `view_users` - View tenant users
 2. `invite_users` - Invite new users to tenant
 3. `manage_users` - Full user management (CRUD)
@@ -40,6 +45,7 @@ member < admin < super_admin
 15. `access_okrs` - Use OKRs feature
 
 #### Permission Matrix
+
 - **Member**: Can access apps only (7 permissions)
 - **Admin**: Can manage users and tenant (14 permissions)
 - **Super Admin**: Full control (15 permissions)
@@ -47,6 +53,7 @@ member < admin < super_admin
 ---
 
 ### 2. **Permission Checking System**
+
 **Files**: `lib/permissions.ts`
 
 #### Key Utility Functions
@@ -72,6 +79,7 @@ getRoleInfo(role: TenantRole): AccessLevelInfo
 ```
 
 **Features**:
+
 - Role-based permission lookup with fallback to member level
 - Hierarchy validation to prevent privilege escalation
 - Super admin bypasses most restrictions
@@ -80,6 +88,7 @@ getRoleInfo(role: TenantRole): AccessLevelInfo
 ---
 
 ### 3. **Permission Hook**
+
 **File**: `hooks/usePermissions.ts`
 
 React hook for components to check permissions with memoization.
@@ -100,6 +109,7 @@ export interface UsePermissionsReturn {
 ```
 
 **Usage**:
+
 ```typescript
 const { can, canChangeRole, isAdmin } = usePermissions();
 
@@ -115,11 +125,13 @@ if (canChangeRole('admin')) {
 ---
 
 ### 4. **Audit Logging System**
+
 **File**: `lib/auditLog.ts`
 
 Comprehensive audit trail for compliance and security.
 
 #### Logged Actions
+
 - User role changes
 - User invitations
 - User removals
@@ -129,6 +141,7 @@ Comprehensive audit trail for compliance and security.
 - Group member additions
 
 #### Log Entry Structure
+
 ```typescript
 {
   id: string;
@@ -145,6 +158,7 @@ Comprehensive audit trail for compliance and security.
 ```
 
 #### Integration Points
+
 - User role changes in `/users` page
 - Tenant CRUD in `/admin/tenants` page
 - Group operations in `/groups` page
@@ -152,11 +166,13 @@ Comprehensive audit trail for compliance and security.
 ---
 
 ### 5. **Feature Flags System**
+
 **Files**: `lib/featureFlags.ts`, `hooks/useFeatureFlags.ts`
 
 Per-tenant feature control with default values.
 
 #### Available Flags
+
 1. `advanced_calendar` - Default: enabled
 2. `product_management` - Default: enabled
 3. `okrs` - Default: disabled
@@ -168,6 +184,7 @@ Per-tenant feature control with default values.
 9. `custom_domain` - Default: disabled (super_admin only)
 
 #### Hook Usage
+
 ```typescript
 const { isEnabled, allFlags, isLoading } = useFeatureFlags();
 
@@ -182,11 +199,13 @@ const flags = allFlags; // Array with enabled/disabled status
 ---
 
 ### 6. **Protected Action Components**
+
 **File**: `components/ProtectedAction.tsx`
 
 Permission-aware UI components.
 
 #### ProtectedAction
+
 Conditionally render content based on permission.
 
 ```typescript
@@ -196,10 +215,11 @@ Conditionally render content based on permission.
 ```
 
 #### ProtectedButton
+
 Button that auto-disables based on permission with tooltip.
 
 ```typescript
-<ProtectedButton 
+<ProtectedButton
   permission="change_user_roles"
   tooltipIfDenied="You don't have permission to change roles"
 >
@@ -212,7 +232,9 @@ Button that auto-disables based on permission with tooltip.
 ## Pages Enhanced
 
 ### 1. **Users Management** (`app/users/page.tsx`)
+
 **Changes**:
+
 - Added 3-role selection (member, admin, super_admin)
 - Role change permission checks
 - Hierarchy validation (admin can't assign super_admin)
@@ -223,6 +245,7 @@ Button that auto-disables based on permission with tooltip.
 - "View only" state for users without change_user_roles permission
 
 **Features**:
+
 - Inline role editor with dropdown
 - Permission-based role filtering
 - Real-time user count and status
@@ -232,9 +255,11 @@ Button that auto-disables based on permission with tooltip.
 ---
 
 ### 2. **Team Groups** (`app/groups/page.tsx`)
+
 **New Page**: Complete team/group management.
 
 **Features**:
+
 - Create groups with name, description, members
 - Edit existing groups
 - Delete groups with confirmation
@@ -245,6 +270,7 @@ Button that auto-disables based on permission with tooltip.
 - Audit logging on group creation/member addition
 
 **Modal Form**:
+
 - Group name (required)
 - Description (optional)
 - Searchable member selection
@@ -253,7 +279,9 @@ Button that auto-disables based on permission with tooltip.
 ---
 
 ### 3. **Tenant Admin** (`app/admin/tenants/page.tsx`)
+
 **Changes**:
+
 - Added audit logging on tenant create/update
 - Permission check using `usePermissions`
 - Changed to use `manage_features` permission
@@ -263,6 +291,7 @@ Button that auto-disables based on permission with tooltip.
 ---
 
 ### 4. **Tenant Settings** (`app/tenant-settings/page.tsx`)
+
 **Existing**: Already had admin-only access, now integrated with new permission system.
 
 ---
@@ -270,6 +299,7 @@ Button that auto-disables based on permission with tooltip.
 ## Database Schema Updates
 
 ### New Fields (Recommended)
+
 While application-level RBAC is implemented, recommend adding to database:
 
 ```sql
@@ -300,21 +330,25 @@ ALTER TABLE tenants ADD COLUMN updated_by UUID;
 ## Security Features
 
 ### 1. **Privilege Escalation Prevention**
+
 - Admins cannot assign super_admin role
 - Hierarchy-based role checks
 - Permission validation on every action
 
 ### 2. **Cross-Tenant Isolation**
+
 - `canAccessTenant()` prevents access to other tenants
 - Super_admin exception for multi-tenant management
 - Tenant_id validation on all queries
 
 ### 3. **Audit Trail**
+
 - All significant actions logged
 - Includes user, timestamp, changes
 - Ready for compliance reporting
 
 ### 4. **Role Enforcement**
+
 - Page-level access control
 - Component-level permission checks
 - Graceful degradation (hiding vs disabling)
@@ -324,6 +358,7 @@ ALTER TABLE tenants ADD COLUMN updated_by UUID;
 ## Usage Examples
 
 ### Example 1: Checking Permission in Component
+
 ```typescript
 'use client';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -345,6 +380,7 @@ export function UserSettings() {
 ```
 
 ### Example 2: Protecting an API Route
+
 ```typescript
 // In route handler or server action
 import { usePermissions } from '@/hooks/usePermissions';
@@ -353,20 +389,21 @@ import { canUserPerform } from '@/lib/permissions';
 export async function POST(req: Request) {
   const user = await getUser();
   const profile = await getUserProfile(user.id);
-  
+
   if (!canUserPerform(profile, 'manage_users')) {
     return new Response('Unauthorized', { status: 403 });
   }
-  
+
   // Handle request...
 }
 ```
 
 ### Example 3: Using Protected Components
+
 ```typescript
 import { ProtectedButton } from '@/components/ProtectedAction';
 
-<ProtectedButton 
+<ProtectedButton
   permission="change_user_roles"
   tooltipIfDenied="Admin only"
   onClick={handleChangeRole}
@@ -376,6 +413,7 @@ import { ProtectedButton } from '@/components/ProtectedAction';
 ```
 
 ### Example 4: Using Feature Flags
+
 ```typescript
 import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 
@@ -400,12 +438,14 @@ export function Navigation() {
 ## Migration Path
 
 ### For Existing Code
+
 1. Replace `profile?.role === 'admin'` checks with `usePermissions().can(action)`
 2. Replace page redirects with permission checks
 3. Add audit logging calls to mutations
 4. Update component prop drilling with ProtectedAction
 
 ### For New Features
+
 1. Define required permission in PermissionAction type
 2. Add to ROLE_PERMISSIONS matrix
 3. Use `usePermissions()` hook for checks
@@ -434,6 +474,7 @@ export function Navigation() {
 ## Files Changed/Created
 
 **Created (7 files)**:
+
 1. `lib/permissions.ts` - Permission utilities
 2. `lib/auditLog.ts` - Audit logging system
 3. `lib/featureFlags.ts` - Feature flag management
@@ -443,6 +484,7 @@ export function Navigation() {
 7. `app/groups/page.tsx` - Team groups management page
 
 **Modified (6 files)**:
+
 1. `types/access.ts` - Extended permission types
 2. `types/profile.ts` - Added access level imports
 3. `app/users/page.tsx` - Added editable access levels

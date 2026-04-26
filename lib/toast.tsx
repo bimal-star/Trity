@@ -24,12 +24,7 @@ import {
   type ReactNode,
 } from 'react';
 import { AlertTriangle, CheckCircle2, Info, X } from 'lucide-react';
-import {
-  createToastStore,
-  type ToastItem,
-  type ToastStore,
-  type ToastVariant,
-} from './toastStore';
+import { createToastStore, type ToastItem, type ToastStore, type ToastVariant } from './toastStore';
 
 export type { ToastVariant, ToastItem } from './toastStore';
 
@@ -75,8 +70,8 @@ export function ToastProvider({ children }: ToastProviderProps) {
   }, [store, toasts]);
 
   const value = useMemo<ToastContextValue>(() => {
-    const push = (variant: ToastVariant) =>
-      (message: string, opts?: { duration?: number | null }) =>
+    const push =
+      (variant: ToastVariant) => (message: string, opts?: { duration?: number | null }) =>
         store.add({
           variant,
           message,
@@ -167,10 +162,7 @@ function ToastCard({ toast, onDismiss }: ToastCardProps) {
       role={role}
       className={`pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-xl border px-4 py-3 shadow-lg ring-1 ring-black/5 backdrop-blur transition-all ${style.surface}`}
     >
-      <Icon
-        className={`mt-0.5 h-5 w-5 flex-shrink-0 ${style.icon}`}
-        aria-hidden="true"
-      />
+      <Icon className={`mt-0.5 h-5 w-5 flex-shrink-0 ${style.icon}`} aria-hidden="true" />
       <p className="min-w-0 flex-1 whitespace-pre-line break-words text-sm font-medium leading-5">
         {toast.message}
       </p>

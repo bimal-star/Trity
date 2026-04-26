@@ -3,10 +3,7 @@ import { defaultNavigationItems } from '@/lib/navigation-default';
 import { normalizeTenantRole } from '@/lib/permissions';
 import { AccessLevel, TenantRole } from '@/types/access';
 import { resolveEffectiveModuleAccess } from '@/lib/permissionResolver';
-import {
-  flattenNavigationTreeForAccess,
-  organizeHierarchy,
-} from '@/lib/navigation-hierarchy';
+import { flattenNavigationTreeForAccess, organizeHierarchy } from '@/lib/navigation-hierarchy';
 import type { NavigationItem } from '@/types/navigation';
 
 /**
@@ -28,12 +25,18 @@ export function getRoleDefaultAccess(role: TenantRole | string | null | undefine
   return ROLE_DEFAULT_ACCESS[canonical] ?? 'blocked';
 }
 
-export function mapAccessRecord(record: { has_access: boolean; is_readonly?: boolean | null }): AccessLevel {
+export function mapAccessRecord(record: {
+  has_access: boolean;
+  is_readonly?: boolean | null;
+}): AccessLevel {
   if (!record.has_access) return 'blocked';
   return record.is_readonly ? 'readonly' : 'allowed';
 }
 
-export function mapAccessToRecord(access: AccessLevel): { has_access: boolean; is_readonly: boolean } {
+export function mapAccessToRecord(access: AccessLevel): {
+  has_access: boolean;
+  is_readonly: boolean;
+} {
   if (access === 'blocked') return { has_access: false, is_readonly: false };
   return { has_access: true, is_readonly: access === 'readonly' };
 }
@@ -68,11 +71,5 @@ export async function getEffectiveModuleAccess(
     return {};
   }
 
-  return resolveEffectiveModuleAccess(
-    supabase,
-    effectiveTenantId,
-    userId,
-    modules,
-    profile.role
-  );
+  return resolveEffectiveModuleAccess(supabase, effectiveTenantId, userId, modules, profile.role);
 }

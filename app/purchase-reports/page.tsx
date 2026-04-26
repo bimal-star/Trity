@@ -10,7 +10,6 @@ import { runPurchaseReport, type PurchaseReportPreset } from '@/lib/purchaseRepo
 import {
   pillarAccent,
   premiumPrimaryButton,
-  premiumSurfaces,
   premiumTertiaryButton,
   premiumTypography,
 } from '@/lib/premiumUi';
@@ -22,8 +21,16 @@ const bc = pillarAccent('businessCore');
 const PRESETS: { id: PurchaseReportPreset; label: string; hint: string }[] = [
   { id: 'open_pos', label: 'Open purchase orders', hint: 'Draft, sent, or partially received' },
   { id: 'posted_receipts', label: 'Posted goods receipts', hint: 'By received date' },
-  { id: 'invoice_price_exceptions', label: 'Invoice price variances', hint: 'Matched lines with price_variance' },
-  { id: 'invoice_qty_exceptions', label: 'Invoice quantity variances', hint: 'Matched lines with qty_variance' },
+  {
+    id: 'invoice_price_exceptions',
+    label: 'Invoice price variances',
+    hint: 'Matched lines with price_variance',
+  },
+  {
+    id: 'invoice_qty_exceptions',
+    label: 'Invoice quantity variances',
+    hint: 'Matched lines with qty_variance',
+  },
 ];
 
 export default function PurchaseReportsPage() {
@@ -43,7 +50,10 @@ export default function PurchaseReportsPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const supplierMap = useMemo(() => new Map(suppliers.map((s) => [s.id, s.legal_name])), [suppliers]);
+  const supplierMap = useMemo(
+    () => new Map(suppliers.map((s) => [s.id, s.legal_name])),
+    [suppliers]
+  );
 
   const run = async () => {
     if (!tenant_id) return;
@@ -86,7 +96,8 @@ export default function PurchaseReportsPage() {
                   columns.map((c) => {
                     const v = r[c];
                     if (v == null) return '';
-                    if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return v;
+                    if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')
+                      return v;
                     return String(v);
                   })
                 ),
@@ -95,8 +106,6 @@ export default function PurchaseReportsPage() {
             />
           }
         />
-
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
 
         <div className="mb-6 flex flex-wrap gap-4 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
           <label className="text-sm">
@@ -183,7 +192,7 @@ export default function PurchaseReportsPage() {
                   {columns.map((c) => (
                     <td key={c} className="px-3 py-2">
                       {c === 'supplier_id' && typeof r[c] === 'string'
-                        ? supplierMap.get(r[c] as string) ?? r[c]
+                        ? (supplierMap.get(r[c] as string) ?? r[c])
                         : String(r[c] ?? '')}
                     </td>
                   ))}

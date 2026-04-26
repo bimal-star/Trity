@@ -42,4 +42,3 @@ SELECT cron.schedule(
 - [SUPABASE_OPTIMIZATION_SUMMARY.md](SUPABASE_OPTIMIZATION_SUMMARY.md)
 - [../SUPABASE_INTEGRATION_STATUS.md](../SUPABASE_INTEGRATION_STATUS.md)
 - [../supabase/migrations/README.md](../supabase/migrations/README.md)
-

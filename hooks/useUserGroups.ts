@@ -1,6 +1,6 @@
 /**
  * useUserGroups Hook
- * 
+ *
  * Custom React hook for managing user groups
  * Provides CRUD operations for groups and group membership
  */
@@ -14,11 +14,23 @@ interface UseUserGroupsReturn {
   groups: UserGroup[];
   isLoading: boolean;
   error: string | null;
-  createGroup: (data: UserGroupFormData) => Promise<{ success: boolean; error?: string; data?: UserGroup }>;
-  updateGroup: (id: string, data: Partial<UserGroupFormData>) => Promise<{ success: boolean; error?: string }>;
+  createGroup: (
+    data: UserGroupFormData
+  ) => Promise<{ success: boolean; error?: string; data?: UserGroup }>;
+  updateGroup: (
+    id: string,
+    data: Partial<UserGroupFormData>
+  ) => Promise<{ success: boolean; error?: string }>;
   deleteGroup: (id: string) => Promise<{ success: boolean; error?: string }>;
-  addGroupMember: (groupId: string, userId: string, role?: GroupMemberRole) => Promise<{ success: boolean; error?: string }>;
-  removeGroupMember: (groupId: string, userId: string) => Promise<{ success: boolean; error?: string }>;
+  addGroupMember: (
+    groupId: string,
+    userId: string,
+    role?: GroupMemberRole
+  ) => Promise<{ success: boolean; error?: string }>;
+  removeGroupMember: (
+    groupId: string,
+    userId: string
+  ) => Promise<{ success: boolean; error?: string }>;
   getGroupMembers: (groupId: string) => Promise<GroupMember[]>;
   refreshGroups: () => Promise<void>;
 }
@@ -44,10 +56,12 @@ export function useUserGroups(tenantId?: string): UseUserGroupsReturn {
 
       const { data, error: fetchError } = await supabase
         .from('user_groups')
-        .select(`
+        .select(
+          `
           *,
           group_members (id, user_id, role, added_at)
-        `)
+        `
+        )
         .eq('is_deleted', false)
         .eq('tenant_id', tenantId)
         .order('name', { ascending: true });
@@ -77,7 +91,9 @@ export function useUserGroups(tenantId?: string): UseUserGroupsReturn {
   const refreshGroups = fetchGroups;
 
   // Create a new group
-  const createGroup = async (data: UserGroupFormData): Promise<{ success: boolean; error?: string; data?: UserGroup }> => {
+  const createGroup = async (
+    data: UserGroupFormData
+  ): Promise<{ success: boolean; error?: string; data?: UserGroup }> => {
     try {
       setError(null);
 
@@ -91,13 +107,15 @@ export function useUserGroups(tenantId?: string): UseUserGroupsReturn {
 
       const { data: newGroup, error: insertError } = await supabase
         .from('user_groups')
-        .insert([{
-          name: data.name,
-          description: data.description || null,
-          tenant_id: currentTenantId,
-          created_by: currentUserId,
-          updated_by: currentUserId,
-        }] as any)
+        .insert([
+          {
+            name: data.name,
+            description: data.description || null,
+            tenant_id: currentTenantId,
+            created_by: currentUserId,
+            updated_by: currentUserId,
+          },
+        ] as any)
         .select()
         .single();
 
@@ -105,7 +123,7 @@ export function useUserGroups(tenantId?: string): UseUserGroupsReturn {
 
       // Add members if provided
       if (data.member_ids && data.member_ids.length > 0) {
-        const membersData = data.member_ids.map(userId => ({
+        const membersData = data.member_ids.map((userId) => ({
           group_id: newGroup.id,
           user_id: userId,
           role: 'member' as GroupMemberRole,
@@ -129,7 +147,10 @@ export function useUserGroups(tenantId?: string): UseUserGroupsReturn {
   };
 
   // Update an existing group
-  const updateGroup = async (id: string, data: Partial<UserGroupFormData>): Promise<{ success: boolean; error?: string }> => {
+  const updateGroup = async (
+    id: string,
+    data: Partial<UserGroupFormData>
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
       setError(null);
 
@@ -187,20 +208,24 @@ export function useUserGroups(tenantId?: string): UseUserGroupsReturn {
   };
 
   // Add a member to a group
-  const addGroupMember = async (groupId: string, userId: string, role: GroupMemberRole = 'member'): Promise<{ success: boolean; error?: string }> => {
+  const addGroupMember = async (
+    groupId: string,
+    userId: string,
+    role: GroupMemberRole = 'member'
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
       setError(null);
 
       const currentUserId = user?.id;
 
-      const { error: insertError } = await supabase
-        .from('group_members')
-        .insert([{
+      const { error: insertError } = await supabase.from('group_members').insert([
+        {
           group_id: groupId,
           user_id: userId,
           role,
           added_by: currentUserId,
-        }] as any);
+        },
+      ] as any);
 
       if (insertError) throw insertError;
 
@@ -214,7 +239,10 @@ export function useUserGroups(tenantId?: string): UseUserGroupsReturn {
   };
 
   // Remove a member from a group
-  const removeGroupMember = async (groupId: string, userId: string): Promise<{ success: boolean; error?: string }> => {
+  const removeGroupMember = async (
+    groupId: string,
+    userId: string
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
       setError(null);
 

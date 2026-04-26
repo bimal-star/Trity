@@ -17,7 +17,11 @@ const CUSTOMER_STATUS_MAP: Record<string, string> = {
   on_hold: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
 };
 
-export default function CustomerMasterCard({ customer, onArchive, onRestore }: CustomerMasterCardProps) {
+export default function CustomerMasterCard({
+  customer,
+  onArchive,
+  onRestore,
+}: CustomerMasterCardProps) {
   if (!customer) {
     return (
       <MasterCardEmptyState
@@ -44,18 +48,13 @@ export default function CustomerMasterCard({ customer, onArchive, onRestore }: C
             referrerPolicy="no-referrer"
           />
         ) : (
-          <div
-            className="flex h-full w-full items-center justify-center"
-            aria-hidden
-          >
+          <div className="flex h-full w-full items-center justify-center" aria-hidden>
             <Users className="h-7 w-7 text-green-600 dark:text-green-400" />
           </div>
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <h2 className="truncate text-base font-semibold tracking-tight text-gray-900 dark:text-white">
-          {title}
-        </h2>
+        <h2 className="truncate text-base font-semibold text-gray-900 dark:text-white">{title}</h2>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         <EntityStatusBadge status={customer.status ?? 'inactive'} statusMap={CUSTOMER_STATUS_MAP} />

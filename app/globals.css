@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Single source of truth for app-wide character spacing; tune in one place */
+:root {
+  --trity-tracking: 0.04em;
+}
+
+@layer base {
+  html,
+  body {
+    letter-spacing: var(--trity-tracking);
+  }
+}
+
 /* Reserve scrollbar width so full-width sticky chrome does not shift when scrollability changes */
 html {
   scrollbar-gutter: stable;

@@ -173,41 +173,41 @@ export default function CustomerForm({
   const displayError = localError || externalError;
   const hasAddressDetails = Boolean(
     formData.address_line1 ||
-      formData.address_line2 ||
-      formData.city ||
-      formData.state ||
-      formData.postcode ||
-      formData.country
+    formData.address_line2 ||
+    formData.city ||
+    formData.state ||
+    formData.postcode ||
+    formData.country
   );
   const hasLegalDetails = Boolean(
     formData.registration_number ||
-      formData.vat_number ||
-      formData.tax_scheme ||
-      formData.credit_rating ||
-      formData.risk_category
+    formData.vat_number ||
+    formData.tax_scheme ||
+    formData.credit_rating ||
+    formData.risk_category
   );
   const hasCommercialDetails = Boolean(
     formData.payment_terms ||
-      formData.credit_limit != null ||
-      formData.currency ||
-      formData.price_list_id ||
-      formData.discount_rate != null ||
-      formData.tax_inclusive ||
-      formData.credit_hold
+    formData.credit_limit != null ||
+    formData.currency ||
+    formData.price_list_id ||
+    formData.discount_rate != null ||
+    formData.tax_inclusive ||
+    formData.credit_hold
   );
   const hasLogisticsDetails = Boolean(
     formData.default_warehouse_id ||
-      formData.delivery_instructions ||
-      formData.preferred_carrier ||
-      formData.shipping_account_number ||
-      formData.incoterms
+    formData.delivery_instructions ||
+    formData.preferred_carrier ||
+    formData.shipping_account_number ||
+    formData.incoterms
   );
   const hasSalesDetails = Boolean(
     formData.sales_rep_id ||
-      formData.channel ||
-      formData.region ||
-      formData.forecast_group ||
-      formData.demand_profile
+    formData.channel ||
+    formData.region ||
+    formData.forecast_group ||
+    formData.demand_profile
   );
   const hasMetadataDetails = metadataJson.trim() !== '{}';
 
@@ -352,7 +352,9 @@ export default function CustomerForm({
           <details className="group mb-3">
             <summary className="flex cursor-pointer items-center justify-between rounded-md border border-green-100 bg-green-50/50 px-3 py-2 hover:bg-green-50 dark:border-green-900/30 dark:bg-green-900/10 dark:hover:bg-green-900/20">
               <div className="flex items-center gap-2">
-                <h4 className="text-sm font-medium text-gray-900 dark:text-white">Address Information</h4>
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                  Address Information
+                </h4>
                 {sectionIndicator(hasAddressDetails)}
               </div>
               <ChevronDown className="h-4 w-4 text-green-600 transition-transform group-open:rotate-180 dark:text-green-400" />
@@ -518,7 +520,9 @@ export default function CustomerForm({
           <details className="group mb-3">
             <summary className="flex cursor-pointer items-center justify-between rounded-md border border-green-100 bg-green-50/50 px-3 py-2 hover:bg-green-50 dark:border-green-900/30 dark:bg-green-900/10 dark:hover:bg-green-900/20">
               <div className="flex items-center gap-2">
-                <h4 className="text-sm font-medium text-gray-900 dark:text-white">Commercial Terms</h4>
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                  Commercial Terms
+                </h4>
                 {sectionIndicator(hasCommercialDetails)}
               </div>
               <ChevronDown className="h-4 w-4 text-green-600 transition-transform group-open:rotate-180 dark:text-green-400" />
@@ -624,7 +628,9 @@ export default function CustomerForm({
                     <input
                       type="checkbox"
                       checked={!!formData.tax_inclusive}
-                      onChange={(e) => setFormData({ ...formData, tax_inclusive: e.target.checked })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, tax_inclusive: e.target.checked })
+                      }
                       className="h-3.5 w-3.5 rounded border-gray-300 text-green-600 focus:ring-green-500"
                       disabled={busy}
                     />

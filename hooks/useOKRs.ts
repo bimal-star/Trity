@@ -1,6 +1,6 @@
 /**
  * useOKRs Hook
- * 
+ *
  * Custom React hook for managing OKRs data from Supabase
  * Provides CRUD operations and progress calculation
  */
@@ -15,7 +15,10 @@ interface UseOKRsReturn {
   isLoading: boolean;
   error: string | null;
   createOKR: (data: OKRFormData) => Promise<{ success: boolean; error?: string; data?: OKR }>;
-  updateOKR: (id: string, data: Partial<OKRFormData>) => Promise<{ success: boolean; error?: string }>;
+  updateOKR: (
+    id: string,
+    data: Partial<OKRFormData>
+  ) => Promise<{ success: boolean; error?: string }>;
   deleteOKR: (id: string) => Promise<{ success: boolean; error?: string }>;
   refreshOKRs: () => Promise<void>;
 }
@@ -33,7 +36,7 @@ export function useOKRs(filters?: OKRFilters): UseOKRsReturn {
     let totalWeight = 0;
     let weightedProgress = 0;
 
-    keyResults.forEach(kr => {
+    keyResults.forEach((kr) => {
       const weight = kr.weight || 1.0;
       totalWeight += weight;
 
@@ -64,10 +67,12 @@ export function useOKRs(filters?: OKRFilters): UseOKRsReturn {
 
       let query = tenantedSupabase
         .from('okrs')
-        .select(`
+        .select(
+          `
           *,
           key_results (*)
-        `)
+        `
+        )
         .eq('tenant_id', tenant_id)
         .eq('is_deleted', false)
         .order('created_at', { ascending: false });
@@ -126,7 +131,9 @@ export function useOKRs(filters?: OKRFilters): UseOKRsReturn {
   };
 
   // Create a new OKR with key results
-  const createOKR = async (data: OKRFormData): Promise<{ success: boolean; error?: string; data?: OKR }> => {
+  const createOKR = async (
+    data: OKRFormData
+  ): Promise<{ success: boolean; error?: string; data?: OKR }> => {
     try {
       setError(null);
 
@@ -135,16 +142,18 @@ export function useOKRs(filters?: OKRFilters): UseOKRsReturn {
       // Create OKR
       const { data: newOKR, error: okrError } = await tenantedSupabase
         .from('okrs')
-        .insert([{
-          project_id: data.project_id || null,
-          objective: data.objective,
-          quarter: data.quarter || null,
-          year: data.year || null,
-          status: data.status || 'draft',
-          target_date: data.target_date || null,
-          created_by: currentUserId,
-          updated_by: currentUserId,
-        }] as any)
+        .insert([
+          {
+            project_id: data.project_id || null,
+            objective: data.objective,
+            quarter: data.quarter || null,
+            year: data.year || null,
+            status: data.status || 'draft',
+            target_date: data.target_date || null,
+            created_by: currentUserId,
+            updated_by: currentUserId,
+          },
+        ] as any)
         .select()
         .single();
 
@@ -154,7 +163,7 @@ export function useOKRs(filters?: OKRFilters): UseOKRsReturn {
 
       // Create key results if provided
       if (data.key_results && data.key_results.length > 0) {
-        const keyResultsData = data.key_results.map(kr => ({
+        const keyResultsData = data.key_results.map((kr) => ({
           okr_id: createdOkr.id,
           description: kr.description,
           target_value: kr.target_value || null,
@@ -181,7 +190,10 @@ export function useOKRs(filters?: OKRFilters): UseOKRsReturn {
   };
 
   // Update an existing OKR
-  const updateOKR = async (id: string, data: Partial<OKRFormData>): Promise<{ success: boolean; error?: string }> => {
+  const updateOKR = async (
+    id: string,
+    data: Partial<OKRFormData>
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
       setError(null);
 
@@ -209,14 +221,11 @@ export function useOKRs(filters?: OKRFilters): UseOKRsReturn {
       // Update key results if provided
       if (data.key_results) {
         // Delete existing key results
-        await tenantedSupabase
-          .from('key_results')
-          .delete()
-          .eq('okr_id', id);
+        await tenantedSupabase.from('key_results').delete().eq('okr_id', id);
 
         // Insert updated key results
         if (data.key_results.length > 0) {
-          const keyResultsData = data.key_results.map(kr => ({
+          const keyResultsData = data.key_results.map((kr) => ({
             okr_id: id,
             description: kr.description,
             target_value: kr.target_value || null,

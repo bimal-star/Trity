@@ -55,8 +55,7 @@ export function ProtectedRoute({
   } = useTenant();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
-  const jwtAppRoleHint =
-    typeof user?.app_metadata?.role === 'string' ? user.app_metadata.role : '';
+  const jwtAppRoleHint = typeof user?.app_metadata?.role === 'string' ? user.app_metadata.role : '';
   const jwtUserRoleHint =
     typeof user?.user_metadata?.role === 'string' ? user.user_metadata.role : '';
   const isAuthedSuperShell = useMemo(() => {
@@ -107,8 +106,15 @@ export function ProtectedRoute({
     if (loadingComponent) return <>{loadingComponent}</>;
     return (
       <div className="flex min-h-screen items-center justify-center bg-white dark:bg-gray-900">
-        <div role="status" aria-label={isRedirecting ? 'Redirecting' : 'Loading'} className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 border-2 border-gray-300 dark:border-gray-600 border-t-green-500 rounded-full animate-spin" aria-hidden />
+        <div
+          role="status"
+          aria-label={isRedirecting ? 'Redirecting' : 'Loading'}
+          className="flex flex-col items-center gap-3"
+        >
+          <div
+            className="h-10 w-10 border-2 border-gray-300 dark:border-gray-600 border-t-green-500 rounded-full animate-spin"
+            aria-hidden
+          />
           <p className="text-sm text-gray-600 dark:text-gray-400" aria-hidden>
             {isRedirecting ? 'Redirecting...' : 'Loading...'}
           </p>
@@ -128,7 +134,10 @@ export function ProtectedRoute({
     return (
       <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-900">
         <div className="text-center max-w-md p-6">
-          <div role="alert" className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
+          <div
+            role="alert"
+            className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6"
+          >
             <h2 className="text-xl font-semibold text-red-800 dark:text-red-200 mb-2">
               Account Configuration Error
             </h2>
@@ -161,7 +170,10 @@ export function ProtectedRoute({
   return (
     <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-900">
       <div className="text-center max-w-md p-6">
-        <div aria-live="polite" className="rounded-lg border border-amber-200 bg-amber-50 p-6 dark:border-amber-700/50 dark:bg-amber-950/30">
+        <div
+          aria-live="polite"
+          className="rounded-lg border border-amber-200 bg-amber-50 p-6 dark:border-amber-700/50 dark:bg-amber-950/30"
+        >
           <h2 className="text-xl font-semibold text-amber-900 dark:text-amber-100 mb-2">
             Finishing sign-in
           </h2>

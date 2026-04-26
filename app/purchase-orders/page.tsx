@@ -21,7 +21,12 @@ import {
   getPoLineDiscountAmount,
 } from '@/lib/purchaseLinePricing';
 import { isBelowMoq, resolvePoListUnitPrice } from '@/lib/supplierProductPricing';
-import { pillarAccent, premiumPrimaryButton, premiumSurfaces, premiumTertiaryButton, premiumTypography } from '@/lib/premiumUi';
+import {
+  pillarAccent,
+  premiumPrimaryButton,
+  premiumTertiaryButton,
+  premiumTypography,
+} from '@/lib/premiumUi';
 import { useToast } from '@/lib/toast';
 import { FileSpreadsheet, Plus } from 'lucide-react';
 
@@ -46,15 +51,12 @@ export default function PurchaseOrdersPage() {
   const [linesLoading, setLinesLoading] = useState(false);
   const { toast } = useToast();
 
-  const filters = useMemo(() => (search.trim() ? { searchQuery: search.trim() } : undefined), [search]);
-  const {
-    purchaseOrders,
-    isLoading,
-    error,
-    fetchLines,
-    updatePurchaseOrder,
-    replaceLines,
-  } = usePurchaseOrders(filters);
+  const filters = useMemo(
+    () => (search.trim() ? { searchQuery: search.trim() } : undefined),
+    [search]
+  );
+  const { purchaseOrders, isLoading, error, fetchLines, updatePurchaseOrder, replaceLines } =
+    usePurchaseOrders(filters);
 
   const { suppliers } = useSuppliers();
   const { warehouses } = useWarehouses();
@@ -153,9 +155,7 @@ export default function PurchaseOrdersPage() {
           }
         />
 
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
-
-        <div className="flex h-[calc(100vh-132px)] min-h-[min(560px,calc(100vh-132px))] w-full flex-col overflow-hidden">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden lg:grid-cols-3 lg:items-stretch">
             <div className="flex h-full min-h-0 flex-col lg:col-span-1">
               <PurchaseOrderList
@@ -379,12 +379,7 @@ function DraftLineEditor({
     let s = 0;
     for (const r of rows) {
       if (!r.product_id || r.quantity_ordered <= 0) continue;
-      s += poLineNetExtended(
-        r.quantity_ordered,
-        r.unit_price,
-        r.discount_pct,
-        r.discount_amount
-      );
+      s += poLineNetExtended(r.quantity_ordered, r.unit_price, r.discount_pct, r.discount_amount);
     }
     return s;
   }, [rows]);

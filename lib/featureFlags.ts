@@ -1,6 +1,6 @@
 /**
  * Feature Flags utilities for per-tenant feature control
- * 
+ *
  * Allows enabling/disabling features per tenant
  * Stores flags in tenants.settings JSON field
  */
@@ -103,9 +103,7 @@ const KNOWN_TIERS = new Set<SubscriptionTier>(['basic', 'professional', 'enterpr
 /**
  * Maps DB `subscription_tier` to a known tier; unknown or empty → `basic`.
  */
-export function normalizeSubscriptionTier(
-  raw: string | null | undefined
-): SubscriptionTier {
+export function normalizeSubscriptionTier(raw: string | null | undefined): SubscriptionTier {
   if (raw == null || typeof raw !== 'string') return 'basic';
   const t = raw.trim().toLowerCase() as SubscriptionTier;
   return KNOWN_TIERS.has(t) ? t : 'basic';
@@ -139,10 +137,7 @@ export const TIER_FEATURE_DEFAULTS: Record<
   },
 };
 
-export function tierDefaultForFlag(
-  tier: SubscriptionTier,
-  flag: FeatureFlag
-): boolean | undefined {
+export function tierDefaultForFlag(tier: SubscriptionTier, flag: FeatureFlag): boolean | undefined {
   const v = TIER_FEATURE_DEFAULTS[tier]?.[flag];
   return typeof v === 'boolean' ? v : undefined;
 }
@@ -192,7 +187,10 @@ export function buildTierFeatureSettingsSnapshot(
  * Check if a feature is enabled for a tenant.
  * Precedence: explicit `settings[flag]` → tier default (if mapped) → `FEATURE_FLAG_DEFAULTS`.
  */
-export function isFeatureEnabled(tenant: TenantDetails | null | undefined, flag: FeatureFlag): boolean {
+export function isFeatureEnabled(
+  tenant: TenantDetails | null | undefined,
+  flag: FeatureFlag
+): boolean {
   if (!tenant) return false;
 
   if (tenant.settings && typeof tenant.settings === 'object') {
@@ -212,18 +210,22 @@ export function isFeatureEnabled(tenant: TenantDetails | null | undefined, flag:
  * Get feature flag info
  */
 export function getFeatureFlagInfo(flag: FeatureFlag): FeatureFlagInfo {
-  return FEATURE_FLAG_DEFAULTS[flag] || {
-    flag,
-    label: flag,
-    description: `Feature: ${flag}`,
-    defaultEnabled: false,
-  };
+  return (
+    FEATURE_FLAG_DEFAULTS[flag] || {
+      flag,
+      label: flag,
+      description: `Feature: ${flag}`,
+      defaultEnabled: false,
+    }
+  );
 }
 
 /**
  * Get all available feature flags with their current status
  */
-export function getAllFeatureFlags(tenant: TenantDetails | null | undefined): Array<FeatureFlagInfo & { enabled: boolean }> {
+export function getAllFeatureFlags(
+  tenant: TenantDetails | null | undefined
+): Array<FeatureFlagInfo & { enabled: boolean }> {
   return Object.entries(FEATURE_FLAG_DEFAULTS).map(([, info]) => ({
     ...info,
     enabled: isFeatureEnabled(tenant, info.flag),

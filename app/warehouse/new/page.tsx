@@ -9,7 +9,7 @@ import { useWarehouses } from '@/hooks/useWarehouses';
 import { useTenant } from '@/contexts/TenantContext';
 import { logWarehouseCreated } from '@/lib/auditLog';
 import type { WarehouseFormData } from '@/types/warehouse';
-import { pillarAccent, premiumSurfaces, premiumTypography } from '@/lib/premiumUi';
+import { pillarAccent, premiumTypography } from '@/lib/premiumUi';
 import { Warehouse as WarehouseIcon } from 'lucide-react';
 
 const bc = pillarAccent('businessCore');
@@ -39,8 +39,6 @@ export default function NewWarehousePage() {
           subtitle="Add a location, default flag, and site contact details"
           subtitleClassName={`${premiumTypography.pageSubtitle} ${bc.subtitleTint}`}
         />
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
-
         <div className="flex h-[calc(100vh-168px)] min-h-[min(560px,calc(100vh-168px))] w-full flex-col overflow-hidden">
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <WarehouseCreateForm

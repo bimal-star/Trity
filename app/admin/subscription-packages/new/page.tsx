@@ -71,7 +71,11 @@ export default function NewSubscriptionPackagePage() {
   if (!ready || tenantBootLoading || !isSuperAdmin) {
     return (
       <ProtectedRoute>
-        <PageContainer module={null} rootClassName={premiumSurfaces.platformPageRoot} innerClassName={premiumSurfaces.platformPageInner}>
+        <PageContainer
+          module={null}
+          rootClassName={premiumSurfaces.platformPageRoot}
+          innerClassName={premiumSurfaces.platformPageInner}
+        >
           <div className="flex justify-center py-16">
             <Loader2 className={`h-8 w-8 animate-spin ${pa.iconColor}`} />
           </div>
@@ -82,7 +86,11 @@ export default function NewSubscriptionPackagePage() {
 
   return (
     <ProtectedRoute>
-      <PageContainer module={null} rootClassName={premiumSurfaces.platformPageRoot} innerClassName={premiumSurfaces.platformPageInner}>
+      <PageContainer
+        module={null}
+        rootClassName={premiumSurfaces.platformPageRoot}
+        innerClassName={premiumSurfaces.platformPageInner}
+      >
         <PremiumStickyHeader
           module="platform"
           className={premiumSurfaces.platformStickyHeaderOffset}
@@ -93,12 +101,18 @@ export default function NewSubscriptionPackagePage() {
           backHref="/admin/subscription-packages"
           backLabel="All packages"
         />
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
-
-        <form onSubmit={onSubmit} className={`max-w-xl space-y-4 rounded-2xl ${premiumSurfaces.cardElevated} p-6`}>
+        <form
+          onSubmit={onSubmit}
+          className={`max-w-xl space-y-4 rounded-2xl ${premiumSurfaces.cardElevated} p-6`}
+        >
           <div>
             <label className={`mb-1.5 block ${premiumTypography.label}`}>Name</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} className={`w-full ${fieldClass}`} required />
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className={`w-full ${fieldClass}`}
+              required
+            />
           </div>
           <div>
             <label className={`mb-1.5 block ${premiumTypography.label}`}>Description</label>
@@ -133,16 +147,28 @@ export default function NewSubscriptionPackagePage() {
             </div>
             <div className="flex items-end pb-2">
               <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="rounded border-gray-300" />
+                <input
+                  type="checkbox"
+                  checked={isActive}
+                  onChange={(e) => setIsActive(e.target.checked)}
+                  className="rounded border-gray-300"
+                />
                 Active (selectable on tenants)
               </label>
             </div>
           </div>
           <div className="flex flex-wrap gap-3 pt-2">
-            <Link href="/admin/subscription-packages" className={premiumSecondaryButton('platform', 'md', 'auto')}>
+            <Link
+              href="/admin/subscription-packages"
+              className={premiumSecondaryButton('platform', 'md', 'auto')}
+            >
               Cancel
             </Link>
-            <button type="submit" disabled={isSaving} className={premiumPrimaryButton('platform', 'md', 'wide')}>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className={premiumPrimaryButton('platform', 'md', 'wide')}
+            >
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Create package
             </button>

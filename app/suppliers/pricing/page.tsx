@@ -36,7 +36,10 @@ export default function SupplierPricingPage() {
     supplierId || null
   );
 
-  const activeSuppliers = useMemo(() => suppliers.filter((s) => s.status === 'active'), [suppliers]);
+  const activeSuppliers = useMemo(
+    () => suppliers.filter((s) => s.status === 'active'),
+    [suppliers]
+  );
   const productMap = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
   const catalogProductIds = useMemo(() => new Set(catalog.map((c) => c.product_id)), [catalog]);
 
@@ -71,7 +74,7 @@ export default function SupplierPricingPage() {
       supplier_sku: addSku.trim() || null,
       uom: addUom.trim() || null,
     });
-    setAddMsg(r.success ? 'Saved.' : r.error ?? 'Failed');
+    setAddMsg(r.success ? 'Saved.' : (r.error ?? 'Failed'));
     if (r.success) {
       setAddProductId('');
       setAddUnitPrice(0);
@@ -95,7 +98,7 @@ export default function SupplierPricingPage() {
     });
     setRowMsg((m) => ({
       ...m,
-      [row.id]: r.success ? 'Saved' : r.error ?? 'Failed',
+      [row.id]: r.success ? 'Saved' : (r.error ?? 'Failed'),
     }));
   };
 
@@ -137,7 +140,10 @@ export default function SupplierPricingPage() {
             </select>
             <p className={`mt-2 ${premiumTypography.helper}`}>
               PO lines use this catalog when the same supplier is selected on the order.{' '}
-              <Link href="/purchase-orders/new" className="text-green-700 underline dark:text-green-400">
+              <Link
+                href="/purchase-orders/new"
+                className="text-green-700 underline dark:text-green-400"
+              >
                 New purchase order
               </Link>
             </p>
@@ -218,7 +224,9 @@ export default function SupplierPricingPage() {
                   </button>
                 </div>
                 {addMsg && (
-                  <p className={`mt-2 text-sm ${addMsg === 'Saved.' ? 'text-green-700 dark:text-green-400' : 'text-red-600'}`}>
+                  <p
+                    className={`mt-2 text-sm ${addMsg === 'Saved.' ? 'text-green-700 dark:text-green-400' : 'text-red-600'}`}
+                  >
                     {addMsg}
                   </p>
                 )}
@@ -227,14 +235,12 @@ export default function SupplierPricingPage() {
               <div className={`${premiumSurfaces.card}`}>
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <h2 className={premiumTypography.sectionTitle}>Catalog for this supplier</h2>
-                  {isLoading && (
-                    <span className={`${premiumTypography.helper}`}>Loading…</span>
-                  )}
+                  {isLoading && <span className={`${premiumTypography.helper}`}>Loading…</span>}
                 </div>
                 {catalog.length === 0 && !isLoading ? (
                   <p className={`${premiumTypography.helper}`}>
-                    No prices yet. Add a product above — purchase orders will fall back to product cost/sell
-                    until a row exists.
+                    No prices yet. Add a product above — purchase orders will fall back to product
+                    cost/sell until a row exists.
                   </p>
                 ) : (
                   <div className="overflow-x-auto">
@@ -242,7 +248,9 @@ export default function SupplierPricingPage() {
                       className={`w-full min-w-[720px] border-collapse text-left ${premiumTypography.tableCell}`}
                     >
                       <thead>
-                        <tr className={`border-b border-gray-200 dark:border-gray-700 ${premiumTypography.tableHeaderDense}`}>
+                        <tr
+                          className={`border-b border-gray-200 dark:border-gray-700 ${premiumTypography.tableHeaderDense}`}
+                        >
                           <th className="pb-2 pr-2">Product</th>
                           <th className="pb-2 px-1">Unit price</th>
                           <th className="pb-2 px-1">MOQ</th>
@@ -256,13 +264,17 @@ export default function SupplierPricingPage() {
                           <CatalogRowEditor
                             key={`${row.id}-${row.updated_at}`}
                             row={row}
-                            productLabel={productMap.get(row.product_id) ? productLabel(productMap.get(row.product_id)!) : row.product_id}
+                            productLabel={
+                              productMap.get(row.product_id)
+                                ? productLabel(productMap.get(row.product_id)!)
+                                : row.product_id
+                            }
                             onSave={(patch) => void saveRow(row, patch)}
                             onDelete={async () => {
                               const r = await deletePrice(row.id);
                               setRowMsg((m) => ({
                                 ...m,
-                                [row.id]: r.success ? null : r.error ?? 'Delete failed',
+                                [row.id]: r.success ? null : (r.error ?? 'Delete failed'),
                               }));
                             }}
                             message={rowMsg[row.id] ?? null}
@@ -277,11 +289,13 @@ export default function SupplierPricingPage() {
           )}
 
           {!supplierId && (
-            <div className={`flex items-start gap-2 rounded-lg border border-dashed border-gray-300 p-6 dark:border-gray-600`}>
+            <div
+              className={`flex items-start gap-2 rounded-lg border border-dashed border-gray-300 p-6 dark:border-gray-600`}
+            >
               <Tags className="mt-0.5 h-5 w-5 text-gray-400" aria-hidden />
               <p className={`${premiumTypography.body} text-gray-600 dark:text-gray-400`}>
-                Choose a supplier to view and edit negotiated list prices. Each product can have one price row
-                per supplier.
+                Choose a supplier to view and edit negotiated list prices. Each product can have one
+                price row per supplier.
               </p>
             </div>
           )}
@@ -348,9 +362,7 @@ function CatalogRowEditor({
       </td>
       <td className="py-2 pl-2 align-middle text-right">
         <div className="flex flex-wrap items-center justify-end gap-2">
-          {message && (
-            <span className="text-xs text-gray-500 dark:text-gray-400">{message}</span>
-          )}
+          {message && <span className="text-xs text-gray-500 dark:text-gray-400">{message}</span>}
           <button
             type="button"
             onClick={() =>

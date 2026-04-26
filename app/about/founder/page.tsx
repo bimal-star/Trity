@@ -35,8 +35,6 @@ export default function FounderPage() {
           subtitleClassName={`${premiumTypography.pageSubtitle} ${bc.subtitleTint}`}
         />
 
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
-
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
           <section className={premiumSurfaces.card}>
             <div className="mb-3 flex items-start gap-3">
@@ -47,9 +45,10 @@ export default function FounderPage() {
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Bimal Patel</h2>
                 <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-300">Founder, Trity</p>
                 <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-                  Trity is shaped by years spent in planning rooms, factory operations, and supply chain
-                  problem solving. The goal is simple: give teams a practical system that improves
-                  clarity, cadence, and execution without forcing them into disconnected tools.
+                  Trity is shaped by years spent in planning rooms, factory operations, and supply
+                  chain problem solving. The goal is simple: give teams a practical system that
+                  improves clarity, cadence, and execution without forcing them into disconnected
+                  tools.
                 </p>
               </div>
             </div>
@@ -59,7 +58,10 @@ export default function FounderPage() {
               <ul className="mt-2 space-y-2 text-sm text-gray-700 dark:text-gray-300">
                 {highlights.map((item) => (
                   <li key={item} className="flex items-start gap-2">
-                    <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400" aria-hidden />
+                    <BadgeCheck
+                      className="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400"
+                      aria-hidden
+                    />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -69,9 +71,9 @@ export default function FounderPage() {
             <div className="mt-5">
               <h3 className={premiumTypography.sectionTitle}>Why Trity</h3>
               <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-                Many operations still rely on manual handoffs and fragmented spreadsheets.
-                Trity brings those workflows together so purchase-to-pay, supplier management,
-                warehouse operations, and product decisions can run in one coherent system.
+                Many operations still rely on manual handoffs and fragmented spreadsheets. Trity
+                brings those workflows together so purchase-to-pay, supplier management, warehouse
+                operations, and product decisions can run in one coherent system.
               </p>
             </div>
           </section>
@@ -81,14 +83,19 @@ export default function FounderPage() {
             <ul className="mt-3 space-y-2 text-sm text-gray-700 dark:text-gray-300">
               {principles.map((item) => (
                 <li key={item} className="flex items-start gap-2">
-                  <Target className="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400" aria-hidden />
+                  <Target
+                    className="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400"
+                    aria-hidden
+                  />
                   <span>{item}</span>
                 </li>
               ))}
             </ul>
 
             <div className="mt-5 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900/40">
-              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Connect</p>
+              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                Connect
+              </p>
               <Link
                 href="https://www.linkedin.com/in/bimal-patel-bb556765"
                 target="_blank"

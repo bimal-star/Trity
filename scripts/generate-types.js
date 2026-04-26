@@ -1,12 +1,12 @@
 /**
  * Generate TypeScript types from Supabase schema
- * 
+ *
  * Note: This script uses the Supabase CLI to generate types.
  * Make sure you have the Supabase CLI installed and configured.
- * 
+ *
  * To install: npm install -g supabase
  * To link project: supabase link --project-ref <your-project-ref>
- * 
+ *
  * This approach bypasses RLS issues by using the service role key
  * that the CLI uses internally.
  */
@@ -24,17 +24,14 @@ console.log('This will query the database schema directly.\n');
 try {
   // Use Supabase CLI to generate types
   // The CLI automatically uses your project credentials
-  const output = execSync(
-    'supabase gen types typescript --linked',
-    { 
-      encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'pipe']
-    }
-  );
-  
+  const output = execSync('supabase gen types typescript --linked', {
+    encoding: 'utf8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+
   // Write output to file
   fs.writeFileSync(outputPath, output, 'utf8');
-  
+
   console.log(`✅ Types generated successfully: ${outputPath}`);
   console.log(`\nGenerated types for all tables, views, and functions.`);
 } catch (error) {
@@ -43,7 +40,7 @@ try {
   console.error('1. Supabase CLI installed: npm install -g supabase');
   console.error('2. Project linked: supabase link --project-ref <your-project-ref>');
   console.error('\nFalling back to manual type generation...\n');
-  
+
   // Fallback: Generate basic types manually
   generateTypesManually();
 }

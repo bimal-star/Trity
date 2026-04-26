@@ -32,6 +32,7 @@
  */
 
 import PageBackRow from '@/components/PageBackRow';
+import { stickyBelowTopNavClass } from '@/lib/appChrome';
 
 type ModuleType = 'businessCore' | 'analytics' | 'execution' | null;
 
@@ -86,19 +87,19 @@ export default function PageContainer({
 }: PageContainerProps) {
   const theme = module ? moduleThemes[module] : null;
 
-  const backRow =
-    backLink ? <PageBackRow href={backLink.href} label={backLink.label} /> : null;
+  const backRow = backLink ? <PageBackRow href={backLink.href} label={backLink.label} /> : null;
 
   const outerClass =
-    rootClassName ?? 'min-h-screen bg-gray-50 dark:bg-gray-900 pt-4 pb-2 px-3 sm:px-6';
-  const innerClass = innerClassName ?? 'mx-auto w-full max-w-[1600px]';
+    rootClassName ??
+    'flex min-h-0 flex-1 flex-col bg-gray-50 dark:bg-gray-900 pt-4 pb-2 px-3 sm:px-6';
+  const innerClass = innerClassName ?? 'mx-auto flex min-h-0 w-full max-w-none flex-1 flex-col';
 
   return (
     <div className={outerClass}>
       <div className={innerClass}>
         {title || headerContent ? (
           <div
-            className={`sticky top-0 z-50 mb-6 flex flex-col bg-gray-50 dark:bg-gray-900 py-2 -mx-1 px-1 ${
+            className={`sticky shrink-0 ${stickyBelowTopNavClass} z-30 mb-6 flex flex-col bg-gray-50 dark:bg-gray-900 py-2 -mx-1 px-1 ${
               theme
                 ? `mt-2 rounded-lg border-l-4 bg-gradient-to-r p-4 ${theme.gradient} ${theme.border}`
                 : ''

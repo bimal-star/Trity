@@ -118,7 +118,9 @@ export default function WarehouseList({
         </div>
       </div>
 
-      <div className={`flex min-h-0 flex-1 flex-col overflow-hidden ${premiumTypography.tableCell}`}>
+      <div
+        className={`flex min-h-0 flex-1 flex-col overflow-hidden ${premiumTypography.tableCell}`}
+      >
         {error && !isLoading && (
           <div className={`shrink-0 p-3 text-red-500 ${premiumTypography.helper}`} role="alert">
             {error}

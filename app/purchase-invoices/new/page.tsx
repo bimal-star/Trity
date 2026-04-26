@@ -97,8 +97,6 @@ export default function NewPurchaseInvoicePage() {
           subtitle="Enter header details and line quantities for matching"
         />
 
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
-
         <div className={`mx-auto max-w-3xl space-y-4 ${premiumSurfaces.card}`}>
           {err && <p className="text-sm text-red-600">{err}</p>}
 

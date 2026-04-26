@@ -11,9 +11,6 @@ export interface CustomerLogoFieldProps {
 
 export default function CustomerLogoField(props: CustomerLogoFieldProps) {
   return (
-    <LogoUrlField
-      {...props}
-      uploadFile={(tenantId, file) => uploadCustomerLogo(tenantId, file)}
-    />
+    <LogoUrlField {...props} uploadFile={(tenantId, file) => uploadCustomerLogo(tenantId, file)} />
   );
 }

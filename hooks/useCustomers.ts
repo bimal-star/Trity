@@ -9,8 +9,13 @@ interface UseCustomersReturn {
   customers: Customer[];
   isLoading: boolean;
   error: string | null;
-  createCustomer: (data: CustomerFormData) => Promise<{ success: boolean; id?: string; error?: string }>;
-  updateCustomer: (id: string, data: Partial<CustomerFormData>) => Promise<{ success: boolean; error?: string }>;
+  createCustomer: (
+    data: CustomerFormData
+  ) => Promise<{ success: boolean; id?: string; error?: string }>;
+  updateCustomer: (
+    id: string,
+    data: Partial<CustomerFormData>
+  ) => Promise<{ success: boolean; error?: string }>;
   archiveCustomer: (id: string) => Promise<{ success: boolean; error?: string }>;
   restoreCustomer: (id: string) => Promise<{ success: boolean; error?: string }>;
   refreshCustomers: () => Promise<void>;
@@ -24,14 +29,21 @@ export interface UseCustomersOptions {
 /** Safe fragment for PostgREST `ilike` inside `.or()` (strips %, _, comma, and grouping chars). */
 function customerSearchPattern(raw: string | undefined): string | null {
   if (!raw) return null;
-  const t = raw.trim().replace(/[,()\[\]]/g, ' ').replace(/\s+/g, ' ').trim();
+  const t = raw
+    .trim()
+    .replace(/[,()\[\]]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (!t) return null;
   const safe = t.replace(/[%_]/g, '');
   if (!safe) return null;
   return `%${safe}%`;
 }
 
-export function useCustomers(filters?: CustomerFilters, options?: UseCustomersOptions): UseCustomersReturn {
+export function useCustomers(
+  filters?: CustomerFilters,
+  options?: UseCustomersOptions
+): UseCustomersReturn {
   const loadCustomers = options?.loadCustomers !== false;
   const { effectiveTenantId: tenant_id, user } = useTenant();
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -108,51 +120,49 @@ export function useCustomers(filters?: CustomerFilters, options?: UseCustomersOp
     try {
       const { error: err, data: created } = await tenantedSupabase
         .from('customers')
-        .insert(
-          [
-            {
-              tenant_id,
-              created_by: user?.id ?? null,
-              updated_by: user?.id ?? null,
-              customer_type: data.customer_type || null,
-              logo_url: data.logo_url ?? null,
-              email: data.email,
-              phone: data.phone || null,
-              address_line1: data.address_line1 || null,
-              address_line2: data.address_line2 || null,
-              city: data.city || null,
-              state: data.state || null,
-              postcode: data.postcode || null,
-              country: data.country || null,
-              status: data.status || 'active',
-              legal_name: data.legal_name || null,
-              trading_name: data.trading_name || null,
-              registration_number: data.registration_number || null,
-              vat_number: data.vat_number || null,
-              tax_scheme: data.tax_scheme || null,
-              credit_rating: data.credit_rating || null,
-              risk_category: data.risk_category || null,
-              payment_terms: data.payment_terms || null,
-              credit_limit: data.credit_limit ?? null,
-              credit_hold: data.credit_hold ?? false,
-              currency: data.currency || null,
-              price_list_id: data.price_list_id || null,
-              discount_rate: data.discount_rate ?? null,
-              tax_inclusive: data.tax_inclusive ?? false,
-              default_warehouse_id: data.default_warehouse_id || null,
-              delivery_instructions: data.delivery_instructions || null,
-              preferred_carrier: data.preferred_carrier || null,
-              shipping_account_number: data.shipping_account_number || null,
-              incoterms: data.incoterms || null,
-              sales_rep_id: data.sales_rep_id || null,
-              channel: data.channel || null,
-              region: data.region || null,
-              forecast_group: data.forecast_group || null,
-              demand_profile: data.demand_profile || null,
-              metadata: data.metadata ?? {},
-            },
-          ] as any
-        )
+        .insert([
+          {
+            tenant_id,
+            created_by: user?.id ?? null,
+            updated_by: user?.id ?? null,
+            customer_type: data.customer_type || null,
+            logo_url: data.logo_url ?? null,
+            email: data.email,
+            phone: data.phone || null,
+            address_line1: data.address_line1 || null,
+            address_line2: data.address_line2 || null,
+            city: data.city || null,
+            state: data.state || null,
+            postcode: data.postcode || null,
+            country: data.country || null,
+            status: data.status || 'active',
+            legal_name: data.legal_name || null,
+            trading_name: data.trading_name || null,
+            registration_number: data.registration_number || null,
+            vat_number: data.vat_number || null,
+            tax_scheme: data.tax_scheme || null,
+            credit_rating: data.credit_rating || null,
+            risk_category: data.risk_category || null,
+            payment_terms: data.payment_terms || null,
+            credit_limit: data.credit_limit ?? null,
+            credit_hold: data.credit_hold ?? false,
+            currency: data.currency || null,
+            price_list_id: data.price_list_id || null,
+            discount_rate: data.discount_rate ?? null,
+            tax_inclusive: data.tax_inclusive ?? false,
+            default_warehouse_id: data.default_warehouse_id || null,
+            delivery_instructions: data.delivery_instructions || null,
+            preferred_carrier: data.preferred_carrier || null,
+            shipping_account_number: data.shipping_account_number || null,
+            incoterms: data.incoterms || null,
+            sales_rep_id: data.sales_rep_id || null,
+            channel: data.channel || null,
+            region: data.region || null,
+            forecast_group: data.forecast_group || null,
+            demand_profile: data.demand_profile || null,
+            metadata: data.metadata ?? {},
+          },
+        ] as any)
         .select('id, customer_code')
         .single();
 
@@ -190,7 +200,8 @@ export function useCustomers(filters?: CustomerFilters, options?: UseCustomersOp
           status: d.status,
           legal_name: d.legal_name !== undefined ? d.legal_name : undefined,
           trading_name: d.trading_name !== undefined ? d.trading_name : undefined,
-          registration_number: d.registration_number !== undefined ? d.registration_number : undefined,
+          registration_number:
+            d.registration_number !== undefined ? d.registration_number : undefined,
           vat_number: d.vat_number !== undefined ? d.vat_number : undefined,
           tax_scheme: d.tax_scheme !== undefined ? d.tax_scheme : undefined,
           credit_rating: d.credit_rating !== undefined ? d.credit_rating : undefined,
@@ -202,7 +213,8 @@ export function useCustomers(filters?: CustomerFilters, options?: UseCustomersOp
           price_list_id: d.price_list_id !== undefined ? d.price_list_id : undefined,
           discount_rate: d.discount_rate !== undefined ? d.discount_rate : undefined,
           tax_inclusive: d.tax_inclusive !== undefined ? d.tax_inclusive : undefined,
-          default_warehouse_id: d.default_warehouse_id !== undefined ? d.default_warehouse_id : undefined,
+          default_warehouse_id:
+            d.default_warehouse_id !== undefined ? d.default_warehouse_id : undefined,
           delivery_instructions:
             d.delivery_instructions !== undefined ? d.delivery_instructions : undefined,
           preferred_carrier: d.preferred_carrier !== undefined ? d.preferred_carrier : undefined,

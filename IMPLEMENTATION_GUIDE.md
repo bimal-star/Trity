@@ -5,6 +5,7 @@
 A comprehensive, production-ready **Role-Based Access Control (RBAC)** system for multi-tenant SaaS applications with complete implementation as of January 31, 2026:
 
 ### ✅ Core Features
+
 1. **3-Tier Role Hierarchy**: Member → Admin → Super Admin
 2. **15 Granular Permissions**: Fine-grained control over each action
 3. **Permission Matrix**: Role-to-permission mapping with hierarchy validation
@@ -19,16 +20,19 @@ A comprehensive, production-ready **Role-Based Access Control (RBAC)** system fo
 ## 📁 Files Created
 
 ### Types & Permissions
+
 - **`types/access.ts`** - Permission enums, role definitions, permission matrix
 - **`lib/permissions.ts`** - Permission checking utilities and role info
 - **`hooks/usePermissions.ts`** - React hook for permission checks in components
 
 ### Audit & Features
+
 - **`lib/auditLog.ts`** - Audit trail logging system
 - **`lib/featureFlags.ts`** - Feature flag management
 - **`hooks/useFeatureFlags.ts`** - Hook to check feature availability
 
 ### UI Components
+
 - **`components/ProtectedAction.tsx`** - Permission-aware action components
 - **`app/groups/page.tsx`** - Team groups management page (NEW)
 
@@ -37,18 +41,15 @@ A comprehensive, production-ready **Role-Based Access Control (RBAC)** system fo
 ## 📊 Role Hierarchy & Permissions
 
 ### Member (7 permissions)
+
 ```typescript
-[
-  'view_users',
-  'access_calendar',
-  'access_products',
-  'access_workstreams',
-  'access_okrs',
-]
+['view_users', 'access_calendar', 'access_products', 'access_workstreams', 'access_okrs'];
 ```
+
 **Use case**: Regular team member, read-only access to apps
 
 ### Admin (14 permissions)
+
 ```typescript
 [
   'view_users',
@@ -65,17 +66,20 @@ A comprehensive, production-ready **Role-Based Access Control (RBAC)** system fo
   'access_products',
   'access_workstreams',
   'access_okrs',
-]
+];
 ```
+
 **Use case**: Team lead or manager managing team and tenant
 
 ### Super Admin (15 permissions)
+
 ```typescript
 [
   // All of the above PLUS:
   'manage_features',
-]
+];
 ```
+
 **Use case**: System owner managing multiple tenants and features
 
 ---
@@ -83,6 +87,7 @@ A comprehensive, production-ready **Role-Based Access Control (RBAC)** system fo
 ## 🔐 Security Features
 
 ### 1. Privilege Escalation Prevention
+
 ```typescript
 // Admins cannot assign super_admin role
 canChangeUserRole('admin', 'super_admin') → false
@@ -92,6 +97,7 @@ canChangeUserRole('super_admin', 'super_admin') → true
 ```
 
 ### 2. Cross-Tenant Isolation
+
 ```typescript
 // Members can only access their own tenant
 canAccessTenant('tenant-1', 'tenant-2', 'member') → false
@@ -101,6 +107,7 @@ canAccessTenant('tenant-1', 'tenant-2', 'super_admin') → true
 ```
 
 ### 3. Role Hierarchy Enforcement
+
 ```typescript
 // Higher role users can manage lower role users
 canManageUser('admin', 'member') → true
@@ -108,7 +115,9 @@ canManageUser('member', 'admin') → false
 ```
 
 ### 4. Complete Audit Trail
+
 All actions logged with:
+
 - User who performed action
 - Action type (create, update, remove)
 - Resource type and ID
@@ -122,6 +131,7 @@ All actions logged with:
 ### 1. **User Management** (`app/users/page.tsx`)
 
 #### Enhancements
+
 - ✅ 3-role dropdown (member, admin, super_admin)
 - ✅ Colored role badges (blue, amber, red)
 - ✅ User's current access level display
@@ -131,6 +141,7 @@ All actions logged with:
 - ✅ "View only" state for non-managers
 
 #### Code Example
+
 ```typescript
 const { can, canChangeRole, isAdmin } = usePermissions();
 
@@ -148,6 +159,7 @@ if (canChangeRole('admin')) {
 ### 2. **Team Groups** (`app/groups/page.tsx`) - NEW
 
 #### Features
+
 - Create groups with name, description
 - Add/remove members
 - Edit existing groups
@@ -157,6 +169,7 @@ if (canChangeRole('admin')) {
 - Audit logging
 
 #### Screenshot Locations
+
 - Main header with "Create Group" button
 - Grid of group cards with member count
 - Modal form with member selection
@@ -164,6 +177,7 @@ if (canChangeRole('admin')) {
 ### 3. **Tenant Admin** (`app/admin/tenants/page.tsx`)
 
 #### Enhancements
+
 - ✅ Audit logging on tenant create/update
 - ✅ Permission checks (manage_features)
 - ✅ Created by / Updated by tracking
@@ -174,6 +188,7 @@ if (canChangeRole('admin')) {
 ## 🚀 Usage Examples
 
 ### Example 1: Check Permission in Component
+
 ```typescript
 'use client';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -190,11 +205,11 @@ export function UsersPage() {
       {can('change_user_roles') && (
         <button>Change user roles</button>
       )}
-      
+
       {isAdmin && (
         <button>Admin options</button>
       )}
-      
+
       {canChangeRole('admin') && (
         <select>
           <option value="member">Member</option>
@@ -207,6 +222,7 @@ export function UsersPage() {
 ```
 
 ### Example 2: Use ProtectedButton Component
+
 ```typescript
 import { ProtectedButton } from '@/components/ProtectedAction';
 
@@ -220,6 +236,7 @@ import { ProtectedButton } from '@/components/ProtectedAction';
 ```
 
 ### Example 3: Check Feature Availability
+
 ```typescript
 'use client';
 import { useFeatureFlags } from '@/hooks/useFeatureFlags';
@@ -242,6 +259,7 @@ export function Navigation() {
 ```
 
 ### Example 4: Audit Logging
+
 ```typescript
 import { logUserRoleChange } from '@/lib/auditLog';
 
@@ -249,8 +267,8 @@ import { logUserRoleChange } from '@/lib/auditLog';
 await logUserRoleChange(
   tenantId,
   userId,
-  'member',      // previous role
-  'admin',       // new role
+  'member', // previous role
+  'admin', // new role
   currentUserId
 );
 ```
@@ -260,6 +278,7 @@ await logUserRoleChange(
 ## 🔍 Permission Reference
 
 ### User Management Permissions
+
 - `view_users` - See list of users in tenant
 - `invite_users` - Send invitations to new users
 - `manage_users` - Full CRUD on users
@@ -267,21 +286,25 @@ await logUserRoleChange(
 - `remove_users` - Delete/remove users from tenant
 
 ### Group & Team Management
+
 - `manage_groups` - Create/edit/delete user groups
 
 ### Tenant Management
+
 - `view_tenant_settings` - Access settings page
 - `edit_tenant_settings` - Modify tenant config
 - `manage_features` - Enable/disable features
 - `manage_invites` - Manage pending invites
 
 ### Feature Access
+
 - `access_calendar` - Use calendar
 - `access_products` - Use products
 - `access_workstreams` - Use workstreams
 - `access_okrs` - Use OKRs
 
 ### Audit & Compliance
+
 - `view_audit_logs` - View audit trail
 
 ---
@@ -289,11 +312,13 @@ await logUserRoleChange(
 ## 🛠️ Integration Checklist
 
 ### For Existing Pages
+
 - [x] User management page ✅
 - [x] Tenant admin page ✅
 - [x] Tenant settings page (already had control) ✅
 
 ### For New Features
+
 To add access control to new features:
 
 1. **Add Permission** to `PermissionAction` type in `types/access.ts`
@@ -313,6 +338,7 @@ To add access control to new features:
 ## 📈 Feature Flags
 
 ### Available Flags
+
 - `advanced_calendar` (enabled by default)
 - `product_management` (enabled by default)
 - `okrs` (disabled by default)
@@ -324,7 +350,9 @@ To add access control to new features:
 - `custom_domain` (disabled, super_admin only)
 
 ### Setting Flags
+
 Flags are stored in `tenants.settings` JSON:
+
 ```json
 {
   "okrs": true,
@@ -338,6 +366,7 @@ Flags are stored in `tenants.settings` JSON:
 ## 🧪 Testing Access Control
 
 ### Test User Roles
+
 1. **Member Role**
    - Can view own profile ✅
    - Cannot see users page ❌
@@ -357,6 +386,7 @@ Flags are stored in `tenants.settings` JSON:
    - Can toggle feature flags ✅
 
 ### Audit Logging Tests
+
 - Role changes are logged ✅
 - User invites are logged ✅
 - Tenant updates are logged ✅
@@ -392,7 +422,9 @@ CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at DESC);
 ## 🚨 Common Errors & Solutions
 
 ### Error: "Permission denied"
+
 **Solution**: Check that user has required permission
+
 ```typescript
 const { can } = usePermissions();
 if (!can('manage_users')) {
@@ -401,7 +433,9 @@ if (!can('manage_users')) {
 ```
 
 ### Error: "Cannot assign super_admin"
+
 **Solution**: Only super_admins can assign super_admin role
+
 ```typescript
 // For admins
 if (canChangeRole('super_admin')) {
@@ -410,13 +444,11 @@ if (canChangeRole('super_admin')) {
 ```
 
 ### Error: "Access to other tenant denied"
+
 **Solution**: Check tenant isolation
+
 ```typescript
-const canAccess = canAccessTenant(
-  userTenantId,
-  targetTenantId,
-  userRole
-);
+const canAccess = canAccessTenant(userTenantId, targetTenantId, userRole);
 ```
 
 ---
@@ -424,12 +456,14 @@ const canAccess = canAccessTenant(
 ## 🎓 Next Steps
 
 ### Phase 1 (Current)
+
 ✅ Core RBAC system
 ✅ Audit logging
 ✅ Feature flags
 ✅ UI components
 
 ### Phase 2 (Future)
+
 - [ ] Audit logs viewer UI
 - [ ] Bulk user operations
 - [ ] Role templates
@@ -437,6 +471,7 @@ const canAccess = canAccessTenant(
 - [ ] Webhook events
 
 ### Phase 3 (Enterprise)
+
 - [ ] PostgreSQL RLS enforcement
 - [ ] SSO/SAML integration
 - [ ] Custom roles
@@ -448,6 +483,7 @@ const canAccess = canAccessTenant(
 ## 📞 Support
 
 ### Files to Reference
+
 - **Types**: `types/access.ts`, `types/profile.ts`
 - **Utils**: `lib/permissions.ts`, `lib/auditLog.ts`
 - **Hooks**: `hooks/usePermissions.ts`
@@ -455,6 +491,7 @@ const canAccess = canAccessTenant(
 - **Pages**: `app/users/page.tsx`, `app/groups/page.tsx`
 
 ### Key Concepts
+
 1. **Permissions** = granular actions (verb-noun pairs)
 2. **Roles** = sets of permissions (noun-only)
 3. **Role Hierarchy** = prevents privilege escalation

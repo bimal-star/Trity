@@ -15,7 +15,6 @@ import {
   premiumDangerButton,
   premiumPrimaryButton,
   premiumTertiaryButton,
-  premiumSurfaces,
   premiumTypography,
 } from '@/lib/premiumUi';
 import { useToast } from '@/lib/toast';
@@ -27,9 +26,9 @@ export default function GoodsReceiptPage() {
   const { effectiveTenantId: tenant_id } = useTenant();
   const [selected, setSelected] = useState<GoodsReceipt | null>(null);
   const [lines, setLines] = useState<PurchaseOrderLine[]>([]);
-  const [grLines, setGrLines] = useState<{ purchase_order_line_id: string; quantity_received: number }[]>(
-    []
-  );
+  const [grLines, setGrLines] = useState<
+    { purchase_order_line_id: string; quantity_received: number }[]
+  >([]);
   const [qtyReceived, setQtyReceived] = useState<Map<string, number>>(new Map());
   const [poForSelected, setPoForSelected] = useState<PurchaseOrder | null>(null);
   const [newPoId, setNewPoId] = useState('');
@@ -151,8 +150,6 @@ export default function GoodsReceiptPage() {
           subtitle="Record received quantities only; invoice lines carry unit prices for matching"
           subtitleClassName={`${premiumTypography.pageSubtitle} ${bc.subtitleTint}`}
         />
-
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
 
         <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
           <label className="text-sm">

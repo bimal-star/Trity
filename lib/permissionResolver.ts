@@ -143,10 +143,12 @@ export async function ensurePermissionResourceForModule(
   }
 
   for (const key of ['read', 'write'] as const) {
-    await (supabase as any).from('permission_actions').upsert(
-      { resource_id: resourceId, action_key: key },
-      { onConflict: 'resource_id,action_key' }
-    );
+    await (supabase as any)
+      .from('permission_actions')
+      .upsert(
+        { resource_id: resourceId, action_key: key },
+        { onConflict: 'resource_id,action_key' }
+      );
   }
 
   return { resourceId };
@@ -191,7 +193,9 @@ export async function resolveEffectiveModuleAccess(
 
   const resourceIds = [...new Set([...resourceByKey.values()])];
 
-  const missingCatalogModuleIds = moduleIds.filter((mid) => !resourceByKey.has(toNavResourceKey(mid)));
+  const missingCatalogModuleIds = moduleIds.filter(
+    (mid) => !resourceByKey.has(toNavResourceKey(mid))
+  );
 
   let userGrantsByResource = new Map<string, UserGrantRow>();
   let roleGrantsByResource = new Map<string, string[]>();
@@ -266,9 +270,11 @@ export async function resolveEffectiveModuleAccess(
       .in('module_id', missingCatalogModuleIds);
 
     const legacyMap = new Map<string, AccessLevel>();
-    (legacy ?? []).forEach((row: { module_id: string; has_access: boolean; is_readonly?: boolean }) => {
-      legacyMap.set(row.module_id, mapAccessRecord(row));
-    });
+    (legacy ?? []).forEach(
+      (row: { module_id: string; has_access: boolean; is_readonly?: boolean }) => {
+        legacyMap.set(row.module_id, mapAccessRecord(row));
+      }
+    );
 
     for (const mid of missingCatalogModuleIds) {
       if (out[mid] !== undefined) continue;

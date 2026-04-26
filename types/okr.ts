@@ -1,6 +1,6 @@
 /**
  * OKR Type Definitions
- * 
+ *
  * Defines interfaces and types for Objectives and Key Results
  */
 

@@ -9,7 +9,11 @@ interface WarehouseCreateFormProps {
   onSuccess?: () => void;
 }
 
-export default function WarehouseCreateForm({ onCreate, onCancel, onSuccess }: WarehouseCreateFormProps) {
+export default function WarehouseCreateForm({
+  onCreate,
+  onCancel,
+  onSuccess,
+}: WarehouseCreateFormProps) {
   return (
     <WarehouseForm
       mode="create"

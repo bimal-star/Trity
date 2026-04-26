@@ -15,18 +15,14 @@ export const metadata: Metadata = {
 
 /**
  * Root Layout - Highest level component in Next.js App Router
- * 
+ *
  * STABILITY GUARANTEE: This layout NEVER unmounts on navigation.
  * - Only the {children} prop changes when navigating between routes
  * - AppProviders wraps everything and persists across all route changes
  * - All session/profile/tenant/features data is cached in AppProviders
  * - Navigation is instant because no re-fetching occurs
  */
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className={inter.className}>

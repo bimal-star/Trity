@@ -112,10 +112,7 @@ export default function LoginPage() {
 
       let timeoutId: ReturnType<typeof setTimeout> | undefined;
       const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(
-          () => reject(new Error('SIGN_IN_TIMEOUT')),
-          SIGN_IN_TIMEOUT_MS
-        );
+        timeoutId = setTimeout(() => reject(new Error('SIGN_IN_TIMEOUT')), SIGN_IN_TIMEOUT_MS);
       });
 
       const signInPromise = supabase.auth.signInWithPassword({
@@ -221,12 +218,9 @@ export default function LoginPage() {
 
     setIsResetting(true);
     try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-        email.trim(),
-        {
-          redirectTo: `${window.location.origin}/reset-password`,
-        }
-      );
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
 
       if (resetError) {
         toast.error(resetError.message || 'Failed to send reset email.');
@@ -259,8 +253,8 @@ export default function LoginPage() {
       {/* Watermark Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-5 dark:opacity-[0.03]">
         <div className="absolute inset-0 flex items-center justify-center">
-          <svg 
-            viewBox="0 0 200 200" 
+          <svg
+            viewBox="0 0 200 200"
             className="w-full h-full max-w-4xl max-h-4xl"
             style={{ transform: 'rotate(-15deg)' }}
           >
@@ -270,8 +264,22 @@ export default function LoginPage() {
               <circle cx="50" cy="150" r="8" className="fill-blue-600" />
               <circle cx="150" cy="150" r="8" className="fill-blue-700" />
               <line x1="100" y1="50" x2="50" y2="150" className="stroke-blue-600" strokeWidth="2" />
-              <line x1="100" y1="50" x2="150" y2="150" className="stroke-blue-600" strokeWidth="2" />
-              <line x1="50" y1="150" x2="150" y2="150" className="stroke-blue-600" strokeWidth="2" />
+              <line
+                x1="100"
+                y1="50"
+                x2="150"
+                y2="150"
+                className="stroke-blue-600"
+                strokeWidth="2"
+              />
+              <line
+                x1="50"
+                y1="150"
+                x2="150"
+                y2="150"
+                className="stroke-blue-600"
+                strokeWidth="2"
+              />
             </g>
             {/* Additional smaller patterns for depth */}
             <g transform="translate(50, 50)">
@@ -290,29 +298,64 @@ export default function LoginPage() {
           <div className="flex items-center justify-center mb-8">
             <style jsx>{`
               @keyframes shine {
-                0%, 100% { opacity: 0.6; filter: brightness(1); }
-                50% { opacity: 1; filter: brightness(1.5) drop-shadow(0 0 4px currentColor); }
+                0%,
+                100% {
+                  opacity: 0.6;
+                  filter: brightness(1);
+                }
+                50% {
+                  opacity: 1;
+                  filter: brightness(1.5) drop-shadow(0 0 4px currentColor);
+                }
               }
-              .dot-1 { animation: shine 3s ease-in-out infinite; animation-delay: 0s; }
-              .dot-2 { animation: shine 3s ease-in-out infinite; animation-delay: 1s; }
-              .dot-3 { animation: shine 3s ease-in-out infinite; animation-delay: 2s; }
+              .dot-1 {
+                animation: shine 3s ease-in-out infinite;
+                animation-delay: 0s;
+              }
+              .dot-2 {
+                animation: shine 3s ease-in-out infinite;
+                animation-delay: 1s;
+              }
+              .dot-3 {
+                animation: shine 3s ease-in-out infinite;
+                animation-delay: 2s;
+              }
             `}</style>
             <svg viewBox="0 0 24 24" className="w-16 h-16">
               <circle cx="12" cy="6" r="2.5" className="fill-blue-400 dot-1" />
               <circle cx="7" cy="16" r="2.5" className="fill-green-400 dot-2" />
               <circle cx="17" cy="16" r="2.5" className="fill-orange-400 dot-3" />
-              <line x1="12" y1="6" x2="7" y2="16" className="stroke-blue-400/60" strokeWidth="1.5" />
-              <line x1="12" y1="6" x2="17" y2="16" className="stroke-blue-400/60" strokeWidth="1.5" />
-              <line x1="7" y1="16" x2="17" y2="16" className="stroke-blue-400/60" strokeWidth="1.5" />
+              <line
+                x1="12"
+                y1="6"
+                x2="7"
+                y2="16"
+                className="stroke-blue-400/60"
+                strokeWidth="1.5"
+              />
+              <line
+                x1="12"
+                y1="6"
+                x2="17"
+                y2="16"
+                className="stroke-blue-400/60"
+                strokeWidth="1.5"
+              />
+              <line
+                x1="7"
+                y1="16"
+                x2="17"
+                y2="16"
+                className="stroke-blue-400/60"
+                strokeWidth="1.5"
+              />
             </svg>
           </div>
-          
-          <h1
-            className={`${premiumTypography.pageTitle} mb-3 text-gray-900 dark:text-white`}
-          >
+
+          <h1 className={`${premiumTypography.pageTitle} mb-3 text-gray-900 dark:text-white`}>
             Welcome to Trity
           </h1>
-          
+
           {/* Tenant Name (if available) - shown below heading */}
           {tenantName ? (
             <p className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">
@@ -323,14 +366,12 @@ export default function LoginPage() {
               Welcome to your workspace
             </p>
           )}
-          
+
           <p className={premiumTypography.helper}>Sign in to your account</p>
         </div>
 
         {/* Login Form */}
-        <div
-          className={`${premiumSurfaces.cardElevated} !p-8 backdrop-blur-sm dark:!bg-gray-800`}
-        >
+        <div className={`${premiumSurfaces.cardElevated} !p-8 backdrop-blur-sm dark:!bg-gray-800`}>
           {tenantContextError && !user && !authLoading && (
             <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-200">
               {tenantContextError}

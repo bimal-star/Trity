@@ -18,7 +18,7 @@ import {
   type NavPillarRow,
   type PillarRootLabel,
 } from '@/lib/navigationPillars';
-import { pillarAccent, premiumPrimaryButton, premiumSurfaces } from '@/lib/premiumUi';
+import { pillarAccent, premiumPrimaryButton } from '@/lib/premiumUi';
 import { useToast } from '@/lib/toast';
 import { Users, Save, AlertCircle, Loader2, Search } from 'lucide-react';
 
@@ -285,8 +285,6 @@ export default function UserAccessPage() {
         subtitle="Manage module-level access permissions for users and groups"
       />
 
-      <div className={`mb-6 ${premiumSurfaces.divider}`} />
-
       <div className="grid grid-cols-1 gap-6 items-start lg:grid-cols-3">
         <div className="lg:col-span-1">
           <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
@@ -337,7 +335,9 @@ export default function UserAccessPage() {
                     <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
                   </div>
                 ) : users.length === 0 ? (
-                  <div className="p-4 text-center text-xs text-gray-500 dark:text-gray-400">No users found</div>
+                  <div className="p-4 text-center text-xs text-gray-500 dark:text-gray-400">
+                    No users found
+                  </div>
                 ) : (
                   users
                     .filter(
@@ -359,7 +359,9 @@ export default function UserAccessPage() {
                         <div className="font-medium text-gray-900 dark:text-white">
                           {(u.full_name || '').trim() || u.email}
                         </div>
-                        <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{u.email}</div>
+                        <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                          {u.email}
+                        </div>
                       </button>
                     ))
                 )
@@ -368,7 +370,9 @@ export default function UserAccessPage() {
                   <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
                 </div>
               ) : groups.length === 0 ? (
-                <div className="p-4 text-center text-xs text-gray-500 dark:text-gray-400">No groups found</div>
+                <div className="p-4 text-center text-xs text-gray-500 dark:text-gray-400">
+                  No groups found
+                </div>
               ) : (
                 groups
                   .filter((g) => (g.name || '').toLowerCase().includes(searchQuery.toLowerCase()))
@@ -400,7 +404,9 @@ export default function UserAccessPage() {
               <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
                 <AlertCircle className="mt-0.5 h-4 w-4 text-blue-600 dark:text-blue-400" />
                 <div>
-                  <p className="text-xs font-medium text-blue-900 dark:text-blue-200">Module Access Control</p>
+                  <p className="text-xs font-medium text-blue-900 dark:text-blue-200">
+                    Module Access Control
+                  </p>
                   <p className="mt-1 text-xs text-blue-800 dark:text-blue-300">
                     {accessScope === 'user'
                       ? 'Configure access for an individual user. User-level settings can override group access.'
@@ -415,7 +421,8 @@ export default function UserAccessPage() {
                 </div>
               ) : allModuleIds.length === 0 ? (
                 <div className="rounded-lg border border-gray-200 bg-white p-8 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
-                  No routable navigation items for this tenant. Open Navigation Manager to configure the menu.
+                  No routable navigation items for this tenant. Open Navigation Manager to configure
+                  the menu.
                 </div>
               ) : (
                 <>
@@ -439,7 +446,9 @@ export default function UserAccessPage() {
                               disabled={items.length === 0}
                               onToggle={() => togglePillarAccess(pillarLabel)}
                             />
-                            <h3 className={`text-sm font-semibold ${mod.titleText}`}>{pillarLabel}</h3>
+                            <h3 className={`text-sm font-semibold ${mod.titleText}`}>
+                              {pillarLabel}
+                            </h3>
                           </div>
                           <ul className="max-h-[min(22rem,45vh)] divide-y divide-gray-100 overflow-y-auto dark:divide-gray-700">
                             {items.map((item) => (
@@ -452,7 +461,9 @@ export default function UserAccessPage() {
                                     className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-2 focus:ring-green-500 dark:border-gray-600"
                                   />
                                   <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-medium text-gray-900 dark:text-white">{item.label}</p>
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                      {item.label}
+                                    </p>
                                   </div>
                                   {userAccess[item.id] !== false ? (
                                     <span className="flex-shrink-0 rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-200">
@@ -475,7 +486,9 @@ export default function UserAccessPage() {
                           triState={accessTriState(adminIds, userAccess)}
                           onToggle={toggleAdministrationAccess}
                         />
-                        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">Administration</h3>
+                        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                          Administration
+                        </h3>
                       </div>
                       <ul className="divide-y divide-gray-100 dark:divide-gray-700">
                         {adminItems.map((item) => (
@@ -488,7 +501,9 @@ export default function UserAccessPage() {
                                 className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-2 focus:ring-green-500 dark:border-gray-600"
                               />
                               <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium text-gray-900 dark:text-white">{item.label}</p>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                  {item.label}
+                                </p>
                               </div>
                             </label>
                           </li>
@@ -516,7 +531,9 @@ export default function UserAccessPage() {
               <div className="text-center">
                 <Users className="mx-auto mb-3 h-12 w-12 text-gray-300 dark:text-gray-600" />
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {accessScope === 'user' ? 'Select a user to manage access' : 'Select a group to manage access'}
+                  {accessScope === 'user'
+                    ? 'Select a user to manage access'
+                    : 'Select a group to manage access'}
                 </p>
               </div>
             </div>

@@ -13,7 +13,7 @@ import PremiumStickyHeader from '@/components/layout/premium/PremiumStickyHeader
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useCatalogueMode } from '@/hooks/useCatalogueMode';
 import { useProductGroups, type ProductGroupRow } from '@/hooks/useProductGroups';
-import { pillarAccent, premiumSurfaces, premiumTypography } from '@/lib/premiumUi';
+import { pillarAccent, premiumTypography } from '@/lib/premiumUi';
 import { Package2, Loader2 } from 'lucide-react';
 
 const bc = pillarAccent('businessCore');
@@ -37,7 +37,10 @@ export default function ProductGroupsListPage() {
       const next: Record<string, RowStats> = {};
       for (const g of list) {
         const products = await fetchGroupProducts(g.id);
-        const stock = products.reduce((s, p) => s + (Number((p as { total_stock?: number }).total_stock) || 0), 0);
+        const stock = products.reduce(
+          (s, p) => s + (Number((p as { total_stock?: number }).total_stock) || 0),
+          0
+        );
         next[g.id] = { count: products.length, stock };
       }
       setStats(next);
@@ -71,8 +74,6 @@ export default function ProductGroupsListPage() {
           subtitle="Organise catalogue items into groups and matrix variants"
           subtitleClassName={`${premiumTypography.pageSubtitle} ${bc.subtitleTint}`}
         />
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
-
         {loading && (
           <div className="flex items-center gap-2 text-gray-500 py-8">
             <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
@@ -94,8 +95,12 @@ export default function ProductGroupsListPage() {
               <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
                 <tr>
                   <th className={`text-left px-3 py-2 ${premiumTypography.tableHeader}`}>Name</th>
-                  <th className={`text-right px-3 py-2 ${premiumTypography.tableHeader}`}>Products</th>
-                  <th className={`text-right px-3 py-2 ${premiumTypography.tableHeader}`}>Total stock</th>
+                  <th className={`text-right px-3 py-2 ${premiumTypography.tableHeader}`}>
+                    Products
+                  </th>
+                  <th className={`text-right px-3 py-2 ${premiumTypography.tableHeader}`}>
+                    Total stock
+                  </th>
                   <th className={`text-left px-3 py-2 ${premiumTypography.tableHeader}`}>Status</th>
                 </tr>
               </thead>

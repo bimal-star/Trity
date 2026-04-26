@@ -1,7 +1,9 @@
 # Customer Schema Fix: Remove first_name/last_name
 
 ## Issue
+
 The customers table incorrectly had `first_name` and `last_name` columns, mixing individual and business entity data. In ERP systems like Unleashed:
+
 - **customers** table = Business entities (companies) with `legal_name`, `trading_name`
 - **customer_contacts** table = Individual people with `first_name`, `last_name`
 
@@ -18,10 +20,10 @@ DO $$
 BEGIN
   -- Drop first_name if it exists
   IF EXISTS (
-    SELECT 1 
-    FROM information_schema.columns 
-    WHERE table_schema = 'public' 
-    AND table_name = 'customers' 
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+    AND table_name = 'customers'
     AND column_name = 'first_name'
   ) THEN
     ALTER TABLE public.customers DROP COLUMN first_name;
@@ -29,10 +31,10 @@ BEGIN
 
   -- Drop last_name if it exists
   IF EXISTS (
-    SELECT 1 
-    FROM information_schema.columns 
-    WHERE table_schema = 'public' 
-    AND table_name = 'customers' 
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+    AND table_name = 'customers'
     AND column_name = 'last_name'
   ) THEN
     ALTER TABLE public.customers DROP COLUMN last_name;
@@ -47,18 +49,22 @@ COMMENT ON TABLE public.customer_contacts IS 'Individual contact persons associa
 ## Code Changes
 
 ### 1. TypeScript Types (types/customer.ts)
+
 - ✅ Removed `first_name` and `last_name` from `Customer` interface
 - ✅ Removed `first_name` and `last_name` from `CustomerFormData` interface
 - ✅ Kept in `CustomerContact` interface (correct location)
 
 ### 2. Data Layer (hooks/useCustomers.ts)
+
 - ✅ Removed from `createCustomer` insert
 - ✅ Removed from `updateCustomer` update
 
 ### 3. Audit Logging (lib/auditLog.ts)
+
 - ✅ Updated `logCustomerCreated` to accept `legalName` instead of `firstName`/`lastName`
 
 ### 4. UI (app/customers/page.tsx)
+
 - ✅ Removed first_name/last_name inputs from create modal
 - ✅ Updated validation to check `legal_name` and `email` only
 - ✅ Updated table display: shows `legal_name || email`
@@ -69,6 +75,7 @@ COMMENT ON TABLE public.customer_contacts IS 'Individual contact persons associa
 ## How to Use
 
 ### For Business Customers (most common)
+
 ```typescript
 {
   customer_type: 'business',
@@ -79,6 +86,7 @@ COMMENT ON TABLE public.customer_contacts IS 'Individual contact persons associa
 ```
 
 ### For Individual Customers (rare)
+
 ```typescript
 {
   customer_type: 'individual',
@@ -88,6 +96,7 @@ COMMENT ON TABLE public.customer_contacts IS 'Individual contact persons associa
 ```
 
 ### For Contact Persons (use customer_contacts table)
+
 ```typescript
 // In customer_contacts table:
 {

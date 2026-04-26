@@ -10,12 +10,13 @@ import WarehouseMasterCard from '@/components/warehouses/WarehouseMasterCard';
 import WarehouseDetailsTabs from '@/components/warehouses/WarehouseDetailsTabs';
 import { useWarehouses } from '@/hooks/useWarehouses';
 import { useTenant } from '@/contexts/TenantContext';
-import type {
-  Warehouse,
-  WarehouseRecordVisibility,
-  WarehouseStatus,
-} from '@/types/warehouse';
-import { pillarAccent, premiumPrimaryButton, premiumSurfaces, premiumTertiaryButton, premiumTypography } from '@/lib/premiumUi';
+import type { Warehouse, WarehouseRecordVisibility, WarehouseStatus } from '@/types/warehouse';
+import {
+  pillarAccent,
+  premiumPrimaryButton,
+  premiumTertiaryButton,
+  premiumTypography,
+} from '@/lib/premiumUi';
 import { Plus, Warehouse as WarehouseIcon } from 'lucide-react';
 import { ExportFormatDropdown } from '@/components/common/ExportFormatDropdown';
 import { logWarehouseArchived, logWarehouseRestored } from '@/lib/auditLog';
@@ -131,9 +132,7 @@ export default function WarehousePage() {
           }
         />
 
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
-
-        <div className="flex h-[calc(100vh-132px)] min-h-[min(560px,calc(100vh-132px))] w-full flex-col overflow-hidden">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden lg:grid-cols-3 lg:items-stretch">
             <div className="flex h-full min-h-0 flex-col lg:col-span-1">
               <WarehouseList

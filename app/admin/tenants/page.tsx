@@ -92,7 +92,7 @@ export default function AdminTenantsPage() {
   ]);
 
   // Fetch all tenants
-  const fetchTenants = useCallback(async () => {
+  const fetchTenants = async () => {
     if (!canManageTenants) return;
 
     try {
@@ -126,13 +126,13 @@ export default function AdminTenantsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [canManageTenants]);
+  };
 
   useEffect(() => {
     if (canManageTenants) {
-      void fetchTenants();
+      fetchTenants();
     }
-  }, [canManageTenants, fetchTenants]);
+  }, [canManageTenants]);
 
   const handleProvisionFromTemplate = async (tenantId: string) => {
     setProvisioningId(tenantId);
@@ -187,7 +187,7 @@ export default function AdminTenantsPage() {
         .eq('id', tenantId);
 
       if (error) throw error;
-      
+
       await logTenantUpdated(tenantId, { is_active: !currentActive }, user?.id ?? null);
 
       await fetchTenants();
@@ -244,8 +244,6 @@ export default function AdminTenantsPage() {
             </Link>
           }
         />
-        <div className={`mb-6 ${premiumSurfaces.divider}`} />
-
         <div className="space-y-6">
           {/* Error Display */}
           {error && (
@@ -258,22 +256,6 @@ export default function AdminTenantsPage() {
             </div>
           )}
 
-          {impersonateError && (
-            <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-300">
-              {impersonateError}
-            </div>
-          )}
-
-          {isDevAutoImpersonateEnabled() && (
-            <p className="text-xs text-amber-700 dark:text-amber-300/90">
-              Dev: new tenants auto-open in read/write impersonation (
-              <code className="rounded bg-amber-100/20 px-1">
-                NEXT_PUBLIC_DEV_AUTO_IMPERSONATE=true
-              </code>
-              ).
-            </p>
-          )}
-
           {/* Tenants List */}
           {isLoading ? (
             <div
@@ -283,7 +265,9 @@ export default function AdminTenantsPage() {
             </div>
           ) : tenants.length === 0 ? (
             <div className={`text-center py-14 ${premiumSurfaces.cardElevated}`}>
-              <Building2 className={`w-12 h-12 mx-auto mb-4 ${platformAccent.iconColor} opacity-60`} />
+              <Building2
+                className={`w-12 h-12 mx-auto mb-4 ${platformAccent.iconColor} opacity-60`}
+              />
               <p className={`${premiumTypography.body} text-gray-500 dark:text-gray-400`}>
                 No tenants found
               </p>
@@ -322,113 +306,122 @@ export default function AdminTenantsPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {tenants.map((tenant) => (
-                    <tr
-                      key={tenant.id}
-                      className="border-b border-gray-100 transition-colors hover:bg-gray-50/90 dark:border-gray-700/60 dark:hover:bg-gray-800/50"
-                    >
-                      <td className="max-w-[14rem] px-4 py-2 sm:max-w-xs md:max-w-sm">
-                        <div className="flex items-center gap-2.5">
-                          <TenantListLogo logoUrl={tenant.logo_url} fallbackClassName={platformAccent.iconColor} />
-                          <div className="min-w-0 leading-tight">
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <Link
-                                href={`/admin/tenants/${tenant.id}`}
-                                className={`truncate font-medium text-gray-900 dark:text-white hover:underline ${platformAccent.iconColor} hover:opacity-90 dark:hover:opacity-90`}
+                    {tenants.map((tenant) => (
+                      <tr
+                        key={tenant.id}
+                        className="border-b border-gray-100 transition-colors hover:bg-gray-50/90 dark:border-gray-700/60 dark:hover:bg-gray-800/50"
+                      >
+                        <td className="max-w-[14rem] px-4 py-2 sm:max-w-xs md:max-w-sm">
+                          <div className="flex items-center gap-2.5">
+                            <TenantListLogo
+                              logoUrl={tenant.logo_url}
+                              fallbackClassName={platformAccent.iconColor}
+                            />
+                            <div className="min-w-0 leading-tight">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <Link
+                                  href={`/admin/tenants/${tenant.id}`}
+                                  className={`truncate font-medium text-gray-900 dark:text-white hover:underline ${platformAccent.iconColor} hover:opacity-90 dark:hover:opacity-90`}
+                                >
+                                  {tenant.name}
+                                </Link>
+                                {tenant.is_template ? (
+                                  <span className="shrink-0 text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">
+                                    Template
+                                  </span>
+                                ) : null}
+                              </div>
+                              <p
+                                className={`mt-0.5 truncate ${premiumTypography.tableCell} text-gray-600 dark:text-gray-300`}
                               >
-                                {tenant.name}
-                              </Link>
-                              {tenant.is_template ? (
-                                <span className="shrink-0 text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100">
-                                  Template
-                                </span>
-                              ) : null}
+                                {tenant.company_name?.trim() ? tenant.company_name : '—'}
+                              </p>
                             </div>
-                            <p
-                              className={`mt-0.5 truncate ${premiumTypography.tableCell} text-gray-600 dark:text-gray-300`}
-                            >
-                              {tenant.company_name?.trim() ? tenant.company_name : '—'}
-                            </p>
                           </div>
-                        </div>
-                      </td>
-                      <td className={`whitespace-nowrap px-4 py-2 ${premiumTypography.tableCell} text-gray-600 dark:text-gray-300`}>
-                        {tenant.user_count} users
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-2">
-                        <button
-                          onClick={() => toggleTenantActive(tenant.id, tenant.is_active)}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                            tenant.is_active
-                              ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                          }`}
+                        </td>
+                        <td
+                          className={`whitespace-nowrap px-4 py-2 ${premiumTypography.tableCell} text-gray-600 dark:text-gray-300`}
                         >
-                          {tenant.is_active ? (
-                            <Check className="w-3 h-3" />
-                          ) : (
-                            <X className="w-3 h-3" />
-                          )}
-                          {tenant.is_active ? 'Active' : 'Inactive'}
-                        </button>
-                      </td>
-                      <td className={`whitespace-nowrap px-4 py-2 ${premiumTypography.tableCell} text-gray-600 dark:text-gray-300`}>
-                        {new Date(tenant.created_at).toLocaleDateString()}
-                      </td>
-                      <td className={`whitespace-nowrap px-4 py-2 text-right ${premiumTypography.tableCell} font-medium`}>
-                        <div
-                          className="inline-flex flex-wrap items-center justify-end gap-0.5"
-                          role="group"
-                          aria-label="Row actions"
+                          {tenant.user_count} users
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2">
+                          <button
+                            onClick={() => toggleTenantActive(tenant.id, tenant.is_active)}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                              tenant.is_active
+                                ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                            }`}
+                          >
+                            {tenant.is_active ? (
+                              <Check className="w-3 h-3" />
+                            ) : (
+                              <X className="w-3 h-3" />
+                            )}
+                            {tenant.is_active ? 'Active' : 'Inactive'}
+                          </button>
+                        </td>
+                        <td
+                          className={`whitespace-nowrap px-4 py-2 ${premiumTypography.tableCell} text-gray-600 dark:text-gray-300`}
                         >
-                          {!tenant.is_template ? (
+                          {new Date(tenant.created_at).toLocaleDateString()}
+                        </td>
+                        <td
+                          className={`whitespace-nowrap px-4 py-2 text-right ${premiumTypography.tableCell} font-medium`}
+                        >
+                          <div
+                            className="inline-flex flex-wrap items-center justify-end gap-0.5"
+                            role="group"
+                            aria-label="Row actions"
+                          >
+                            {!tenant.is_template ? (
+                              <button
+                                type="button"
+                                disabled={provisioningId === tenant.id}
+                                onClick={() => void handleProvisionFromTemplate(tenant.id)}
+                                className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${platformAccent.iconColor} transition-colors hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-700`}
+                                aria-label="Provision from template"
+                                title="Provision from template"
+                              >
+                                {provisioningId === tenant.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                                ) : (
+                                  <Sparkles className="h-4 w-4" aria-hidden />
+                                )}
+                              </button>
+                            ) : null}
                             <button
                               type="button"
-                              disabled={provisioningId === tenant.id}
-                              onClick={() => void handleProvisionFromTemplate(tenant.id)}
-                              className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${platformAccent.iconColor} transition-colors hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-700`}
-                              aria-label="Provision from template"
-                              title="Provision from template"
+                              onClick={() => {
+                                enterWorkspaceTenant(tenant.id, tenant.name);
+                                router.push('/');
+                              }}
+                              className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${platformAccent.iconColor} transition-colors hover:bg-gray-100 dark:hover:bg-gray-700`}
+                              aria-label="Open workspace"
+                              title="Open workspace"
                             >
-                              {provisioningId === tenant.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                              ) : (
-                                <Sparkles className="h-4 w-4" aria-hidden />
-                              )}
+                              <LogIn className="h-4 w-4" aria-hidden />
                             </button>
-                          ) : null}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              enterWorkspaceTenant(tenant.id, tenant.name);
-                              router.push('/');
-                            }}
-                            className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${platformAccent.iconColor} transition-colors hover:bg-gray-100 dark:hover:bg-gray-700`}
-                            aria-label="Open workspace"
-                            title="Open workspace"
-                          >
-                            <LogIn className="h-4 w-4" aria-hidden />
-                          </button>
-                          <Link
-                            href={`/admin/tenants/${tenant.id}`}
-                            className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${platformAccent.iconColor} transition-colors hover:bg-gray-100 dark:hover:bg-gray-700`}
-                            aria-label="Modules and settings"
-                            title="Modules and settings"
-                          >
-                            <SlidersHorizontal className="h-4 w-4" aria-hidden />
-                          </Link>
-                          <Link
-                            href={`/admin/tenants/form/${tenant.id}`}
-                            className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${platformAccent.iconColor} transition-colors hover:bg-gray-100 dark:hover:bg-gray-700`}
-                            aria-label="Edit tenant"
-                            title="Edit tenant"
-                          >
-                            <PenSquare className="h-4 w-4" aria-hidden />
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            <Link
+                              href={`/admin/tenants/${tenant.id}`}
+                              className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${platformAccent.iconColor} transition-colors hover:bg-gray-100 dark:hover:bg-gray-700`}
+                              aria-label="Modules and settings"
+                              title="Modules and settings"
+                            >
+                              <SlidersHorizontal className="h-4 w-4" aria-hidden />
+                            </Link>
+                            <Link
+                              href={`/admin/tenants/form/${tenant.id}`}
+                              className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${platformAccent.iconColor} transition-colors hover:bg-gray-100 dark:hover:bg-gray-700`}
+                              aria-label="Edit tenant"
+                              title="Edit tenant"
+                            >
+                              <PenSquare className="h-4 w-4" aria-hidden />
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>

@@ -21,7 +21,6 @@ import {
 import {
   pillarAccent,
   premiumPrimaryButton,
-  premiumSurfaces,
   premiumTertiaryButton,
   premiumTypography,
 } from '@/lib/premiumUi';
@@ -344,10 +343,8 @@ export default function ProductsPage() {
             </button>
           </div>
         )}
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
-
-        {/* Fill main column (~sidebar h-screen): chrome ≈ PageContainer pt/pb + header + divider */}
-        <div className="flex h-[calc(100vh-132px)] min-h-[min(560px,calc(100vh-132px))] w-full flex-col overflow-hidden">
+        {/* Fill remaining column below header (flex chain from LayoutWrapper → PageContainer) */}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden lg:grid-cols-[1.35fr_1.65fr] lg:items-stretch">
             <div className="flex h-full min-h-0 flex-col">
               <ProductList

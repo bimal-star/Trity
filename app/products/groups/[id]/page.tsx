@@ -17,7 +17,12 @@ import {
   skuFromPrefix,
   variantAttributesKey,
 } from '@/lib/productCatalogue';
-import { pillarAccent, premiumPrimaryButton, premiumSecondaryButton, premiumSurfaces, premiumTypography } from '@/lib/premiumUi';
+import {
+  pillarAccent,
+  premiumPrimaryButton,
+  premiumSecondaryButton,
+  premiumTypography,
+} from '@/lib/premiumUi';
 import type { Json } from '@/types/database';
 import { Loader2, Package2 } from 'lucide-react';
 
@@ -38,13 +43,8 @@ export default function ProductGroupDetailPage() {
   const id = typeof params?.id === 'string' ? params.id : null;
   const { effectiveTenantId: tenantId, user } = useTenant();
   const { supportsGroups, isMatrix } = useCatalogueMode();
-  const {
-    fetchGroupProducts,
-    updateGroup,
-    archiveGroup,
-    addProductToGroup,
-    removeFromGroup,
-  } = useProductGroups();
+  const { fetchGroupProducts, updateGroup, archiveGroup, addProductToGroup, removeFromGroup } =
+    useProductGroups();
 
   const [group, setGroup] = useState<ProductGroupRow | null>(null);
   const [members, setMembers] = useState<Record<string, unknown>[]>([]);
@@ -59,9 +59,9 @@ export default function ProductGroupDetailPage() {
 
   const [genOpen, setGenOpen] = useState(false);
   const [skuPrefix, setSkuPrefix] = useState('');
-  const [previewRows, setPreviewRows] = useState<{ sku: string; name: string; attrs: Record<string, string> }[]>(
-    []
-  );
+  const [previewRows, setPreviewRows] = useState<
+    { sku: string; name: string; attrs: Record<string, string> }[]
+  >([]);
   const [genStep, setGenStep] = useState<'edit' | 'preview'>('edit');
   const [genBusy, setGenBusy] = useState(false);
 
@@ -141,7 +141,12 @@ export default function ProductGroupDetailPage() {
 
   const handleArchive = async () => {
     if (!id) return;
-    if (!confirm('Archive this group? Products stay in the catalogue but are unlinked from the group.')) return;
+    if (
+      !confirm(
+        'Archive this group? Products stay in the catalogue but are unlinked from the group.'
+      )
+    )
+      return;
     const memberIds = members.map((m) => String((m as { id: string }).id));
     try {
       for (const pid of memberIds) {
@@ -177,7 +182,11 @@ export default function ProductGroupDetailPage() {
     const combos = cartesianCombinations(dims);
     const order = dims.map((d) => d.key);
     const existing = new Set(
-      members.map((m) => variantAttributesKey(asAttrRecord((m as { variant_attributes?: unknown }).variant_attributes)))
+      members.map((m) =>
+        variantAttributesKey(
+          asAttrRecord((m as { variant_attributes?: unknown }).variant_attributes)
+        )
+      )
     );
     const rows: { sku: string; name: string; attrs: Record<string, string> }[] = [];
     for (const combo of combos) {
@@ -262,8 +271,6 @@ export default function ProductGroupDetailPage() {
             ) : null
           }
         />
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
-
         {loading && (
           <div className="flex items-center gap-2 text-gray-500 py-8">
             <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
@@ -276,11 +283,15 @@ export default function ProductGroupDetailPage() {
         {group && !loading && (
           <div className="space-y-6 max-w-3xl">
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
-              <h2 className={`font-semibold text-gray-900 dark:text-white ${premiumTypography.body}`}>
+              <h2
+                className={`font-semibold text-gray-900 dark:text-white ${premiumTypography.body}`}
+              >
                 Details
               </h2>
               <div>
-                <label className={`block text-sm text-gray-600 dark:text-gray-400 mb-1`}>Name</label>
+                <label className={`block text-sm text-gray-600 dark:text-gray-400 mb-1`}>
+                  Name
+                </label>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -302,7 +313,9 @@ export default function ProductGroupDetailPage() {
                 <div>
                   <label className={`block text-sm text-gray-600 dark:text-gray-400 mb-1`}>
                     Attribute dimensions (JSON){' '}
-                    {isMatrix ? <span className="text-amber-600 dark:text-amber-400">(matrix)</span> : null}
+                    {isMatrix ? (
+                      <span className="text-amber-600 dark:text-amber-400">(matrix)</span>
+                    ) : null}
                   </label>
                   <p className={`text-xs text-gray-500 mb-1 ${premiumTypography.helper}`}>
                     Optional for grouped mode; required for matrix variant generation. Example:{' '}
@@ -336,7 +349,9 @@ export default function ProductGroupDetailPage() {
             </div>
 
             <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
-              <h2 className={`font-semibold text-gray-900 dark:text-white ${premiumTypography.body}`}>
+              <h2
+                className={`font-semibold text-gray-900 dark:text-white ${premiumTypography.body}`}
+              >
                 Members
               </h2>
               <div className="flex flex-wrap gap-2 items-end">
@@ -382,7 +397,12 @@ export default function ProductGroupDetailPage() {
                   </thead>
                   <tbody>
                     {members.map((m) => {
-                      const row = m as { id: string; sku: string; name: string; total_stock?: number };
+                      const row = m as {
+                        id: string;
+                        sku: string;
+                        name: string;
+                        total_stock?: number;
+                      };
                       return (
                         <tr key={row.id} className="border-b border-gray-100 dark:border-gray-800">
                           <td className="py-2 px-2">
@@ -394,7 +414,9 @@ export default function ProductGroupDetailPage() {
                             </Link>
                           </td>
                           <td className="py-2 px-2">{row.name}</td>
-                          <td className="py-2 px-2 text-right tabular-nums">{row.total_stock ?? 0}</td>
+                          <td className="py-2 px-2 text-right tabular-nums">
+                            {row.total_stock ?? 0}
+                          </td>
                           <td className="py-2 px-2 text-right">
                             <button
                               type="button"
@@ -430,16 +452,23 @@ export default function ProductGroupDetailPage() {
             aria-labelledby="gen-variants-title"
           >
             <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg bg-white dark:bg-gray-800 p-4 shadow-xl border border-gray-200 dark:border-gray-700">
-              <h2 id="gen-variants-title" className="font-semibold text-gray-900 dark:text-white mb-3">
+              <h2
+                id="gen-variants-title"
+                className="font-semibold text-gray-900 dark:text-white mb-3"
+              >
                 Generate variant products
               </h2>
               {genStep === 'edit' && (
                 <>
-                  <p className={`text-sm text-gray-600 dark:text-gray-400 mb-3 ${premiumTypography.helper}`}>
-                    Enter a SKU prefix. SKUs will be built as PREFIX-DIMENSION-VALUE segments for each
-                    combination that does not already exist in this group.
+                  <p
+                    className={`text-sm text-gray-600 dark:text-gray-400 mb-3 ${premiumTypography.helper}`}
+                  >
+                    Enter a SKU prefix. SKUs will be built as PREFIX-DIMENSION-VALUE segments for
+                    each combination that does not already exist in this group.
                   </p>
-                  <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">SKU prefix</label>
+                  <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                    SKU prefix
+                  </label>
                   <input
                     value={skuPrefix}
                     onChange={(e) => setSkuPrefix(e.target.value)}
@@ -466,13 +495,17 @@ export default function ProductGroupDetailPage() {
               )}
               {genStep === 'preview' && (
                 <>
-                  <p className={`text-sm text-gray-600 dark:text-gray-400 mb-2 ${premiumTypography.helper}`}>
+                  <p
+                    className={`text-sm text-gray-600 dark:text-gray-400 mb-2 ${premiumTypography.helper}`}
+                  >
                     {previewRows.length} new product(s) will be created:
                   </p>
                   <ul className="max-h-48 overflow-y-auto text-sm border border-gray-200 dark:border-gray-600 rounded-md divide-y divide-gray-100 dark:divide-gray-700 mb-4">
                     {previewRows.map((r) => (
                       <li key={r.sku} className="px-2 py-1.5">
-                        <span className="font-mono text-xs text-gray-800 dark:text-gray-200">{r.sku}</span>
+                        <span className="font-mono text-xs text-gray-800 dark:text-gray-200">
+                          {r.sku}
+                        </span>
                         <span className="text-gray-500"> — {r.name}</span>
                       </li>
                     ))}

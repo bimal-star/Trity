@@ -6,12 +6,21 @@ import LogoUrlField from '@/components/common/LogoUrlField';
 import { uploadWarehouseLogo } from '@/lib/warehouseLogoStorage';
 import { formatWarehouseCode } from '@/lib/warehouseDisplay';
 import { useToast } from '@/lib/toast';
-import type { Warehouse, WarehouseFormData, WarehouseStatus, WarehouseType } from '@/types/warehouse';
+import type {
+  Warehouse,
+  WarehouseFormData,
+  WarehouseStatus,
+  WarehouseType,
+} from '@/types/warehouse';
 
 const warehouseTypes: WarehouseType[] = ['distribution', 'manufacturing', 'retail', '3pl', 'other'];
 const statusOptions: WarehouseStatus[] = ['active', 'inactive', 'closed'];
 
-import { formCardShell, formInputClass as inputClass, formLabelClass as labelClass } from '@/lib/formTokens';
+import {
+  formCardShell,
+  formInputClass as inputClass,
+  formLabelClass as labelClass,
+} from '@/lib/formTokens';
 
 function warehouseToForm(w: Warehouse): WarehouseFormData {
   return {
@@ -97,13 +106,15 @@ export default function WarehouseForm({
 
   const hasAddressDetails = Boolean(
     formData.address_line1 ||
-      formData.address_line2 ||
-      formData.city ||
-      formData.state ||
-      formData.postcode ||
-      formData.country
+    formData.address_line2 ||
+    formData.city ||
+    formData.state ||
+    formData.postcode ||
+    formData.country
   );
-  const hasContactDetails = Boolean(formData.contact_name || formData.contact_email || formData.contact_phone);
+  const hasContactDetails = Boolean(
+    formData.contact_name || formData.contact_email || formData.contact_phone
+  );
   const hasMetaDetails = Boolean(formData.notes || metadataJson.trim() !== '{}');
 
   const sectionBtn = (id: SectionId, label: string, hasDetails: boolean) => {
@@ -131,7 +142,9 @@ export default function WarehouseForm({
             {!hasDetails && <AlertCircle className="mr-1 h-3 w-3" aria-hidden />}
             {hasDetails ? 'Added' : 'Missing'}
           </span>
-          <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+          <ChevronDown
+            className={`h-4 w-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+          />
         </span>
       </button>
     );

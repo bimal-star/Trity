@@ -88,14 +88,12 @@ export async function POST(request: Request) {
         ? authData.user.user_metadata.role
         : null);
     const currentResolvedRole = resolveProfileRole(currentProfile.role, jwtRoleRaw);
-    const isAdmin =
-      currentResolvedRole === 'admin' || currentResolvedRole === 'super_admin';
+    const isAdmin = currentResolvedRole === 'admin' || currentResolvedRole === 'super_admin';
     if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const isPlatformSuper =
-      isSuperAdminRole(currentProfile.role) || isSuperAdminRole(jwtRoleRaw);
+    const isPlatformSuper = isSuperAdminRole(currentProfile.role) || isSuperAdminRole(jwtRoleRaw);
 
     const tenantScope =
       typeof body.target_tenant_id === 'string' && body.target_tenant_id.trim()
@@ -196,18 +194,16 @@ export async function POST(request: Request) {
     }
 
     const record = mapAccessToRecord(body.access);
-    const { error: legacyErr } = await (supabase as any)
-      .from('user_module_access')
-      .upsert(
-        {
-          tenant_id: targetProfile.tenant_id,
-          user_id: body.user_id,
-          module_id: body.module_id,
-          has_access: record.has_access,
-          is_readonly: record.is_readonly,
-        },
-        { onConflict: 'tenant_id,user_id,module_id' }
-      );
+    const { error: legacyErr } = await (supabase as any).from('user_module_access').upsert(
+      {
+        tenant_id: targetProfile.tenant_id,
+        user_id: body.user_id,
+        module_id: body.module_id,
+        has_access: record.has_access,
+        is_readonly: record.is_readonly,
+      },
+      { onConflict: 'tenant_id,user_id,module_id' }
+    );
 
     if (legacyErr) {
       return NextResponse.json({ error: legacyErr.message }, { status: 500 });

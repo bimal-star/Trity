@@ -186,8 +186,7 @@ export default function ProductList({
             const visibleNodes =
               tier.tier_number > 1 && parentTierSelections.length > 0
                 ? tierNodes.filter(
-                    (node) =>
-                      node.parent_node_id && parentTierSelections.includes(node.parent_node_id)
+                    (node) => node.parent_id && parentTierSelections.includes(node.parent_id)
                   )
                 : tierNodes;
             const isTierBlocked = tier.tier_number > 1 && parentTierSelections.length === 0;

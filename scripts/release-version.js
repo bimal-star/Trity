@@ -57,7 +57,12 @@ function bucketCommit(subject) {
   if (normalized.startsWith('refactor')) return 'Refactoring';
   if (normalized.startsWith('docs')) return 'Documentation';
   if (normalized.startsWith('test')) return 'Tests';
-  if (normalized.startsWith('build') || normalized.startsWith('chore') || normalized.startsWith('ci')) return 'Build & Chore';
+  if (
+    normalized.startsWith('build') ||
+    normalized.startsWith('chore') ||
+    normalized.startsWith('ci')
+  )
+    return 'Build & Chore';
   return 'Other';
 }
 
@@ -161,10 +166,9 @@ function updateChangelog(nextVersion, lastTag, commits) {
 
   let content = `${header}${entry}\n`;
   if (existing.startsWith('# Changelog')) {
-    const withoutHeader = existing.replace(
-      /^# Changelog\s*\n\s*All notable project changes are recorded here\.\s*\n*/m,
-      ''
-    ).trimStart();
+    const withoutHeader = existing
+      .replace(/^# Changelog\s*\n\s*All notable project changes are recorded here\.\s*\n*/m, '')
+      .trimStart();
     content = `${header}${entry}${withoutHeader ? `\n${withoutHeader}` : ''}`;
   }
 
@@ -174,7 +178,9 @@ function updateChangelog(nextVersion, lastTag, commits) {
 function ensureCleanWorktree() {
   const status = run('git status --porcelain');
   if (status) {
-    throw new Error('Cannot auto-commit/tag with a dirty worktree. Commit or stash pending changes first.');
+    throw new Error(
+      'Cannot auto-commit/tag with a dirty worktree. Commit or stash pending changes first.'
+    );
   }
 }
 
@@ -187,7 +193,9 @@ function createReleaseCommitAndTag(nextVersion) {
 
 function main() {
   if (!supportedBumps.has(bumpType)) {
-    console.error('Usage: node scripts/release-version.js [patch|minor|major] [--dry-run] [--commit] [--tag]');
+    console.error(
+      'Usage: node scripts/release-version.js [patch|minor|major] [--dry-run] [--commit] [--tag]'
+    );
     process.exit(1);
   }
   if (shouldTag && !shouldCommit) {

@@ -9,7 +9,7 @@ import { useSuppliers } from '@/hooks/useSuppliers';
 import { useTenant } from '@/contexts/TenantContext';
 import { logSupplierCreated } from '@/lib/auditLog';
 import type { SupplierFormData } from '@/types/supplier';
-import { pillarAccent, premiumSurfaces, premiumTypography } from '@/lib/premiumUi';
+import { pillarAccent, premiumTypography } from '@/lib/premiumUi';
 import { Truck } from 'lucide-react';
 
 const bc = pillarAccent('businessCore');
@@ -39,8 +39,6 @@ export default function NewSupplierPage() {
           subtitle="Add a vendor with address, payment terms, and metadata"
           subtitleClassName={`${premiumTypography.pageSubtitle} ${bc.subtitleTint}`}
         />
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
-
         <div className="flex h-[calc(100vh-168px)] min-h-[min(560px,calc(100vh-168px))] w-full flex-col overflow-hidden">
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <SupplierCreateForm

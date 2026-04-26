@@ -406,11 +406,7 @@ export default function TenantDetailsPage() {
       disabled={isSaving || isLoading || !tenant}
       className={premiumPrimaryButton('platform', 'md', 'wide')}
     >
-      {isSaving ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <Save className="h-4 w-4" />
-      )}
+      {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
       {isSaving ? 'Saving...' : 'Save changes'}
     </button>
   );
@@ -452,7 +448,9 @@ export default function TenantDetailsPage() {
                   )}
                 </div>
                 <div className="min-w-0 leading-tight">
-                  <p className="text-base font-semibold tracking-tight text-gray-900 dark:text-white">{tenant.name}</p>
+                  <p className="text-base font-semibold text-gray-900 dark:text-white">
+                    {tenant.name}
+                  </p>
                   <p className={`truncate text-xs text-gray-600 dark:text-gray-400`}>
                     {tenant.company_name?.trim() ? tenant.company_name : '—'}
                   </p>
@@ -462,8 +460,6 @@ export default function TenantDetailsPage() {
           }
           right={!isLoading && tenant ? saveButton : null}
         />
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
-
         <div className="space-y-4">
           {error && (
             <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-4 flex items-start gap-3">
@@ -498,24 +494,35 @@ export default function TenantDetailsPage() {
 
                   <div className={`space-y-3 ${premiumSurfaces.platformModulesPanel}`}>
                     <div>
-                      <h3 className="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
                         Modules (navigation)
                       </h3>
                       <p className={`mt-2 ${premiumTypography.helper}`}>
-                        Toggles update this tenant&apos;s <span className="font-medium text-gray-700 dark:text-gray-300">navigation</span>{' '}
-                        visibility (same items as Navigation Manager). Per-user access is configured on{' '}
-                        <span className="font-medium text-gray-700 dark:text-gray-300">Users → Access</span>.
+                        Toggles update this tenant&apos;s{' '}
+                        <span className="font-medium text-gray-700 dark:text-gray-300">
+                          navigation
+                        </span>{' '}
+                        visibility (same items as Navigation Manager). Per-user access is configured
+                        on{' '}
+                        <span className="font-medium text-gray-700 dark:text-gray-300">
+                          Users → Access
+                        </span>
+                        .
                       </p>
                       <p className={`mt-2 ${premiumTypography.helper}`}>
                         {subscriptionPackageName ? (
                           <>
                             <span className="text-gray-500 dark:text-gray-400">Package:</span>{' '}
-                            <span className="font-medium text-gray-800 dark:text-gray-200">{subscriptionPackageName}</span>
+                            <span className="font-medium text-gray-800 dark:text-gray-200">
+                              {subscriptionPackageName}
+                            </span>
                             {' · '}
                           </>
                         ) : null}
                         <span className="text-gray-500 dark:text-gray-400">Tier:</span>{' '}
-                        <span className="font-medium capitalize text-gray-800 dark:text-gray-200">{subscriptionTier}</span>
+                        <span className="font-medium capitalize text-gray-800 dark:text-gray-200">
+                          {subscriptionTier}
+                        </span>
                         {' · '}
                         <Link
                           href={`/admin/tenants/form/${tenantId}`}
@@ -571,15 +578,16 @@ export default function TenantDetailsPage() {
                       </div>
                     ) : navRows.length === 0 ? (
                       <p className={`${premiumTypography.helper}`}>
-                        No navigation rows for this tenant yet. Use template provisioning or open the workspace and run{' '}
-                        <strong>Navigation Manager</strong> to seed the menu.
+                        No navigation rows for this tenant yet. Use template provisioning or open
+                        the workspace and run <strong>Navigation Manager</strong> to seed the menu.
                       </p>
                     ) : (
                       <div className="grid gap-4 md:grid-cols-3">
                         {PILLAR_ROOT_LABEL_ORDER.map((pillarLabel) => {
                           const mod = premiumModuleForPillarLabel(pillarLabel);
                           const accent = pillarAccent(mod);
-                          const { icon: PillarHeadingIcon } = getIconAndPillarForNavLabel(pillarLabel);
+                          const { icon: PillarHeadingIcon } =
+                            getIconAndPillarForNavLabel(pillarLabel);
                           const tri = pillarTriStateForSubtreeByLabel(navRows, pillarLabel);
                           const items = directChildrenOfPillarRoot(navRows, pillarLabel);
                           const subtreeCount = allIdsInSubtreeByLabel(navRows, pillarLabel).length;
@@ -609,22 +617,31 @@ export default function TenantDetailsPage() {
                                   {pillarLabel}
                                 </h4>
                                 {navMutating ? (
-                                  <Loader2 className={`h-4 w-4 shrink-0 animate-spin ${accent.iconColor}`} aria-hidden />
+                                  <Loader2
+                                    className={`h-4 w-4 shrink-0 animate-spin ${accent.iconColor}`}
+                                    aria-hidden
+                                  />
                                 ) : null}
                               </div>
                               <div className="max-h-[min(24rem,50vh)] overflow-y-auto border-t border-gray-200/50 p-2 dark:border-gray-600/40">
                                 {!hasRoot ? (
-                                  <p className={`px-1 py-2 text-xs leading-snug ${accent.subtitleTint}`}>
+                                  <p
+                                    className={`px-1 py-2 text-xs leading-snug ${accent.subtitleTint}`}
+                                  >
                                     No {pillarLabel} root in navigation
                                   </p>
                                 ) : items.length === 0 ? (
-                                  <p className={`px-1 py-2 text-xs leading-snug ${accent.subtitleTint}`}>
+                                  <p
+                                    className={`px-1 py-2 text-xs leading-snug ${accent.subtitleTint}`}
+                                  >
                                     No nested items (only pillar root)
                                   </p>
                                 ) : (
                                   <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                                     {items.map((row) => {
-                                      const { icon: RowIcon } = getIconAndPillarForNavLabel(row.label);
+                                      const { icon: RowIcon } = getIconAndPillarForNavLabel(
+                                        row.label
+                                      );
                                       return (
                                         <label
                                           key={row.id}
@@ -670,14 +687,14 @@ export default function TenantDetailsPage() {
                       }
                     >
                       <div>
-                        <h3 className={`text-sm font-semibold tracking-tight ${pa.titleText}`}>
+                        <h3 className={`text-sm font-semibold ${pa.titleText}`}>
                           Outside product pillars
                         </h3>
                         <p
                           className={`${outsideRoots.length === 0 ? 'mt-0.5 text-xs' : 'mt-1'} ${premiumTypography.helper}`}
                         >
-                          Navigation roots and subtrees not under Business Core, Execution, or Analytics (same structure as
-                          Navigation Manager).
+                          Navigation roots and subtrees not under Business Core, Execution, or
+                          Analytics (same structure as Navigation Manager).
                         </p>
                       </div>
                       {outsideRoots.length === 0 ? (
@@ -692,9 +709,7 @@ export default function TenantDetailsPage() {
                               <div
                                 key={root.id}
                                 className={`mb-3 break-inside-avoid rounded-xl border bg-white/85 dark:bg-gray-900/50 ${pa.outlineAccent} ${
-                                  hasKids
-                                    ? 'max-h-[min(28rem,55vh)] overflow-y-auto p-3'
-                                    : 'p-2'
+                                  hasKids ? 'max-h-[min(28rem,55vh)] overflow-y-auto p-3' : 'p-2'
                                 }`}
                               >
                                 <OutsidePillarNavNode
@@ -730,7 +745,9 @@ export default function TenantDetailsPage() {
                         className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50/80 p-3 dark:border-gray-600/60 dark:bg-gray-900/40"
                       >
                         <div>
-                          <p className={`${premiumTypography.body} font-medium text-gray-900 dark:text-white`}>
+                          <p
+                            className={`${premiumTypography.body} font-medium text-gray-900 dark:text-white`}
+                          >
                             {u.full_name || u.email}
                           </p>
                           {u.full_name && <p className={premiumTypography.helper}>{u.email}</p>}

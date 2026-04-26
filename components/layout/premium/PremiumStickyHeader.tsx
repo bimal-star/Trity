@@ -47,9 +47,11 @@ export default function PremiumStickyHeader({
           <Icon className={`h-5 w-5 ${a.iconColor}`} aria-hidden />
         </div>
         <div className="min-w-0">
-          <h1 className={`${premiumTypography.pageTitle} ${a.titleText}`}>{title}</h1>
+          <h1 className={`truncate ${premiumTypography.pageTitle} ${a.titleText}`}>{title}</h1>
           {subtitle ? (
-            <p className={`mt-0.5 ${subtitleClassName ?? premiumTypography.pageSubtitle}`}>{subtitle}</p>
+            <p className={`mt-0.5 ${subtitleClassName ?? premiumTypography.pageSubtitle}`}>
+              {subtitle}
+            </p>
           ) : null}
         </div>
       </div>
@@ -57,7 +59,7 @@ export default function PremiumStickyHeader({
 
   return (
     <div className={`${shell} ${className}`.trim()}>
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex min-w-0 w-full flex-nowrap items-center justify-between gap-3 overflow-x-auto">
         <div className="min-w-0 flex-1">
           {backHref && backLabel && (
             <Link
@@ -70,7 +72,11 @@ export default function PremiumStickyHeader({
           )}
           {mainBlock}
         </div>
-        {right ? <div className="flex shrink-0 flex-wrap gap-2">{right}</div> : null}
+        {right ? (
+          <div className="flex shrink-0 flex-nowrap items-center gap-2 overflow-x-auto">
+            {right}
+          </div>
+        ) : null}
       </div>
     </div>
   );

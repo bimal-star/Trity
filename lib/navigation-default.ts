@@ -3,7 +3,7 @@ import type { NavigationItem } from '@/types/navigation';
 /**
  * Default navigation structure for Trity
  * Updated: January 31, 2026
- * 
+ *
  * Organized by five pillars (product narrative order: Business Core, Execution, Analytics, then Admin/Account).
  * Position prefixes today: 1 = Analytics, 2 = Business Core, 3 = Execution — reorder in DB/Navigation Manager when migrating.
  * - Business Core (Green) - Core business entities and data management

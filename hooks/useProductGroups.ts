@@ -32,7 +32,11 @@ export function useProductGroups() {
         tenant_id: tenantId,
         created_by: user?.id ?? input.created_by ?? null,
       };
-      const { data, error } = await supabase.from('product_groups').insert(row).select('*').single();
+      const { data, error } = await supabase
+        .from('product_groups')
+        .insert(row)
+        .select('*')
+        .single();
       if (error) throw error;
       return data as ProductGroupRow;
     },

@@ -257,8 +257,7 @@ export default function ProductCreateForm({
         }
       }
     } catch (uploadErr: unknown) {
-      const msg =
-        uploadErr instanceof Error ? uploadErr.message : 'Image upload failed';
+      const msg = uploadErr instanceof Error ? uploadErr.message : 'Image upload failed';
       toast.error(msg);
       setIsSubmitting(false);
       return;
@@ -329,588 +328,566 @@ export default function ProductCreateForm({
 
   return (
     <>
-    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
-      <form
-        onSubmit={handleSubmit}
-        className="flex flex-col flex-1 min-h-0 overflow-hidden bg-gray-50 dark:bg-gray-900/50"
-      >
-        <div className="shrink-0 px-4 pt-4">
-          {validationError && (
-            <div className="mb-3 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20">
-              <p className="text-sm text-red-600 dark:text-red-400">{validationError}</p>
-            </div>
-          )}
-        </div>
-
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-y-contain px-4 pb-4 lg:flex-row lg:gap-6 lg:overflow-hidden">
-          <div className="flex flex-col shrink-0 w-full lg:w-[min(45rem,54%)] rounded-xl border border-gray-200/90 dark:border-gray-700/90 bg-white dark:bg-gray-800/60 p-4 ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
-            <h3 className={`${sectionTitleClass} mb-3 border-b border-gray-200 pb-2 dark:border-gray-700`}>
-              Basics & classification
-            </h3>
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className={fieldLabelClass}>
-                    SKU <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={sku}
-                    onChange={(e) => setSku(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
-                    placeholder="e.g., PROD-001"
-                    autoFocus
-                    disabled={isSubmitting}
-                  />
-                </div>
-                <div className="sm:col-span-1 min-w-0">
-                  <label className={fieldLabelClass}>
-                    Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
-                    placeholder="Product name"
-                    disabled={isSubmitting}
-                  />
-                </div>
+      <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col flex-1 min-h-0 overflow-hidden bg-gray-50 dark:bg-gray-900/50"
+        >
+          <div className="shrink-0 px-4 pt-4">
+            {validationError && (
+              <div className="mb-3 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20">
+                <p className="text-sm text-red-600 dark:text-red-400">{validationError}</p>
               </div>
-              <div>
-                <label className={fieldLabelClass}>
-                  Short description
-                </label>
-                <input
-                  type="text"
-                  value={shortDescription}
-                  onChange={(e) => setShortDescription(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
-                  placeholder="Short summary used in lists and cards"
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div>
-                <label className={fieldLabelClass}>
-                  Description
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all resize-none"
-                  placeholder="Detailed description, usage notes, etc."
-                  rows={2}
-                  disabled={isSubmitting}
-                />
-              </div>
-
-              {supportsGroups && (
-                <div className="rounded-lg border border-dashed border-green-200 dark:border-green-800 bg-green-50/40 dark:bg-green-900/10 p-3 space-y-3">
-                  <p className={`${sectionTitleClass} text-green-800 dark:text-green-200`}>
-                    Product group (optional)
-                  </p>
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                    <div className="min-w-0 flex-1">
-                      <label className={fieldLabelClass}>Group</label>
-                      <select
-                        value={selectedGroupId}
-                        onChange={(e) => {
-                          setSelectedGroupId(e.target.value);
-                          setMatrixAttrSelection({});
-                        }}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-                        disabled={isSubmitting}
-                      >
-                        <option value="">No group</option>
-                        {productGroups.map((g) => (
-                          <option key={g.id} value={g.id}>
-                            {g.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="flex gap-2 flex-1 min-w-0">
-                      <input
-                        type="text"
-                        value={newGroupName}
-                        onChange={(e) => setNewGroupName(e.target.value)}
-                        placeholder="New group name"
-                        className="flex-1 min-w-0 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-                        disabled={isSubmitting || creatingGroup}
-                      />
-                      <button
-                        type="button"
-                        disabled={isSubmitting || creatingGroup || !newGroupName.trim()}
-                        onClick={async () => {
-                          try {
-                            setCreatingGroup(true);
-                            const g = await createGroup({
-                              name: newGroupName.trim(),
-                              is_active: true,
-                              is_deleted: false,
-                            });
-                            setProductGroups((prev) =>
-                              [...prev, g].sort((a, b) => a.name.localeCompare(b.name))
-                            );
-                            setSelectedGroupId(g.id);
-                            setNewGroupName('');
-                          } catch (err) {
-                            console.error(err);
-                          } finally {
-                            setCreatingGroup(false);
-                          }
-                        }}
-                        className={`shrink-0 ${premiumSecondaryButton('businessCore', 'sm', 'auto')}`}
-                      >
-                        {creatingGroup ? '…' : 'Create'}
-                      </button>
-                    </div>
-                  </div>
-                  {selectedGroupId && !isMatrix && (
-                    <div>
-                      <label className={fieldLabelClass}>Variant details (optional)</label>
-                      <input
-                        type="text"
-                        value={groupedVariantDetails}
-                        onChange={(e) => setGroupedVariantDetails(e.target.value)}
-                        placeholder="e.g. Size Large, Colour Red"
-                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                  )}
-                  {selectedGroupId &&
-                    isMatrix &&
-                    (() => {
-                      const g = productGroups.find((x) => x.id === selectedGroupId);
-                      const dimList = parseAttributeDimensions(g?.attribute_dimensions);
-                      if (dimList.length === 0) {
-                        return (
-                          <p className={helperTextClass}>
-                            Set attribute dimensions on the group (see Product groups) to pick variant
-                            attributes here.
-                          </p>
-                        );
-                      }
-                      return (
-                        <div className="space-y-2">
-                          {dimList.map((d) => (
-                            <div key={d.key}>
-                              <label className={fieldLabelClass}>{d.key}</label>
-                              <select
-                                value={matrixAttrSelection[d.key] ?? ''}
-                                onChange={(e) =>
-                                  setMatrixAttrSelection((prev) => ({
-                                    ...prev,
-                                    [d.key]: e.target.value,
-                                  }))
-                                }
-                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-                                disabled={isSubmitting}
-                              >
-                                <option value="">—</option>
-                                {d.values.map((v) => (
-                                  <option key={v} value={v}>
-                                    {v}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })()}
-                </div>
-              )}
-
-              <div className="rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50/80 dark:bg-gray-900/40 p-3 space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium text-gray-800 dark:text-gray-200">
-                  <ImageIcon className="w-3.5 h-3.5 text-green-600 dark:text-green-400" aria-hidden />
-                  Product image
-                </div>
-                <p className={helperTextClass}>
-                  Upload a file (stored in your workspace) or paste an image URL. If you choose a
-                  file, it is used instead of the URL.
-                </p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-                    className="hidden"
-                    disabled={isSubmitting}
-                    onChange={(e) => {
-                      const f = e.target.files?.[0] ?? null;
-                      setPendingImageFile(f);
-                      if (f) setImageUrlInput('');
-                    }}
-                  />
-                  <button
-                    type="button"
-                    disabled={isSubmitting}
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-gray-800 shadow-sm hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 ${buttonTextClass}`}
-                  >
-                    <Upload className="w-3.5 h-3.5" aria-hidden />
-                    Choose file
-                  </button>
-                  {pendingImageFile && (
-                    <>
-                      <span className="max-w-[12rem] truncate text-xs text-gray-600 dark:text-gray-300">
-                        {pendingImageFile.name}
-                      </span>
-                      <button
-                        type="button"
-                        disabled={isSubmitting}
-                        onClick={() => {
-                          setPendingImageFile(null);
-                          if (fileInputRef.current) fileInputRef.current.value = '';
-                        }}
-                        className="text-xs font-medium text-green-700 hover:underline dark:text-green-400"
-                      >
-                        Remove
-                      </button>
-                    </>
-                  )}
-                </div>
-                <div>
-                  <label className={fieldLabelClass}>
-                    Image URL (optional)
-                  </label>
-                  <input
-                    type="url"
-                    value={imageUrlInput}
-                    onChange={(e) => {
-                      setImageUrlInput(e.target.value);
-                      if (e.target.value.trim()) setPendingImageFile(null);
-                    }}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
-                    placeholder="https://…"
-                    disabled={isSubmitting || !!pendingImageFile}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="min-w-0">
-                  <label className={fieldLabelClass}>
-                    Industry type
-                  </label>
-                  <select
-                    value={industryType}
-                    onChange={(e) => setIndustryType(e.target.value as IndustryType)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
-                    disabled={isSubmitting}
-                  >
-                    {industryOptions.map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt.replace('_', ' ')}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="min-w-0">
-                  <label className={fieldLabelClass}>
-                    Product type
-                  </label>
-                  <select
-                    value={productType}
-                    onChange={(e) => setProductType(e.target.value as ProductType)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
-                    disabled={isSubmitting}
-                  >
-                    {productTypeOptions.map((opt) => (
-                      <option key={opt} value={opt}>
-                        {formatProductTypeLabel(opt)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="min-w-0">
-                  <label className={fieldLabelClass}>
-                    Status
-                  </label>
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value as StatusType)}
-                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
-                    disabled={isSubmitting}
-                  >
-                    {statusOptions.map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt.charAt(0).toUpperCase() + opt.slice(1)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50/80 dark:bg-gray-900/40 p-3">
-                <label className="flex items-start gap-2.5 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    id="tracks-inventory"
-                    checked={tracksInventory}
-                    onChange={(e) => setTracksInventory(e.target.checked)}
-                    className="mt-0.5 rounded text-green-600 focus:ring-green-500"
-                    disabled={isSubmitting}
-                  />
-                  <span>
-                    <span className="block text-sm font-medium text-gray-800 dark:text-gray-200">
-                      Track inventory
-                    </span>
-                    <span className={`mt-0.5 block ${helperTextClass}`}>
-                      Turn off for services, fees, or SKUs not held in stock (no stock levels / MRP).
-                    </span>
-                  </span>
-                </label>
-              </div>
-            </div>
+            )}
           </div>
 
-          <div className="flex flex-1 flex-col overflow-hidden min-w-0 min-h-[10rem] lg:min-h-0 lg:pl-3 lg:border-l border-gray-200 dark:border-gray-700">
-            <div className="flex-1 min-h-0 min-w-0 overflow-y-auto space-y-1.5 pr-1">
-              {sectionBtn('pricing', 'Pricing & inventory', hasPricingDetails)}
-              {openSection === 'pricing' && (
-                <div className="pt-1 pb-3 space-y-3 border-b border-gray-200 dark:border-gray-700">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className={fieldLabelClass}>
-                        Sell Price
-                      </label>
-                      <input
-                        type="number"
-                        value={sellPrice}
-                        onChange={(e) => setSellPrice(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
-                        placeholder="e.g., 9.99"
-                        min="0"
-                        step="0.01"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                    <div>
-                      <label className={fieldLabelClass}>
-                        Min Stock Level
-                      </label>
-                      <input
-                        type="number"
-                        value={minStock}
-                        onChange={(e) => setMinStock(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
-                        min="0"
-                        disabled={isSubmitting || !tracksInventory}
-                      />
-                    </div>
-                    <div>
-                      <label className={fieldLabelClass}>
-                        Max Stock Level
-                      </label>
-                      <input
-                        type="number"
-                        value={maxStock}
-                        onChange={(e) => setMaxStock(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
-                        min="0"
-                        disabled={isSubmitting || !tracksInventory}
-                      />
-                    </div>
-                    <div>
-                      <label className={fieldLabelClass}>
-                        Reorder Point
-                      </label>
-                      <input
-                        type="number"
-                        value={reorderPoint}
-                        onChange={(e) => setReorderPoint(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
-                        min="0"
-                        disabled={isSubmitting || !tracksInventory}
-                      />
-                    </div>
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-y-contain px-4 pb-4 lg:flex-row lg:gap-6 lg:overflow-hidden">
+            <div className="flex flex-col shrink-0 w-full lg:w-[min(45rem,54%)] rounded-xl border border-gray-200/90 dark:border-gray-700/90 bg-white dark:bg-gray-800/60 p-4 ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+              <h3
+                className={`${sectionTitleClass} mb-3 border-b border-gray-200 pb-2 dark:border-gray-700`}
+              >
+                Basics & classification
+              </h3>
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className={fieldLabelClass}>
+                      SKU <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={sku}
+                      onChange={(e) => setSku(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                      placeholder="e.g., PROD-001"
+                      autoFocus
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div className="sm:col-span-1 min-w-0">
+                    <label className={fieldLabelClass}>
+                      Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                      placeholder="Product name"
+                      disabled={isSubmitting}
+                    />
                   </div>
                 </div>
-              )}
-
-              {sectionBtn('lifecycle', 'Lifecycle, tracking & tags', hasLifecycleDetails)}
-              {openSection === 'lifecycle' && (
-                <div className="pt-1 pb-3 space-y-3 border-b border-gray-200 dark:border-gray-700">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className={fieldLabelClass}>
-                        Lead Time (days)
-                      </label>
-                      <input
-                        type="number"
-                        value={leadTimeDays}
-                        onChange={(e) => setLeadTimeDays(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
-                        min="0"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                    <div>
-                      <label className={fieldLabelClass}>
-                        Shelf Life (days)
-                      </label>
-                      <input
-                        type="number"
-                        value={shelfLifeDays}
-                        onChange={(e) => setShelfLifeDays(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
-                        min="0"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                    <div>
-                      <label className={fieldLabelClass}>
-                        Storage Conditions
-                      </label>
-                      <input
-                        type="text"
-                        value={storageConditions}
-                        onChange={(e) => setStorageConditions(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
-                        placeholder="e.g., Frozen, Chilled, Ambient"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="flex items-center gap-2 sm:mt-3">
-                      <input
-                        id="lot-controlled"
-                        type="checkbox"
-                        checked={lotControlled}
-                        onChange={(e) => setLotControlled(e.target.checked)}
-                        className="rounded text-green-600 focus:ring-green-500"
-                        disabled={isSubmitting}
-                      />
-                      <label
-                        htmlFor="lot-controlled"
-                        className="text-sm text-gray-700 dark:text-gray-300"
-                      >
-                        Lot controlled
-                      </label>
-                    </div>
-                    <div className="flex items-center gap-2 sm:mt-3">
-                      <input
-                        id="serial-tracked"
-                        type="checkbox"
-                        checked={serialTracked}
-                        onChange={(e) => setSerialTracked(e.target.checked)}
-                        className="rounded text-green-600 focus:ring-green-500"
-                        disabled={isSubmitting}
-                      />
-                      <label
-                        htmlFor="serial-tracked"
-                        className="text-sm text-gray-700 dark:text-gray-300"
-                      >
-                        Serial tracked
-                      </label>
-                    </div>
-                    <div>
-                      <label className={fieldLabelClass}>
-                        Tags
-                      </label>
-                      <input
-                        type="text"
-                        value={tagsInput}
-                        onChange={(e) => setTagsInput(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
-                        placeholder="Comma-separated tags"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                  </div>
+                <div>
+                  <label className={fieldLabelClass}>Short description</label>
+                  <input
+                    type="text"
+                    value={shortDescription}
+                    onChange={(e) => setShortDescription(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                    placeholder="Short summary used in lists and cards"
+                    disabled={isSubmitting}
+                  />
                 </div>
-              )}
+                <div>
+                  <label className={fieldLabelClass}>Description</label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all resize-none"
+                    placeholder="Detailed description, usage notes, etc."
+                    rows={2}
+                    disabled={isSubmitting}
+                  />
+                </div>
 
-              {sectionBtn('categories', 'Categories', hasCategoryDetails)}
-              {openSection === 'categories' && (
-                <div className="pt-1 pb-2">
-                  <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <span className={sectionTitleClass}>Categories</span>
-                      <p className={`${helperTextClass} mt-0.5`}>
-                        Choose which groups this product belongs to
-                      </p>
-                    </div>
-                    {refreshCategories && (
-                      <button
-                        type="button"
-                        onClick={() => setAddCategoryOpen(true)}
-                        className={`shrink-0 ${premiumSecondaryButton('businessCore', 'sm', 'auto')}`}
-                      >
-                        <Tag className="h-3.5 w-3.5" aria-hidden />
-                        New category
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {availableCategories.length === 0 && (
-                      <p className={helperTextClass}>
-                        No categories yet. Use <span className="font-medium">New category</span> to
-                        create one, then select it below.
-                      </p>
-                    )}
-                    {availableCategories.map((cat) => {
-                      const isSelected = selectedCategories.includes(cat.name);
-                      return (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={() => handleToggleCategory(cat.name)}
-                          className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 transition-colors shadow-sm ${buttonTextClass} ${
-                            isSelected
-                              ? 'bg-green-600 text-white border-green-500'
-                              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-                          }`}
+                {supportsGroups && (
+                  <div className="rounded-lg border border-dashed border-green-200 dark:border-green-800 bg-green-50/40 dark:bg-green-900/10 p-3 space-y-3">
+                    <p className={`${sectionTitleClass} text-green-800 dark:text-green-200`}>
+                      Product group (optional)
+                    </p>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                      <div className="min-w-0 flex-1">
+                        <label className={fieldLabelClass}>Group</label>
+                        <select
+                          value={selectedGroupId}
+                          onChange={(e) => {
+                            setSelectedGroupId(e.target.value);
+                            setMatrixAttrSelection({});
+                          }}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
                           disabled={isSubmitting}
                         >
-                          {isSelected && <span className="text-xs">●</span>}
-                          <span>{cat.name}</span>
+                          <option value="">No group</option>
+                          {productGroups.map((g) => (
+                            <option key={g.id} value={g.id}>
+                              {g.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex gap-2 flex-1 min-w-0">
+                        <input
+                          type="text"
+                          value={newGroupName}
+                          onChange={(e) => setNewGroupName(e.target.value)}
+                          placeholder="New group name"
+                          className="flex-1 min-w-0 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                          disabled={isSubmitting || creatingGroup}
+                        />
+                        <button
+                          type="button"
+                          disabled={isSubmitting || creatingGroup || !newGroupName.trim()}
+                          onClick={async () => {
+                            try {
+                              setCreatingGroup(true);
+                              const g = await createGroup({
+                                name: newGroupName.trim(),
+                                is_active: true,
+                                is_deleted: false,
+                              });
+                              setProductGroups((prev) =>
+                                [...prev, g].sort((a, b) => a.name.localeCompare(b.name))
+                              );
+                              setSelectedGroupId(g.id);
+                              setNewGroupName('');
+                            } catch (err) {
+                              console.error(err);
+                            } finally {
+                              setCreatingGroup(false);
+                            }
+                          }}
+                          className={`shrink-0 ${premiumSecondaryButton('businessCore', 'sm', 'auto')}`}
+                        >
+                          {creatingGroup ? '…' : 'Create'}
                         </button>
-                      );
-                    })}
+                      </div>
+                    </div>
+                    {selectedGroupId && !isMatrix && (
+                      <div>
+                        <label className={fieldLabelClass}>Variant details (optional)</label>
+                        <input
+                          type="text"
+                          value={groupedVariantDetails}
+                          onChange={(e) => setGroupedVariantDetails(e.target.value)}
+                          placeholder="e.g. Size Large, Colour Red"
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                    )}
+                    {selectedGroupId &&
+                      isMatrix &&
+                      (() => {
+                        const g = productGroups.find((x) => x.id === selectedGroupId);
+                        const dimList = parseAttributeDimensions(g?.attribute_dimensions);
+                        if (dimList.length === 0) {
+                          return (
+                            <p className={helperTextClass}>
+                              Set attribute dimensions on the group (see Product groups) to pick
+                              variant attributes here.
+                            </p>
+                          );
+                        }
+                        return (
+                          <div className="space-y-2">
+                            {dimList.map((d) => (
+                              <div key={d.key}>
+                                <label className={fieldLabelClass}>{d.key}</label>
+                                <select
+                                  value={matrixAttrSelection[d.key] ?? ''}
+                                  onChange={(e) =>
+                                    setMatrixAttrSelection((prev) => ({
+                                      ...prev,
+                                      [d.key]: e.target.value,
+                                    }))
+                                  }
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                                  disabled={isSubmitting}
+                                >
+                                  <option value="">—</option>
+                                  {d.values.map((v) => (
+                                    <option key={v} value={v}>
+                                      {v}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
+                  </div>
+                )}
+
+                <div className="rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50/80 dark:bg-gray-900/40 p-3 space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-gray-800 dark:text-gray-200">
+                    <ImageIcon
+                      className="w-3.5 h-3.5 text-green-600 dark:text-green-400"
+                      aria-hidden
+                    />
+                    Product image
+                  </div>
+                  <p className={helperTextClass}>
+                    Upload a file (stored in your workspace) or paste an image URL. If you choose a
+                    file, it is used instead of the URL.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                      className="hidden"
+                      disabled={isSubmitting}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] ?? null;
+                        setPendingImageFile(f);
+                        if (f) setImageUrlInput('');
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={isSubmitting}
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-gray-800 shadow-sm hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 ${buttonTextClass}`}
+                    >
+                      <Upload className="w-3.5 h-3.5" aria-hidden />
+                      Choose file
+                    </button>
+                    {pendingImageFile && (
+                      <>
+                        <span className="max-w-[12rem] truncate text-xs text-gray-600 dark:text-gray-300">
+                          {pendingImageFile.name}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={isSubmitting}
+                          onClick={() => {
+                            setPendingImageFile(null);
+                            if (fileInputRef.current) fileInputRef.current.value = '';
+                          }}
+                          className="text-xs font-medium text-green-700 hover:underline dark:text-green-400"
+                        >
+                          Remove
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  <div>
+                    <label className={fieldLabelClass}>Image URL (optional)</label>
+                    <input
+                      type="url"
+                      value={imageUrlInput}
+                      onChange={(e) => {
+                        setImageUrlInput(e.target.value);
+                        if (e.target.value.trim()) setPendingImageFile(null);
+                      }}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                      placeholder="https://…"
+                      disabled={isSubmitting || !!pendingImageFile}
+                    />
                   </div>
                 </div>
-              )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="min-w-0">
+                    <label className={fieldLabelClass}>Industry type</label>
+                    <select
+                      value={industryType}
+                      onChange={(e) => setIndustryType(e.target.value as IndustryType)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                      disabled={isSubmitting}
+                    >
+                      {industryOptions.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt.replace('_', ' ')}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="min-w-0">
+                    <label className={fieldLabelClass}>Product type</label>
+                    <select
+                      value={productType}
+                      onChange={(e) => setProductType(e.target.value as ProductType)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                      disabled={isSubmitting}
+                    >
+                      {productTypeOptions.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {formatProductTypeLabel(opt)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="min-w-0">
+                    <label className={fieldLabelClass}>Status</label>
+                    <select
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value as StatusType)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                      disabled={isSubmitting}
+                    >
+                      {statusOptions.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50/80 dark:bg-gray-900/40 p-3">
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      id="tracks-inventory"
+                      checked={tracksInventory}
+                      onChange={(e) => setTracksInventory(e.target.checked)}
+                      className="mt-0.5 rounded text-green-600 focus:ring-green-500"
+                      disabled={isSubmitting}
+                    />
+                    <span>
+                      <span className="block text-sm font-medium text-gray-800 dark:text-gray-200">
+                        Track inventory
+                      </span>
+                      <span className={`mt-0.5 block ${helperTextClass}`}>
+                        Turn off for services, fees, or SKUs not held in stock (no stock levels /
+                        MRP).
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-1 flex-col overflow-hidden min-w-0 min-h-[10rem] lg:min-h-0 lg:pl-3 lg:border-l border-gray-200 dark:border-gray-700">
+              <div className="flex-1 min-h-0 min-w-0 overflow-y-auto space-y-1.5 pr-1">
+                {sectionBtn('pricing', 'Pricing & inventory', hasPricingDetails)}
+                {openSection === 'pricing' && (
+                  <div className="pt-1 pb-3 space-y-3 border-b border-gray-200 dark:border-gray-700">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className={fieldLabelClass}>Sell Price</label>
+                        <input
+                          type="number"
+                          value={sellPrice}
+                          onChange={(e) => setSellPrice(e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                          placeholder="e.g., 9.99"
+                          min="0"
+                          step="0.01"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                      <div>
+                        <label className={fieldLabelClass}>Min Stock Level</label>
+                        <input
+                          type="number"
+                          value={minStock}
+                          onChange={(e) => setMinStock(e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                          min="0"
+                          disabled={isSubmitting || !tracksInventory}
+                        />
+                      </div>
+                      <div>
+                        <label className={fieldLabelClass}>Max Stock Level</label>
+                        <input
+                          type="number"
+                          value={maxStock}
+                          onChange={(e) => setMaxStock(e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                          min="0"
+                          disabled={isSubmitting || !tracksInventory}
+                        />
+                      </div>
+                      <div>
+                        <label className={fieldLabelClass}>Reorder Point</label>
+                        <input
+                          type="number"
+                          value={reorderPoint}
+                          onChange={(e) => setReorderPoint(e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                          min="0"
+                          disabled={isSubmitting || !tracksInventory}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {sectionBtn('lifecycle', 'Lifecycle, tracking & tags', hasLifecycleDetails)}
+                {openSection === 'lifecycle' && (
+                  <div className="pt-1 pb-3 space-y-3 border-b border-gray-200 dark:border-gray-700">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className={fieldLabelClass}>Lead Time (days)</label>
+                        <input
+                          type="number"
+                          value={leadTimeDays}
+                          onChange={(e) => setLeadTimeDays(e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                          min="0"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                      <div>
+                        <label className={fieldLabelClass}>Shelf Life (days)</label>
+                        <input
+                          type="number"
+                          value={shelfLifeDays}
+                          onChange={(e) => setShelfLifeDays(e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                          min="0"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                      <div>
+                        <label className={fieldLabelClass}>Storage Conditions</label>
+                        <input
+                          type="text"
+                          value={storageConditions}
+                          onChange={(e) => setStorageConditions(e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                          placeholder="e.g., Frozen, Chilled, Ambient"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="flex items-center gap-2 sm:mt-3">
+                        <input
+                          id="lot-controlled"
+                          type="checkbox"
+                          checked={lotControlled}
+                          onChange={(e) => setLotControlled(e.target.checked)}
+                          className="rounded text-green-600 focus:ring-green-500"
+                          disabled={isSubmitting}
+                        />
+                        <label
+                          htmlFor="lot-controlled"
+                          className="text-sm text-gray-700 dark:text-gray-300"
+                        >
+                          Lot controlled
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-2 sm:mt-3">
+                        <input
+                          id="serial-tracked"
+                          type="checkbox"
+                          checked={serialTracked}
+                          onChange={(e) => setSerialTracked(e.target.checked)}
+                          className="rounded text-green-600 focus:ring-green-500"
+                          disabled={isSubmitting}
+                        />
+                        <label
+                          htmlFor="serial-tracked"
+                          className="text-sm text-gray-700 dark:text-gray-300"
+                        >
+                          Serial tracked
+                        </label>
+                      </div>
+                      <div>
+                        <label className={fieldLabelClass}>Tags</label>
+                        <input
+                          type="text"
+                          value={tagsInput}
+                          onChange={(e) => setTagsInput(e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                          placeholder="Comma-separated tags"
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {sectionBtn('categories', 'Categories', hasCategoryDetails)}
+                {openSection === 'categories' && (
+                  <div className="pt-1 pb-2">
+                    <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className={sectionTitleClass}>Categories</span>
+                        <p className={`${helperTextClass} mt-0.5`}>
+                          Choose which groups this product belongs to
+                        </p>
+                      </div>
+                      {refreshCategories && (
+                        <button
+                          type="button"
+                          onClick={() => setAddCategoryOpen(true)}
+                          className={`shrink-0 ${premiumSecondaryButton('businessCore', 'sm', 'auto')}`}
+                        >
+                          <Tag className="h-3.5 w-3.5" aria-hidden />
+                          New category
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {availableCategories.length === 0 && (
+                        <p className={helperTextClass}>
+                          No categories yet. Use <span className="font-medium">New category</span>{' '}
+                          to create one, then select it below.
+                        </p>
+                      )}
+                      {availableCategories.map((cat) => {
+                        const isSelected = selectedCategories.includes(cat.name);
+                        return (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => handleToggleCategory(cat.name)}
+                            className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 transition-colors shadow-sm ${buttonTextClass} ${
+                              isSelected
+                                ? 'bg-green-600 text-white border-green-500'
+                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                            }`}
+                            disabled={isSubmitting}
+                          >
+                            {isSelected && <span className="text-xs">●</span>}
+                            <span>{cat.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="shrink-0 flex justify-end gap-3 border-t border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900">
-          <button
-            type="button"
-            onClick={handleClose}
-            className={`inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 ${buttonTextClass}`}
-            disabled={isSubmitting}
-          >
-            <X className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className={`inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-1.5 text-white shadow-sm transition-colors hover:bg-green-700 active:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50 ${buttonTextClass}`}
-            disabled={isSubmitting}
-          >
-            <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {isSubmitting ? 'Creating...' : 'Create Product'}
-          </button>
-        </div>
-      </form>
-    </div>
-    {refreshCategories ? (
-      <AddCategoryModal
-        open={addCategoryOpen}
-        onClose={() => setAddCategoryOpen(false)}
-        onCreated={async ({ name }) => {
-          await refreshCategories();
-          setSelectedCategories((prev) => (prev.includes(name) ? prev : [...prev, name]));
-        }}
-      />
-    ) : null}
+          <div className="shrink-0 flex justify-end gap-3 border-t border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900">
+            <button
+              type="button"
+              onClick={handleClose}
+              className={`inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 ${buttonTextClass}`}
+              disabled={isSubmitting}
+            >
+              <X className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className={`inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-1.5 text-white shadow-sm transition-colors hover:bg-green-700 active:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50 ${buttonTextClass}`}
+              disabled={isSubmitting}
+            >
+              <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              {isSubmitting ? 'Creating...' : 'Create Product'}
+            </button>
+          </div>
+        </form>
+      </div>
+      {refreshCategories ? (
+        <AddCategoryModal
+          open={addCategoryOpen}
+          onClose={() => setAddCategoryOpen(false)}
+          onCreated={async ({ name }) => {
+            await refreshCategories();
+            setSelectedCategories((prev) => (prev.includes(name) ? prev : [...prev, name]));
+          }}
+        />
+      ) : null}
     </>
   );
 }

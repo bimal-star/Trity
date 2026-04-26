@@ -131,7 +131,10 @@ export function navRowHasDescendants(rows: NavPillarRow[], nodeId: string): bool
  * Direct children of a pillar root only (first level under Business Core / Execution / Analytics).
  * Sorted by position; excludes deleted.
  */
-export function directChildrenOfPillarRoot(rows: NavPillarRow[], pillarLabel: string): NavPillarRow[] {
+export function directChildrenOfPillarRoot(
+  rows: NavPillarRow[],
+  pillarLabel: string
+): NavPillarRow[] {
   const tree = organizeHierarchy(navRowsForHierarchy(rows));
   const root = findPillarRootNode(tree, pillarLabel);
   if (!root?.children?.length) return [];
@@ -185,7 +188,10 @@ export function pillarColumnRowsByLabel(rows: NavPillarRow[], pillarLabel: strin
 }
 
 /** Tri-state for all rows in a label-based pillar subtree (including root), for master checkbox + bulk toggle. */
-export function pillarTriStateForSubtreeByLabel(rows: NavPillarRow[], pillarLabel: string): PillarTriState {
+export function pillarTriStateForSubtreeByLabel(
+  rows: NavPillarRow[],
+  pillarLabel: string
+): PillarTriState {
   const idSet = new Set(allIdsInSubtreeByLabel(rows, pillarLabel));
   if (idSet.size === 0) return 'none';
   const subset = rows.filter((r) => idSet.has(r.id) && !r.is_deleted);
@@ -197,7 +203,10 @@ export function pillarTriStateForSubtreeByLabel(rows: NavPillarRow[], pillarLabe
 }
 
 /** Routable (leaf path) modules under a pillar subtree, sorted by position. */
-export function routableRowsInPillarSubtreeByLabel(rows: NavPillarRow[], pillarLabel: string): NavPillarRow[] {
+export function routableRowsInPillarSubtreeByLabel(
+  rows: NavPillarRow[],
+  pillarLabel: string
+): NavPillarRow[] {
   const idSet = new Set(allIdsInSubtreeByLabel(rows, pillarLabel));
   return rows
     .filter((r) => idSet.has(r.id) && isRoutableNavRow(r))
@@ -205,7 +214,10 @@ export function routableRowsInPillarSubtreeByLabel(rows: NavPillarRow[], pillarL
 }
 
 /** Rows whose dot-position is under a pillar root (e.g. 2, 2.1, 2.6.1). */
-export function rowsUnderPillarPrefix(rows: NavPillarRow[], prefix: PillarPositionPrefix): NavPillarRow[] {
+export function rowsUnderPillarPrefix(
+  rows: NavPillarRow[],
+  prefix: PillarPositionPrefix
+): NavPillarRow[] {
   return rows.filter((r) => {
     if (r.is_deleted) return false;
     const seg = positionRootSegment(r.position);
@@ -227,7 +239,10 @@ export function routableRowsUnderPillar(
  * Rows for a pillar admin column: under the prefix except the bare root (e.g. exclude `"2"` only).
  * Includes section headers with no `path` when the DB omits paths on parents.
  */
-export function pillarColumnRows(rows: NavPillarRow[], prefix: PillarPositionPrefix): NavPillarRow[] {
+export function pillarColumnRows(
+  rows: NavPillarRow[],
+  prefix: PillarPositionPrefix
+): NavPillarRow[] {
   const p = String(prefix);
   return rowsUnderPillarPrefix(rows, prefix)
     .filter((r) => String(r.position) !== p)

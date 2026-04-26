@@ -39,15 +39,7 @@ import {
 } from '@/lib/productCatalogue';
 import TenantLogoField from '@/components/tenants/TenantLogoField';
 import { useIndustries } from '@/hooks/useIndustries';
-import {
-  Building2,
-  Loader2,
-  AlertCircle,
-  Save,
-  Plus,
-  X,
-  ChevronDown,
-} from 'lucide-react';
+import { Building2, Loader2, AlertCircle, Save, Plus, X, ChevronDown } from 'lucide-react';
 
 interface TenantData {
   id?: string;
@@ -76,16 +68,21 @@ export default function TenantFormPage() {
   const rawId = params?.id;
   const tenantId = Array.isArray(rawId) ? rawId[0] : rawId;
   const isEditMode = !!tenantId;
-  
-  const { user, ready, isLoading: tenantBootLoading, effectiveTenantId, refreshCatalogueMode } =
-    useTenant();
+
+  const {
+    user,
+    ready,
+    isLoading: tenantBootLoading,
+    effectiveTenantId,
+    refreshCatalogueMode,
+  } = useTenant();
   const { profile } = useProfile(user?.id);
-  
+
   const [isLoading, setIsLoading] = useState(isEditMode);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  
+
   const [name, setName] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [slug, setSlug] = useState('');
@@ -348,12 +345,12 @@ export default function TenantFormPage() {
     }
     const normLabel = trimmed.toLowerCase();
     const existing = industries.find(
-      (opt) => opt.slug === slug || opt.label.trim().toLowerCase() === normLabel,
+      (opt) => opt.slug === slug || opt.label.trim().toLowerCase() === normLabel
     );
     if (existing) {
       setIndustry(existing.slug);
       setNewIndustryError(
-        `"${existing.label}" already exists — it's now selected. Close this dialog or enter a different name.`,
+        `"${existing.label}" already exists — it's now selected. Close this dialog or enter a different name.`
       );
       return;
     }
@@ -364,7 +361,7 @@ export default function TenantFormPage() {
       .from('industries')
       .upsert(
         { slug, label, created_by: user?.id ?? null },
-        { onConflict: 'slug', ignoreDuplicates: true },
+        { onConflict: 'slug', ignoreDuplicates: true }
       );
     setAddingIndustry(false);
     if (insErr) {
@@ -431,11 +428,11 @@ export default function TenantFormPage() {
           backLabel="Back to tenants"
           right={stickyHeaderRight}
         />
-        <div className={`mb-4 ${premiumSurfaces.divider}`} />
-
         <div className="w-full min-w-0">
           {isEditMode && tenantId ? (
-            <p className={`mb-3 font-mono text-[11px] ${premiumTypography.helper}`}>Tenant ID: {tenantId}</p>
+            <p className={`mb-3 font-mono text-[11px] ${premiumTypography.helper}`}>
+              Tenant ID: {tenantId}
+            </p>
           ) : null}
 
           {error && (
@@ -443,12 +440,18 @@ export default function TenantFormPage() {
               <AlertCircle className="h-5 w-5 shrink-0 text-red-600 dark:text-red-400 mt-0.5" />
               <div>
                 <p className="font-medium text-red-800 dark:text-red-200">Error</p>
-                <p className={`mt-1 ${premiumTypography.body} text-red-700 dark:text-red-300`}>{error}</p>
+                <p className={`mt-1 ${premiumTypography.body} text-red-700 dark:text-red-300`}>
+                  {error}
+                </p>
               </div>
             </div>
           )}
 
-          <form id="tenant-form" onSubmit={handleSubmit} className="flex min-w-0 flex-col gap-4 lg:gap-5">
+          <form
+            id="tenant-form"
+            onSubmit={handleSubmit}
+            className="flex min-w-0 flex-col gap-4 lg:gap-5"
+          >
             <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
               <PremiumCard elevated className="p-4 sm:p-5">
                 <PremiumSectionTitle className="mb-3">Identity and status</PremiumSectionTitle>
@@ -483,7 +486,9 @@ export default function TenantFormPage() {
                     <input
                       type="text"
                       value={slug}
-                      onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                      onChange={(e) =>
+                        setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))
+                      }
                       placeholder="client-name"
                       className={`w-full ${fieldClass}`}
                     />
@@ -517,8 +522,7 @@ export default function TenantFormPage() {
                             {opt.label}
                           </option>
                         ))}
-                        {industry &&
-                        !industries.some((opt) => opt.slug === industry) ? (
+                        {industry && !industries.some((opt) => opt.slug === industry) ? (
                           <option value={industry}>{industry}</option>
                         ) : null}
                       </select>
@@ -558,9 +562,12 @@ export default function TenantFormPage() {
                         className="mt-0.5 h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500 dark:border-gray-600"
                       />
                       <span>
-                        <span className={`${premiumTypography.label} block`}>Template (developer workspace)</span>
+                        <span className={`${premiumTypography.label} block`}>
+                          Template (developer workspace)
+                        </span>
                         <span className={`${premiumTypography.helper} mt-0.5 block`}>
-                          Golden tenant for provisioning navigation to new tenants. Alternatively set{' '}
+                          Golden tenant for provisioning navigation to new tenants. Alternatively
+                          set{' '}
                           <code className="rounded bg-gray-100 px-1 text-[11px] dark:bg-gray-900">
                             NEXT_PUBLIC_TEMPLATE_TENANT_ID
                           </code>
@@ -625,8 +632,8 @@ export default function TenantFormPage() {
             <PremiumCard elevated className="p-4 sm:p-5">
               <PremiumSectionTitle className="mb-3">Product catalogue</PremiumSectionTitle>
               <p className={`mb-3 ${premiumTypography.helper}`}>
-                How this workspace structures products and variants (simple list, grouped, or matrix).
-                Changing mode affects the products UI; existing rows are not deleted.
+                How this workspace structures products and variants (simple list, grouped, or
+                matrix). Changing mode affects the products UI; existing rows are not deleted.
               </p>
               <div className="space-y-3">
                 <label className="flex cursor-pointer gap-3 rounded-lg border border-gray-200 p-3 has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50/50 dark:border-gray-600 dark:has-[:checked]:border-amber-600 dark:has-[:checked]:bg-amber-950/30">
@@ -639,7 +646,9 @@ export default function TenantFormPage() {
                     disabled={isSaving}
                   />
                   <span>
-                    <span className={`font-medium ${premiumTypography.body} text-gray-900 dark:text-white`}>
+                    <span
+                      className={`font-medium ${premiumTypography.body} text-gray-900 dark:text-white`}
+                    >
                       Simple
                     </span>
                     <span className={`mt-0.5 block text-sm ${premiumTypography.helper}`}>
@@ -657,7 +666,9 @@ export default function TenantFormPage() {
                     disabled={isSaving}
                   />
                   <span>
-                    <span className={`font-medium ${premiumTypography.body} text-gray-900 dark:text-white`}>
+                    <span
+                      className={`font-medium ${premiumTypography.body} text-gray-900 dark:text-white`}
+                    >
                       Grouped
                     </span>
                     <span className={`mt-0.5 block text-sm ${premiumTypography.helper}`}>
@@ -675,7 +686,9 @@ export default function TenantFormPage() {
                     disabled={isSaving}
                   />
                   <span>
-                    <span className={`font-medium ${premiumTypography.body} text-gray-900 dark:text-white`}>
+                    <span
+                      className={`font-medium ${premiumTypography.body} text-gray-900 dark:text-white`}
+                    >
                       Matrix
                     </span>
                     <span className={`mt-0.5 block text-sm ${premiumTypography.helper}`}>
@@ -692,13 +705,18 @@ export default function TenantFormPage() {
             >
               <PremiumSectionTitle className="mb-3">Subscription and contract</PremiumSectionTitle>
               <p className={`mb-3 ${premiumTypography.helper}`}>
-                <Link href="/admin/subscription-packages" className={`${pa.iconColor} font-medium hover:underline`}>
+                <Link
+                  href="/admin/subscription-packages"
+                  className={`${pa.iconColor} font-medium hover:underline`}
+                >
                   Manage subscription packages
                 </Link>
               </p>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
                 <div className="md:col-span-2 lg:col-span-3">
-                  <label className={`mb-1 block ${premiumTypography.label}`}>Subscription package</label>
+                  <label className={`mb-1 block ${premiumTypography.label}`}>
+                    Subscription package
+                  </label>
                   <select
                     value={subscriptionPackageId ?? ''}
                     onChange={(e) => {
@@ -721,56 +739,62 @@ export default function TenantFormPage() {
                     ))}
                   </select>
                 </div>
-                  <div>
-                    <label className={`mb-1 block ${premiumTypography.label}`}>Subscription tier</label>
-                    <select
-                      value={subscriptionTier}
-                      onChange={(e) => {
-                        setSubscriptionTier(e.target.value);
-                        setSubscriptionPackageId(null);
-                      }}
-                      className={`w-full ${fieldClass}`}
-                    >
-                      <option value="basic">Basic</option>
-                      <option value="professional">Professional</option>
-                      <option value="enterprise">Enterprise</option>
-                    </select>
-                    <p className={`mt-1 ${premiumTypography.helper}`}>
-                      Changing tier clears the package link unless you re-select a package.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className={`mb-1 block ${premiumTypography.label}`}>Max users</label>
-                    <input
-                      type="number"
-                      value={maxUsers}
-                      onChange={(e) => setMaxUsers(e.target.value)}
-                      min="1"
-                      className={`w-full ${fieldClass}`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className={`mb-1 block ${premiumTypography.label}`}>Contract start date</label>
-                    <input
-                      type="date"
-                      value={contractStartDate}
-                      onChange={(e) => setContractStartDate(e.target.value)}
-                      className={`w-full ${fieldClass}`}
-                    />
-                  </div>
-
-                  <div>
-                    <label className={`mb-1 block ${premiumTypography.label}`}>Contract end date</label>
-                    <input
-                      type="date"
-                      value={contractEndDate}
-                      onChange={(e) => setContractEndDate(e.target.value)}
-                      className={`w-full ${fieldClass}`}
-                    />
-                  </div>
+                <div>
+                  <label className={`mb-1 block ${premiumTypography.label}`}>
+                    Subscription tier
+                  </label>
+                  <select
+                    value={subscriptionTier}
+                    onChange={(e) => {
+                      setSubscriptionTier(e.target.value);
+                      setSubscriptionPackageId(null);
+                    }}
+                    className={`w-full ${fieldClass}`}
+                  >
+                    <option value="basic">Basic</option>
+                    <option value="professional">Professional</option>
+                    <option value="enterprise">Enterprise</option>
+                  </select>
+                  <p className={`mt-1 ${premiumTypography.helper}`}>
+                    Changing tier clears the package link unless you re-select a package.
+                  </p>
                 </div>
+
+                <div>
+                  <label className={`mb-1 block ${premiumTypography.label}`}>Max users</label>
+                  <input
+                    type="number"
+                    value={maxUsers}
+                    onChange={(e) => setMaxUsers(e.target.value)}
+                    min="1"
+                    className={`w-full ${fieldClass}`}
+                  />
+                </div>
+
+                <div>
+                  <label className={`mb-1 block ${premiumTypography.label}`}>
+                    Contract start date
+                  </label>
+                  <input
+                    type="date"
+                    value={contractStartDate}
+                    onChange={(e) => setContractStartDate(e.target.value)}
+                    className={`w-full ${fieldClass}`}
+                  />
+                </div>
+
+                <div>
+                  <label className={`mb-1 block ${premiumTypography.label}`}>
+                    Contract end date
+                  </label>
+                  <input
+                    type="date"
+                    value={contractEndDate}
+                    onChange={(e) => setContractEndDate(e.target.value)}
+                    className={`w-full ${fieldClass}`}
+                  />
+                </div>
+              </div>
             </PremiumCard>
 
             <PremiumCard elevated className="p-4 sm:p-5">
@@ -859,7 +883,10 @@ export default function TenantFormPage() {
                 maxLength={80}
               />
               {newIndustryError ? (
-                <p className={`mt-2 ${premiumTypography.helper} text-red-600 dark:text-red-400`} role="alert">
+                <p
+                  className={`mt-2 ${premiumTypography.helper} text-red-600 dark:text-red-400`}
+                  role="alert"
+                >
                   {newIndustryError}
                 </p>
               ) : null}
@@ -902,12 +929,16 @@ export default function TenantFormPage() {
             aria-modal="true"
             aria-label="Confirm product catalogue mode change"
           >
-            <PremiumCard elevated className="max-h-[90vh] w-full max-w-lg overflow-y-auto p-5 sm:p-6">
+            <PremiumCard
+              elevated
+              className="max-h-[90vh] w-full max-w-lg overflow-y-auto p-5 sm:p-6"
+            >
               <PremiumSectionTitle className="mb-2">
                 Confirm product catalogue mode change
               </PremiumSectionTitle>
               <p className={`${premiumTypography.helper} mb-3`}>
-                This only updates the tenant setting. It does not run a database migration or delete product data.
+                This only updates the tenant setting. It does not run a database migration or delete
+                product data.
               </p>
               <p className={`${premiumTypography.body} text-gray-800 dark:text-gray-200`}>
                 {catalogueModeChangeGuidance(savedCatalogueBaselineRef.current, catalogueMode)}

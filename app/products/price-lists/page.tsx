@@ -79,7 +79,11 @@ export default function ProductPriceListsPage() {
           subtitle="Price tiers for different customers — set per-product prices on each product’s Pricing tab"
           subtitleClassName={`${premiumTypography.pageSubtitle} ${bc.subtitleTint}`}
           right={
-            <button type="button" onClick={openNew} className={premiumPrimaryButton('businessCore', 'md', 'wide')}>
+            <button
+              type="button"
+              onClick={openNew}
+              className={premiumPrimaryButton('businessCore', 'md', 'wide')}
+            >
               New price tier
             </button>
           }
@@ -88,8 +92,9 @@ export default function ProductPriceListsPage() {
         <div className="mt-5 space-y-5">
           <div className={`${premiumSurfaces.card}`}>
             <p className={`${premiumTypography.body} text-gray-600 dark:text-gray-400`}>
-              Price tiers let you set different prices for different customers. Assign a tier to a customer and
-              they will automatically get those prices. Set each product&apos;s tier prices from{' '}
+              Price tiers let you set different prices for different customers. Assign a tier to a
+              customer and they will automatically get those prices. Set each product&apos;s tier
+              prices from{' '}
               <Link href="/products" className="text-green-700 underline dark:text-green-400">
                 Products
               </Link>{' '}
@@ -123,7 +128,9 @@ export default function ProductPriceListsPage() {
                   className={`w-full min-w-[760px] border-collapse text-left ${premiumTypography.tableCell}`}
                 >
                   <thead>
-                    <tr className={`border-b border-gray-200 dark:border-gray-700 ${premiumTypography.tableHeaderDense}`}>
+                    <tr
+                      className={`border-b border-gray-200 dark:border-gray-700 ${premiumTypography.tableHeaderDense}`}
+                    >
                       <th className="pb-2 pr-2">Name</th>
                       <th className="pb-2 px-1">Currency</th>
                       <th className="pb-2 px-1">From</th>
@@ -136,9 +143,13 @@ export default function ProductPriceListsPage() {
                     {lists.map((row) => (
                       <tr key={row.id} className="border-b border-gray-100 dark:border-gray-800">
                         <td className="py-2.5 pr-2 align-middle">
-                          <div className="font-medium text-gray-900 dark:text-gray-100">{row.name}</div>
+                          <div className="font-medium text-gray-900 dark:text-gray-100">
+                            {row.name}
+                          </div>
                           {row.description ? (
-                            <div className={`mt-0.5 ${premiumTypography.helper}`}>{row.description}</div>
+                            <div className={`mt-0.5 ${premiumTypography.helper}`}>
+                              {row.description}
+                            </div>
                           ) : null}
                         </td>
                         <td className="px-1 py-2.5 align-middle">{row.currency || '—'}</td>

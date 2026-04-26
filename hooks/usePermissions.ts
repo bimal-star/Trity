@@ -1,6 +1,6 @@
 /**
  * usePermissions Hook
- * 
+ *
  * Provides permission checking within React components
  * Integrates with TenantContext and user profile for authorization
  */
@@ -11,10 +11,7 @@ import type { User } from '@supabase/supabase-js';
 import { useMemo } from 'react';
 import { useTenant } from '@/contexts/TenantContext';
 import { useProfile } from '@/hooks/useProfile';
-import {
-  PermissionAction,
-  TenantRole,
-} from '@/types/access';
+import { PermissionAction, TenantRole } from '@/types/access';
 import {
   canUserPerform,
   canManageUser,
@@ -40,10 +37,10 @@ export interface UsePermissionsReturn {
 /**
  * Hook to check permissions for current user
  * @returns Object with permission checking functions
- * 
+ *
  * @example
  * const { can, isAdmin } = usePermissions();
- * 
+ *
  * if (can('manage_users')) {
  *   // Show user management UI
  * }
@@ -66,8 +63,7 @@ export function usePermissions(): UsePermissionsReturn {
       : null;
     const roleForChecks = effectiveRole ?? 'member';
 
-    const profileForChecks =
-      profile != null ? { ...profile, role: roleForChecks } : null;
+    const profileForChecks = profile != null ? { ...profile, role: roleForChecks } : null;
 
     const can = (action: PermissionAction): boolean => {
       return canUserPerform(profileForChecks, action);

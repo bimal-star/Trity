@@ -19,11 +19,13 @@
 //   tenantedSupabase.from('calendar').select('*')
 //   // No tenant_id filter needed - schema routing handles it!
 
+import type { Database } from '@/types/database';
 import { supabase } from './supabaseClient';
 
-/** Base client with dynamic `.from` / `.rpc` for names not in generated typings. */
+type PublicTable = keyof Database['public']['Tables'];
+
+/** Base client with dynamic `.rpc` for function names not in generated typings. */
 const dynamicSupabase = supabase as {
-  from: (name: string) => ReturnType<typeof supabase.from>;
   rpc: (fn: string, args?: Record<string, unknown>) => ReturnType<typeof supabase.rpc>;
 };
 
@@ -55,16 +57,14 @@ export class TenantedSupabaseClient {
    */
   private getSchemaName(): string {
     if (!this.tenantId) {
-      throw new Error(
-        'No tenant ID set. User must be authenticated first.'
-      );
+      throw new Error('No tenant ID set. User must be authenticated first.');
     }
     return `tenant_${this.tenantId.replace(/-/g, '_')}`;
   }
 
   /**
    * Query data from correct schema based on tenant
-   * 
+   *
    * Tables in PUBLIC schema (shared):
    * - tenants
    * - user_profiles
@@ -74,44 +74,49 @@ export class TenantedSupabaseClient {
    * - audit_logs
    * - tenant_schemas
    * - feature_provisioning_log
-   * 
+   *
    * All other tables route to tenant's schema using qualified names (schema.table)
    */
-  from(tableName: string) {
+  /**
+   * Same runtime as `supabase.from`. Return type is intentionally loose: narrowing `relation`
+   * to generated table keys makes TS instantiate the full `Database` union (slow / "excessively deep").
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see method JSDoc
+  from(relation: PublicTable | string): any {
     // Tables that live in public schema (shared across all tenants)
     const sharedTables = [
       'tenants',
       'user_profiles',
-      'user_invites',
+      'tenant_invites',
       'user_groups',
       'group_members',
       'audit_logs',
       'tenant_schemas',
       'feature_provisioning_log',
-    ];
+    ] as const satisfies readonly PublicTable[];
 
     // If it's a shared table, use public schema
-    if (sharedTables.includes(tableName)) {
-      return dynamicSupabase.from(tableName);
+    if ((sharedTables as readonly string[]).includes(relation as string)) {
+      return supabase.from(relation as PublicTable);
     }
 
     // For tenant-specific tables in non-public schemas, PostgREST requires RPC functions.
     // However, for now we keep data in public schema with RLS filters.
     // The tenant_id column still provides logical isolation and future schema migration path.
-    // 
+    //
     // NOTE: To move to true schema isolation (separate PostgreSQL schemas per tenant):
     // 1. Create RPC functions in public schema that query tenant schemas
     // 2. Update this method to call those RPC functions instead of direct table access
     // 3. Once RPC functions are created, uncomment the code below
     //
     // For now, we route to public schema and rely on RLS + tenant_id column
-    return dynamicSupabase.from(tableName);
+    return supabase.from(relation as PublicTable);
   }
 
   /**
    * Call a stored procedure/function
    */
-  rpc(fnName: string, args?: Record<string, any>) {
+  rpc(fnName: string, args?: Record<string, unknown>) {
     return dynamicSupabase.rpc(fnName, args);
   }
 
