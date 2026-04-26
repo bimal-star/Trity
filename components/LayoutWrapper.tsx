@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Menu } from 'lucide-react';
 import { Sidebar } from '@/components/navigation/Sidebar';
 import { LayoutSkeleton } from '@/components/LayoutSkeleton';
+import { ImpersonationBanner } from '@/components/ImpersonationBanner';
 import { useTenant } from '@/contexts/TenantContext';
 import { supabase } from '@/lib/supabaseClient';
 

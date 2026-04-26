@@ -31,7 +31,7 @@ interface ProtectedRouteProps {
 /**
  * ProtectedRoute Component
  * Wraps pages that require authentication and tenant context
- * 
+ *
  * @param {ReactNode} children - The protected content
  * @param {string} redirectTo - Where to redirect unauthenticated users (default: '/login')
  * @param {string} requiredRole - Optional role requirement
@@ -133,7 +133,8 @@ export function ProtectedRoute({
               Account Configuration Error
             </h2>
             <p className="text-red-600 dark:text-red-300 mb-4">
-              {tenantError || 'Your account is not associated with a tenant. Please contact support.'}
+              {tenantError ||
+                'Your account is not associated with a tenant. Please contact support.'}
             </p>
             <button
               type="button"

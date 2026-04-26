@@ -9,6 +9,8 @@
 
 This document serves as a master index for all reference documentation in the Trity project. Use this to find the right file for your needs.
 
+For a condensed starting point, see [docs/README.md](docs/README.md).
+
 ---
 
 ## 🏠 Core Documentation
@@ -94,6 +96,11 @@ This document serves as a master index for all reference documentation in the Tr
 - **Contains:** Schema migration steps, backup procedures, conversion details
 - **Best for:** Performing specific schema migrations
 
+### [supabase/migrations/README.md](supabase/migrations/README.md)
+- **Purpose:** SQL migration catalog and run-order guide
+- **Contains:** Migration list, conventions, and execution workflow
+- **Best for:** Quickly locating or applying database migrations
+
 ### [schema_analysis_report.md](schema_analysis_report.md)
 - **Purpose:** Database schema analysis and documentation
 - **Best for:** Understanding the database structure
@@ -145,7 +152,9 @@ This document serves as a master index for all reference documentation in the Tr
 
 - **[docs/AI_PROMPT.md](docs/AI_PROMPT.md)** - AI assistant prompt and guidelines
 - **[docs/SUPABASE_OPTIMIZATION_SUMMARY.md](docs/SUPABASE_OPTIMIZATION_SUMMARY.md)** - Complete optimization journey
+- **[docs/TIMEZONE_OPTIMIZATION.md](docs/TIMEZONE_OPTIMIZATION.md)** - Cached timezone view usage guide
 - **[docs/TYPE_GENERATION.md](docs/TYPE_GENERATION.md)** - Type generation setup and usage
+- **[docs/README.md](docs/README.md)** - Documentation map and quick entry points
 
 ---
 

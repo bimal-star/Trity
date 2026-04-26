@@ -92,9 +92,9 @@ export default function AdminTenantsPage() {
   ]);
 
   // Fetch all tenants
-  const fetchTenants = async () => {
+  const fetchTenants = useCallback(async () => {
     if (!canManageTenants) return;
-    
+
     try {
       setIsLoading(true);
       setError(null);
@@ -114,7 +114,7 @@ export default function AdminTenantsPage() {
             .from('user_profiles')
             .select('*', { count: 'exact', head: true })
             .eq('tenant_id', tenant.id);
-          
+
           return { ...tenant, user_count: count || 0 };
         })
       );
@@ -126,13 +126,13 @@ export default function AdminTenantsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [canManageTenants]);
 
   useEffect(() => {
     if (canManageTenants) {
-      fetchTenants();
+      void fetchTenants();
     }
-  }, [canManageTenants]);
+  }, [canManageTenants, fetchTenants]);
 
   const handleProvisionFromTemplate = async (tenantId: string) => {
     setProvisioningId(tenantId);
@@ -189,7 +189,7 @@ export default function AdminTenantsPage() {
       if (error) throw error;
       
       await logTenantUpdated(tenantId, { is_active: !currentActive }, user?.id ?? null);
-      
+
       await fetchTenants();
       toast.success(currentActive ? 'Tenant deactivated.' : 'Tenant activated.');
     } catch (err) {
@@ -256,6 +256,22 @@ export default function AdminTenantsPage() {
                 <p className="text-sm text-red-700 dark:text-red-300 mt-1">{error}</p>
               </div>
             </div>
+          )}
+
+          {impersonateError && (
+            <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-300">
+              {impersonateError}
+            </div>
+          )}
+
+          {isDevAutoImpersonateEnabled() && (
+            <p className="text-xs text-amber-700 dark:text-amber-300/90">
+              Dev: new tenants auto-open in read/write impersonation (
+              <code className="rounded bg-amber-100/20 px-1">
+                NEXT_PUBLIC_DEV_AUTO_IMPERSONATE=true
+              </code>
+              ).
+            </p>
           )}
 
           {/* Tenants List */}
@@ -348,7 +364,11 @@ export default function AdminTenantsPage() {
                               : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                           }`}
                         >
-                          {tenant.is_active ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                          {tenant.is_active ? (
+                            <Check className="w-3 h-3" />
+                          ) : (
+                            <X className="w-3 h-3" />
+                          )}
                           {tenant.is_active ? 'Active' : 'Inactive'}
                         </button>
                       </td>

@@ -31,7 +31,7 @@ import {
 
 /**
  * TenantContext - Global Authentication & Tenant State Provider
- * 
+ *
  * SESSION REFRESH MUST NOT TRIGGER FULL RELOADS:
  * ===============================================
  * When returning from another tab, Supabase refreshes the token and may emit
@@ -50,15 +50,15 @@ import {
  * - No re-fetching occurs on route changes
  * - Navigation is instant because data is already cached
  * - Only re-fetches when session actually changes (sign in/out)
- * 
+ *
  * Caching and Rehydration Strategy:
  * ==================================
- * 
+ *
  * 1. Session:
  *    - Loaded ONCE via getSession() at boot (Supabase restores from storage)
  *    - Only calls getUser() when session actually changes (via onAuthStateChange)
  *    - Never re-fetches on navigation or route changes
- * 
+ *
  * 2. Profile:
  *    - Fetched ONCE when user is authenticated
  *    - Cached in memory (React state)
@@ -70,7 +70,7 @@ import {
  *    - Fetched ONCE on initial load
  *    - Only re-validated if session changes (different user signs in)
  *    - Never re-fetched on navigation
- * 
+ *
  * 4. Features (Navigation):
  *    - In-memory cache (React state)
  *    - Loaded ONCE when authenticated
@@ -78,7 +78,7 @@ import {
  *      a) Session/tenant changes (different user/tenant)
  *      b) Explicit refresh event ('navigation-updated' custom event)
  *    - NEVER refetched on route changes
- * 
+ *
  * 5. onAuthStateChange:
  *    - Single stable listener registered once on mount
  *    - TOKEN_REFRESHED / INITIAL_SESSION: NEVER re-fetch. Same user, new tokens only.
@@ -86,7 +86,7 @@ import {
  *    - SIGNED_IN: revalidate ONLY if user ID changed (true login). Same user → no-op.
  *    - SIGNED_OUT: clear all cached data
  *    - Never triggers on navigation
- * 
+ *
  * ROUTE INDEPENDENCE:
  * ===================
  * This provider has ZERO dependencies on:
@@ -94,12 +94,12 @@ import {
  * - router
  * - route changes
  * - navigation events
- * 
+ *
  * All useEffect hooks are independent of routing and only depend on:
  * - Session state (via onAuthStateChange)
  * - Custom events (navigation-updated)
  * - Initial mount (boot sequence)
- * 
+ *
  * DO NOT ADD:
  * - useEffect hooks that depend on pathname, router, or router events
  * - Logic that triggers on route changes or navigation
@@ -235,6 +235,11 @@ function tenantIdFromUserAndProfile(u: User, profile: UserProfile | null): strin
   return null;
 }
 
+export interface TenantImpersonationState {
+  targetTenantId: string;
+  readOnly: boolean;
+}
+
 export interface TenantContextType {
   /** Home tenant from profile / JWT (unchanged by workspace mode). */
   tenant_id: string | null;
@@ -265,6 +270,8 @@ export interface TenantContextType {
   /** Re-fetch catalogue mode and workspace branding for the current effective tenant. Use after admin or settings update the tenant row. */
   refreshCatalogueMode: () => Promise<void>;
   signOut: () => Promise<void>;
+  startTenantImpersonation: (tenantId: string, options?: { readOnly?: boolean }) => Promise<void>;
+  endTenantImpersonation: () => Promise<void>;
 }
 
 const TenantContext = createContext<TenantContextType>({
@@ -287,6 +294,8 @@ const TenantContext = createContext<TenantContextType>({
   refreshTenant: async () => {},
   refreshCatalogueMode: async () => {},
   signOut: async () => {},
+  startTenantImpersonation: async () => {},
+  endTenantImpersonation: async () => {},
 });
 
 async function fetchNavigation(tenantId?: string | null): Promise<{
@@ -350,13 +359,13 @@ async function fetchNavigation(tenantId?: string | null): Promise<{
 
 export function TenantProvider({ children }: { children: ReactNode }) {
   const [tenant_id, setTenantId] = useState<string | null>(null);
+  const [homeTenantId, setHomeTenantId] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [impersonation, setImpersonation] = useState<TenantImpersonationState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [navigationItems, setNavigationItems] = useState<NavigationItem[] | null>(
-    null
-  );
+  const [navigationItems, setNavigationItems] = useState<NavigationItem[] | null>(null);
   const [navigationError, setNavigationError] = useState<Error | null>(null);
   const [workspaceTenantId, setWorkspaceTenantId] = useState<string | null>(null);
   const [workspaceTenantLabel, setWorkspaceTenantLabel] = useState<string | null>(null);
@@ -370,6 +379,8 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   /** In-memory cache: we only re-fetch tenant/profile/features when session or tenant_id changes. */
   const lastUserIdRef = useRef<string | null>(null);
   const lastTenantIdRef = useRef<string | null>(null);
+  /** Effective tenant (includes impersonation); used to detect JWT tenant switches without user change. */
+  const lastEffectiveTenantRef = useRef<string | null>(null);
   /** Track if we've already loaded profile to prevent re-fetching on navigation */
   const profileLoadedRef = useRef(false);
   /** Same-user session resolved as super_admin with no tenant_id (platform shell). */
@@ -615,9 +626,12 @@ export function TenantProvider({ children }: { children: ReactNode }) {
             superAdminNoTenantRef.current = false;
             lastUserIdRef.current = null;
             lastTenantIdRef.current = null;
+            lastEffectiveTenantRef.current = null;
             profileLoadedRef.current = false;
             setUser(null);
             setProfile(null);
+            setHomeTenantId(null);
+            setImpersonation(null);
             setTenantId(null);
             setCatalogueMode('simple');
             setEffectiveTenantDisplayName(null);
@@ -630,8 +644,12 @@ export function TenantProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Stable check: same user ID and already loaded → no re-fetch. Ensures session
-        // refresh / tab return never triggers profile/tenant/features reload.
+        // Stable check: same user, same effective tenant (profile + JWT impersonation).
+        const tentativeProfile =
+          profileLoadedRef.current && currentUser.id === lastUserIdRef.current
+            ? profileRef.current
+            : null;
+        const tentativeEffective = getEffectiveTenantIdFromSession(currentUser, tentativeProfile);
         if (
           currentUser.id === lastUserIdRef.current &&
           profileLoadedRef.current &&
@@ -653,8 +671,6 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         const prevUserId = lastUserIdRef.current;
         const userChanged = prevUserId !== currentUser.id;
 
-        // Fetch profile only when user changed or not yet loaded. Never re-fetch on
-        // session refresh (same user).
         let userProfile: UserProfile | null = null;
         if (userChanged || !profileLoadedRef.current) {
           console.log('📝 Fetching user profile...');
@@ -667,6 +683,8 @@ export function TenantProvider({ children }: { children: ReactNode }) {
             setProfile(userProfile);
             profileLoadedRef.current = true;
           }
+        } else {
+          userProfile = profileRef.current;
         }
 
         console.log('🏢 Fetching tenant ID...');
@@ -743,19 +761,31 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
         if (hasSignedOutRef.current) return;
 
+        const homeFromProfile =
+          userProfile?.tenant_id && isValidTenantId(userProfile.tenant_id)
+            ? userProfile.tenant_id
+            : null;
+        const homeFromMeta = isValidTenantId(currentUser.user_metadata?.tenant_id)
+          ? (currentUser.user_metadata?.tenant_id as string)
+          : isValidTenantId(currentUser.app_metadata?.tenant_id)
+            ? (currentUser.app_metadata?.tenant_id as string)
+            : null;
+        setHomeTenantId(homeFromProfile ?? homeFromMeta);
+        setImpersonation(getImpersonationFromSession(currentUser));
+
+        const prevEffective = lastEffectiveTenantRef.current;
         const prevTenantId = lastTenantIdRef.current;
         hasUserAndTenantRef.current = true;
         superAdminNoTenantRef.current = false;
         lastUserIdRef.current = currentUser.id;
-        lastTenantIdRef.current = tid;
+        lastTenantIdRef.current = effectiveTid;
+        lastEffectiveTenantRef.current = effectiveTid;
         setUser(currentUser);
-        setTenantId(tid);
-        // IMPORTANT: Set tenant ID on schema-aware client
-        // This enables automatic schema routing for all queries
-        tenantedSupabase.setTenantId(tid);
+        setTenantId(effectiveTid);
+        tenantedSupabase.setTenantId(effectiveTid);
         setError(null);
-        setTenantCache(currentUser.id, tid);
-        console.log('✓ User authenticated with tenant:', tid);
+        setTenantCache(currentUser.id, effectiveTid);
+        console.log('✓ User authenticated with tenant:', effectiveTid);
 
         const sessionOrTenantChanged = userChanged || prevTenantId !== tid;
         const navPromise = (async () => {
@@ -827,7 +857,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         if (!background) setIsLoading(false);
       }
     },
-    [fetchTenantId, fetchProfile, loadNavigation]
+    [fetchProfile, loadNavigation]
   );
 
   const refreshTenant = useCallback(() => revalidate(false), [revalidate]);
@@ -876,10 +906,13 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       superAdminNoTenantRef.current = false;
       lastUserIdRef.current = null;
       lastTenantIdRef.current = null;
+      lastEffectiveTenantRef.current = null;
       profileLoadedRef.current = false;
       clearTenantCache();
       setUser(null);
       setProfile(null);
+      setHomeTenantId(null);
+      setImpersonation(null);
       setTenantId(null);
       setCatalogueMode('simple');
       setEffectiveTenantDisplayName(null);
@@ -892,23 +925,36 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const startTenantImpersonation = useCallback(
+    async (targetTenantId: string, options?: { readOnly?: boolean }) => {
+      await apiStartImpersonation(targetTenantId, options);
+      await revalidate(false);
+    },
+    [revalidate]
+  );
+
+  const endTenantImpersonation = useCallback(async () => {
+    await apiEndImpersonation();
+    await revalidate(false);
+  }, [revalidate]);
+
   /**
    * BOOT SEQUENCE - Runs ONCE on initial mount
-   * 
+   *
    * This effect runs exactly once when the component mounts. Since this provider
    * is mounted at the root layout level via AppProviders and never unmounts,
    * this boot sequence runs exactly once per app session.
-   * 
+   *
    * What it does:
    * 1. Restores session from Supabase storage (getSession) - no network call if cached
    * 2. If session exists, loads profile + tenant_id + features in parallel
    * 3. Sets up onAuthStateChange listener for future session changes
-   * 
+   *
    * What it does NOT do:
    * - Re-run on route changes (revalidate is stable via useCallback)
    * - Re-fetch on navigation
    * - Depend on pathname/router
-   * 
+   *
    * The revalidate callback is stable (useCallback with stable deps), so including
    * it in the dependency array is safe - it won't cause re-runs.
    */
@@ -946,8 +992,11 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         superAdminNoTenantRef.current = false;
         lastUserIdRef.current = null;
         lastTenantIdRef.current = null;
+        lastEffectiveTenantRef.current = null;
         setUser(null);
         setTenantId(null);
+        setHomeTenantId(null);
+        setImpersonation(null);
         setError(null);
         setNavigationItems(null);
         setNavigationError(null);
@@ -957,10 +1006,20 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      const userProfileBoot = await fetchProfile(session.user.id);
+      if (cancelled) return;
+      if (userProfileBoot) {
+        setProfile(userProfileBoot);
+        profileLoadedRef.current = true;
+        profileRef.current = userProfileBoot;
+      }
+      const effectiveBoot = getEffectiveTenantIdFromSession(session.user, userProfileBoot);
+
       if (
         cache &&
         cache.userId === session.user.id &&
-        isValidTenantId(cache.tenant_id)
+        isValidTenantId(cache.tenant_id) &&
+        cache.tenant_id === effectiveBoot
       ) {
         try {
           // Fast path: restore from cache. Load profile + nav once; do NOT revalidate.
@@ -1038,8 +1097,19 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-        // Same user, new tokens only. Do nothing. Prevents slow reload on tab return.
+      if (event === 'TOKEN_REFRESHED') {
+        if (!session?.user) return;
+        const nextEffective = getEffectiveTenantIdFromSession(session.user, profileRef.current);
+        if (
+          nextEffective &&
+          nextEffective !== lastEffectiveTenantRef.current &&
+          session.user.id === lastUserIdRef.current
+        ) {
+          await revalidate(true);
+        }
+        return;
+      }
+      if (event === 'INITIAL_SESSION') {
         return;
       }
       if (event === 'SIGNED_OUT' || !session) {
@@ -1059,10 +1129,13 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         superAdminNoTenantRef.current = false;
         lastUserIdRef.current = null;
         lastTenantIdRef.current = null;
+        lastEffectiveTenantRef.current = null;
         profileLoadedRef.current = false;
         clearTenantCache();
         setUser(null);
         setProfile(null);
+        setHomeTenantId(null);
+        setImpersonation(null);
         setTenantId(null);
         setError(null);
         setNavigationItems(null);
@@ -1101,7 +1174,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     };
     // revalidate is stable (useCallback with stable deps), so this effect
     // will only run once on mount, never on route changes
-  }, [revalidate]);
+  }, [revalidate, fetchProfile]);
 
   /**
    * Listen for navigation-updated events to refresh navigation items.
