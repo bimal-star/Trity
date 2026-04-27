@@ -26,6 +26,9 @@ yarn-error.log*
 .env.production.local
 .env.credentials
 
+# Claude Code — per-machine overrides (permissions, paths); do not commit
+.claude/settings.local.json
+
 # IDEs
 .vscode
 .idea
