@@ -1,6 +1,6 @@
 /**
  * Access Control Type Definitions
- * 
+ *
  * Defines interfaces and types for user access, groups, and permissions
  * Multi-tenant role-based access control with granular permissions
  */
@@ -9,8 +9,11 @@
 export type TenantRole = 'member' | 'admin' | 'super_admin';
 export type GroupMemberRole = 'member' | 'admin';
 
+/** Per-navigation-module access for user overrides (users page / permission resolver). */
+export type AccessLevel = 'allowed' | 'readonly' | 'blocked';
+
 // Granular permissions for actions
-export type PermissionAction = 
+export type PermissionAction =
   | 'view_users'
   | 'invite_users'
   | 'manage_users'
@@ -29,13 +32,7 @@ export type PermissionAction =
 
 // Permission matrix: which roles can perform which actions
 export const ROLE_PERMISSIONS: Record<TenantRole, PermissionAction[]> = {
-  member: [
-    'view_users',
-    'access_calendar',
-    'access_products',
-    'access_workstreams',
-    'access_okrs',
-  ],
+  member: ['view_users', 'access_calendar', 'access_products', 'access_workstreams', 'access_okrs'],
   admin: [
     'view_users',
     'invite_users',

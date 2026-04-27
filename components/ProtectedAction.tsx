@@ -1,6 +1,6 @@
 /**
  * ProtectedAction Component
- * 
+ *
  * Wraps buttons or actions with permission checks
  * Automatically disables or hides buttons based on user permissions
  */
@@ -21,14 +21,14 @@ interface ProtectedActionProps {
 
 /**
  * Conditionally render content based on user permissions
- * 
+ *
  * @example
  * <ProtectedAction permission="manage_users">
  *   <button>Manage Users</button>
  * </ProtectedAction>
- * 
- * <ProtectedAction 
- *   permission="manage_features" 
+ *
+ * <ProtectedAction
+ *   permission="manage_features"
  *   hideIfDenied
  * >
  *   <button>Feature Settings</button>
@@ -60,11 +60,10 @@ export function ProtectedAction({
 
 /**
  * ProtectedButton Component
- * 
+ *
  * Button that's automatically disabled based on permissions
  */
-interface ProtectedButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+interface ProtectedButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   permission: PermissionAction;
   children: ReactNode;
   tooltipIfDenied?: string;
@@ -90,11 +89,7 @@ export function ProtectedButton({
   const buttonTitle = !isAllowed && tooltipIfDenied ? tooltipIfDenied : title;
 
   return (
-    <button
-      disabled={buttonDisabled}
-      title={buttonTitle}
-      {...props}
-    >
+    <button disabled={buttonDisabled} title={buttonTitle} {...props}>
       {children}
     </button>
   );

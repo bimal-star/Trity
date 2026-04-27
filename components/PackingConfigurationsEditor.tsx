@@ -7,7 +7,7 @@ interface PackingConfigurationsEditorProps {
 }
 
 const emptyConfig: PackingConfiguration = {
-  level: '',
+  level: 'unit',
   quantity: 1,
   length: 0,
   width: 0,
@@ -19,11 +19,12 @@ const emptyConfig: PackingConfiguration = {
   description: '',
 };
 
-export default function PackingConfigurationsEditor({ value, onChange }: PackingConfigurationsEditorProps) {
+export default function PackingConfigurationsEditor({
+  value,
+  onChange,
+}: PackingConfigurationsEditorProps) {
   const handleFieldChange = (idx: number, field: keyof PackingConfiguration, fieldValue: any) => {
-    const updated = value.map((cfg, i) =>
-      i === idx ? { ...cfg, [field]: fieldValue } : cfg
-    );
+    const updated = value.map((cfg, i) => (i === idx ? { ...cfg, [field]: fieldValue } : cfg));
     onChange(updated);
   };
 
@@ -56,49 +57,113 @@ export default function PackingConfigurationsEditor({ value, onChange }: Packing
         <tbody>
           {value.length === 0 && (
             <tr>
-              <td colSpan={11} className="text-center text-gray-400 py-2">No packing configurations</td>
+              <td colSpan={11} className="text-center text-gray-400 py-2">
+                No packing configurations
+              </td>
             </tr>
           )}
           {value.map((cfg, idx) => (
             <tr key={idx}>
               <td className="border px-2 py-1">
-                <input type="text" value={cfg.level || ''} onChange={e => handleFieldChange(idx, 'level', e.target.value)} className="w-16 px-1 py-0.5 border rounded" />
+                <input
+                  type="text"
+                  value={cfg.level || ''}
+                  onChange={(e) => handleFieldChange(idx, 'level', e.target.value)}
+                  className="w-16 px-1 py-0.5 border rounded"
+                />
               </td>
               <td className="border px-2 py-1">
-                <input type="number" value={cfg.quantity ?? 1} min={1} onChange={e => handleFieldChange(idx, 'quantity', Number(e.target.value))} className="w-12 px-1 py-0.5 border rounded" />
+                <input
+                  type="number"
+                  value={cfg.quantity ?? 1}
+                  min={1}
+                  onChange={(e) => handleFieldChange(idx, 'quantity', Number(e.target.value))}
+                  className="w-12 px-1 py-0.5 border rounded"
+                />
               </td>
               <td className="border px-2 py-1">
-                <input type="number" value={cfg.length ?? 0} onChange={e => handleFieldChange(idx, 'length', Number(e.target.value))} className="w-14 px-1 py-0.5 border rounded" />
+                <input
+                  type="number"
+                  value={cfg.length ?? 0}
+                  onChange={(e) => handleFieldChange(idx, 'length', Number(e.target.value))}
+                  className="w-14 px-1 py-0.5 border rounded"
+                />
               </td>
               <td className="border px-2 py-1">
-                <input type="number" value={cfg.width ?? 0} onChange={e => handleFieldChange(idx, 'width', Number(e.target.value))} className="w-14 px-1 py-0.5 border rounded" />
+                <input
+                  type="number"
+                  value={cfg.width ?? 0}
+                  onChange={(e) => handleFieldChange(idx, 'width', Number(e.target.value))}
+                  className="w-14 px-1 py-0.5 border rounded"
+                />
               </td>
               <td className="border px-2 py-1">
-                <input type="number" value={cfg.height ?? 0} onChange={e => handleFieldChange(idx, 'height', Number(e.target.value))} className="w-14 px-1 py-0.5 border rounded" />
+                <input
+                  type="number"
+                  value={cfg.height ?? 0}
+                  onChange={(e) => handleFieldChange(idx, 'height', Number(e.target.value))}
+                  className="w-14 px-1 py-0.5 border rounded"
+                />
               </td>
               <td className="border px-2 py-1">
-                <input type="number" value={cfg.weight ?? 0} onChange={e => handleFieldChange(idx, 'weight', Number(e.target.value))} className="w-14 px-1 py-0.5 border rounded" />
+                <input
+                  type="number"
+                  value={cfg.weight ?? 0}
+                  onChange={(e) => handleFieldChange(idx, 'weight', Number(e.target.value))}
+                  className="w-14 px-1 py-0.5 border rounded"
+                />
               </td>
               <td className="border px-2 py-1">
-                <input type="text" value={cfg.weight_unit_id || ''} onChange={e => handleFieldChange(idx, 'weight_unit_id', e.target.value)} className="w-14 px-1 py-0.5 border rounded" />
+                <input
+                  type="text"
+                  value={cfg.weight_unit_id || ''}
+                  onChange={(e) => handleFieldChange(idx, 'weight_unit_id', e.target.value)}
+                  className="w-14 px-1 py-0.5 border rounded"
+                />
               </td>
               <td className="border px-2 py-1">
-                <input type="text" value={cfg.dimension_unit_id || ''} onChange={e => handleFieldChange(idx, 'dimension_unit_id', e.target.value)} className="w-14 px-1 py-0.5 border rounded" />
+                <input
+                  type="text"
+                  value={cfg.dimension_unit_id || ''}
+                  onChange={(e) => handleFieldChange(idx, 'dimension_unit_id', e.target.value)}
+                  className="w-14 px-1 py-0.5 border rounded"
+                />
               </td>
               <td className="border px-2 py-1 text-center">
-                <input type="checkbox" checked={!!cfg.is_default} onChange={e => handleFieldChange(idx, 'is_default', e.target.checked)} />
+                <input
+                  type="checkbox"
+                  checked={!!cfg.is_default}
+                  onChange={(e) => handleFieldChange(idx, 'is_default', e.target.checked)}
+                />
               </td>
               <td className="border px-2 py-1">
-                <input type="text" value={cfg.description || ''} onChange={e => handleFieldChange(idx, 'description', e.target.value)} className="w-24 px-1 py-0.5 border rounded" />
+                <input
+                  type="text"
+                  value={cfg.description || ''}
+                  onChange={(e) => handleFieldChange(idx, 'description', e.target.value)}
+                  className="w-24 px-1 py-0.5 border rounded"
+                />
               </td>
               <td className="border px-2 py-1 text-center">
-                <button type="button" onClick={() => handleRemove(idx)} className="text-red-500 px-2">&times;</button>
+                <button
+                  type="button"
+                  onClick={() => handleRemove(idx)}
+                  className="text-red-500 px-2"
+                >
+                  &times;
+                </button>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-      <button type="button" onClick={handleAdd} className="mt-2 px-3 py-1 bg-green-500 text-white rounded text-xs">Add Packing Config</button>
+      <button
+        type="button"
+        onClick={handleAdd}
+        className="mt-2 px-3 py-1 bg-green-500 text-white rounded text-xs"
+      >
+        Add Packing Config
+      </button>
     </div>
   );
 }

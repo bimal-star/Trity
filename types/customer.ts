@@ -10,8 +10,11 @@ export interface Customer {
   tenant_id: string;
   customer_code: string | null;
   customer_type: CustomerType | null;
+  /** Public logo URL (e.g. customer-logos bucket). */
+  logo_url?: string | null;
   email: string;
   phone: string | null;
+  /** Primary / default address on the master record. For multiple typed addresses use `customer_addresses`. */
   address_line1: string | null;
   address_line2: string | null;
   city: string | null;
@@ -46,18 +49,20 @@ export interface Customer {
   region: string | null;
   forecast_group: string | null;
   demand_profile: string | null;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   created_by: string | null;
   updated_by: string | null;
   deleted_at: string | null;
   deleted_by: string | null;
-  version: number;
+  /** Row version; reserved for optimistic locking. */
+  version?: number;
 }
 
 export interface CustomerFormData {
   customer_type?: CustomerType | null;
+  logo_url?: string | null;
   email: string;
   phone?: string | null;
   address_line1?: string | null;
@@ -94,14 +99,19 @@ export interface CustomerFormData {
   region?: string | null;
   forecast_group?: string | null;
   demand_profile?: string | null;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
+
+export type CustomerRecordVisibility = 'active' | 'archived' | 'all';
 
 export interface CustomerFilters {
   status?: CustomerStatus;
   searchTerm?: string;
+  /** Default `active` (non-deleted rows only). */
+  visibility?: CustomerRecordVisibility;
 }
 
+/** Normalized addresses (billing/shipping/…); not yet wired in app UI—inline `Customer` address fields are the primary default. */
 export interface CustomerAddress {
   id: string;
   tenant_id: string;

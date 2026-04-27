@@ -3,14 +3,15 @@ import type { NavigationItem } from '@/types/navigation';
 /**
  * Default navigation structure for Trity
  * Updated: January 31, 2026
- * 
- * Organized by five pillars:
- * - Analytics (Blue) - Reporting and insights
+ *
+ * Organized by five pillars (product narrative order: Business Core, Execution, Analytics, then Admin/Account).
+ * Position prefixes today: 1 = Analytics, 2 = Business Core, 3 = Execution — reorder in DB/Navigation Manager when migrating.
  * - Business Core (Green) - Core business entities and data management
  * - Execution (Orange) - Planning and execution
+ * - Analytics (Blue) - Reporting and insights
  * - Administration (Gray) - System configuration and management
  * - Account (Gray) - User and system settings
- * 
+ *
  * Position format: dot-notation strings ("1", "1.1", "1.1.1") for unlimited hierarchy depth
  */
 export const defaultNavigationItems: NavigationItem[] = [
@@ -62,11 +63,32 @@ export const defaultNavigationItems: NavigationItem[] = [
     path: '/products',
   },
   {
+    id: 'nav-products-new',
+    label: 'New product',
+    position: '2.1.1',
+    is_enabled: true,
+    path: '/products/new',
+  },
+  {
+    id: 'nav-products-price-lists',
+    label: 'Customer pricing',
+    position: '2.1.2',
+    is_enabled: true,
+    path: '/products/price-lists',
+  },
+  {
     id: 'nav-customers',
     label: 'Customers',
     position: '2.2',
     is_enabled: true,
     path: '/customers',
+  },
+  {
+    id: 'nav-customers-new',
+    label: 'New customer',
+    position: '2.2.1',
+    is_enabled: true,
+    path: '/customers/new',
   },
   {
     id: 'nav-suppliers',
@@ -76,11 +98,32 @@ export const defaultNavigationItems: NavigationItem[] = [
     path: '/suppliers',
   },
   {
+    id: 'nav-suppliers-new',
+    label: 'New supplier',
+    position: '2.3.1',
+    is_enabled: true,
+    path: '/suppliers/new',
+  },
+  {
+    id: 'nav-suppliers-pricing',
+    label: 'Supplier pricing',
+    position: '2.3.2',
+    is_enabled: true,
+    path: '/suppliers/pricing',
+  },
+  {
     id: 'nav-warehouse',
     label: 'Warehouse',
     position: '2.4',
     is_enabled: true,
     path: '/warehouse',
+  },
+  {
+    id: 'nav-warehouse-new',
+    label: 'New warehouse',
+    position: '2.4.1',
+    is_enabled: true,
+    path: '/warehouse/new',
   },
   {
     id: 'nav-stock-management',
@@ -110,6 +153,27 @@ export const defaultNavigationItems: NavigationItem[] = [
     position: '2.6.2',
     is_enabled: true,
     path: '/goods-receipt',
+  },
+  {
+    id: 'nav-purchase-invoices',
+    label: 'Purchase Invoices',
+    position: '2.6.3',
+    is_enabled: true,
+    path: '/purchase-invoices',
+  },
+  {
+    id: 'nav-purchase-reports',
+    label: 'Purchase reports',
+    position: '2.6.4',
+    is_enabled: true,
+    path: '/purchase-reports',
+  },
+  {
+    id: 'nav-purchase-returns',
+    label: 'Purchase Returns',
+    position: '2.6.5',
+    is_enabled: true,
+    path: '/purchase-returns',
   },
   {
     id: 'nav-order-mgmt',
@@ -196,6 +260,13 @@ export const defaultNavigationItems: NavigationItem[] = [
     path: '/admin/tenants',
   },
   {
+    id: 'nav-subscription-packages',
+    label: 'Subscription packages',
+    position: '4.45',
+    is_enabled: true,
+    path: '/admin/subscription-packages',
+  },
+  {
     id: 'nav-navigation-manager',
     label: 'Navigation Manager',
     position: '4.5',
@@ -232,5 +303,12 @@ export const defaultNavigationItems: NavigationItem[] = [
     position: '5.1',
     is_enabled: true,
     path: '/profile',
+  },
+  {
+    id: 'nav-founder',
+    label: 'Founder',
+    position: '5.2',
+    is_enabled: true,
+    path: '/about/founder',
   },
 ];

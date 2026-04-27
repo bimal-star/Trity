@@ -4,6 +4,7 @@
  */
 
 import { TenantRole } from './access';
+import type { CatalogueMode } from '@/lib/productCatalogue';
 
 export type ProfileRole = TenantRole | string;
 
@@ -32,6 +33,11 @@ export interface TenantDetails {
   slug: string | null;
   is_active: boolean;
   logo_url?: string | null;
+  /** Mirrors `tenants.subscription_tier`; drives tier defaults for feature flags. */
+  subscription_tier?: string | null;
+  /** Optional FK to `subscription_packages` (named SKU). */
+  subscription_package_id?: string | null;
+  catalogue_mode?: CatalogueMode;
   settings?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
@@ -44,6 +50,7 @@ export interface TenantDetailsUpdate {
   company_name?: string | null;
   slug?: string | null;
   logo_url?: string | null;
+  catalogue_mode?: CatalogueMode;
   settings?: Record<string, unknown> | null;
 }
 

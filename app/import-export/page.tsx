@@ -2,32 +2,54 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import PremiumStickyHeader from '@/components/layout/premium/PremiumStickyHeader';
 import PageContainer from '@/components/PageContainer';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { ExportFormatDropdown } from '@/components/common/ExportFormatDropdown';
 import { useTenant } from '@/contexts/TenantContext';
 import { useProfile } from '@/hooks/useProfile';
 import { usePermissions } from '@/hooks/usePermissions';
-import { getTables, parseImportFile, validateAndClassifyRows, applyImportChanges, inferTableMetadata, exportTable } from '@/lib/importExportUtils';
-import { Loader2, AlertCircle, Download, Upload, CheckCircle, AlertTriangle, Trash2, Eye, Save, Database } from 'lucide-react';
+import {
+  getTables,
+  validateAndClassifyRows,
+  applyImportChanges,
+  type TableMetadata,
+  type ImportRow,
+} from '@/lib/importExportUtils';
+import { supabase } from '@/lib/supabaseClient';
+import { premiumPrimaryButton, premiumTertiaryButton } from '@/lib/premiumUi';
+import { useToast } from '@/lib/toast';
+import {
+  Loader2,
+  AlertCircle,
+  Upload,
+  CheckCircle,
+  AlertTriangle,
+  Save,
+  Database,
+} from 'lucide-react';
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
 
 export default function ImportExportPage() {
   const router = useRouter();
-  const { user, tenant_id } = useTenant();
+  const { user, effectiveTenantId: tenant_id } = useTenant();
   const { profile, isLoading: profileLoading } = useProfile(user?.id);
   const { can } = usePermissions();
 
-  const [tables, setTables] = useState<Array<{ name: string }>>([]);
+  const [tables, setTables] = useState<TableMetadata[]>([]);
   const [selectedTable, setSelectedTable] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exportLoading, setExportLoading] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
-  const [importRows, setImportRows] = useState<any[]>([]);
+  const [importRows, setImportRows] = useState<ImportRow[]>([]);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [applyLoading, setApplyLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [exportFormat, setExportFormat] = useState<'csv' | 'xlsx'>('csv');
   const [tableRowCount, setTableRowCount] = useState(0);
+  const { toast } = useToast();
 
   const canManageData = can('manage_users');
 
@@ -50,8 +72,8 @@ export default function ImportExportPage() {
         if (availableTables.length > 0) {
           setSelectedTable(availableTables[0].name);
         }
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        setError(errorMessage(err));
       } finally {
         setIsLoading(false);
       }
@@ -66,15 +88,18 @@ export default function ImportExportPage() {
 
     const loadRowCount = async () => {
       try {
-        const { data, error: err } = await (await import('@/lib/supabaseClient')).supabase
-          .from(selectedTable as any)
-          .select('id', { count: 'exact' })
+        // Dynamic table name is not in generated schema keys.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- runtime-selected import/export table
+        const { count, error: err } = await (supabase as any)
+          .from(selectedTable)
+          .select('*', { count: 'exact', head: true })
           .eq('tenant_id', tenant_id);
 
         if (err) throw err;
-        setTableRowCount(data?.length || 0);
-      } catch (err: any) {
+        setTableRowCount(count ?? 0);
+      } catch (err: unknown) {
         console.error('Error loading row count:', err);
+        setTableRowCount(0);
       }
     };
 
@@ -87,22 +112,21 @@ export default function ImportExportPage() {
 
     try {
       setExportLoading(true);
-      setError(null);
-      const blob = await exportTable(selectedTable, tenant_id, exportFormat);
+      const { exportTable } = await import('@/lib/importExport/io');
+      const blob = await exportTable(selectedTable, tenant_id);
 
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${selectedTable}_export_${new Date().toISOString().slice(0, 10)}.${exportFormat}`;
+      link.download = `${selectedTable}_export_${new Date().toISOString().slice(0, 10)}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      setSuccessMessage(`Exported ${selectedTable} successfully`);
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err: any) {
-      setError(err.message);
+      toast.success(`Exported ${selectedTable} successfully`);
+    } catch (err: unknown) {
+      toast.error(errorMessage(err));
     } finally {
       setExportLoading(false);
     }
@@ -113,15 +137,20 @@ export default function ImportExportPage() {
     if (!selectedTable || !tenant_id) return;
 
     try {
-      setError(null);
       setImportFile(file);
 
+      const { parseImportFile } = await import('@/lib/importExport/io');
       const parsed = await parseImportFile(file);
-      const classified = await validateAndClassifyRows(selectedTable, tenant_id, parsed);
+      const classified = await validateAndClassifyRows(
+        selectedTable,
+        tenant_id,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- validateAndClassifyRows accepts parsed CSV rows
+        parsed as Record<string, any>[]
+      );
       setImportRows(classified);
       setPreviewOpen(true);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      toast.error(errorMessage(err));
     }
   };
 
@@ -131,22 +160,20 @@ export default function ImportExportPage() {
 
     try {
       setApplyLoading(true);
-      setError(null);
       const result = await applyImportChanges(selectedTable, tenant_id, importRows, user.id);
 
       if (result.success) {
-        setSuccessMessage(
+        toast.success(
           `Import completed: ${result.summary.inserts} inserted, ${result.summary.updates} updated, ${result.summary.deletes} deleted`
         );
         setImportRows([]);
         setImportFile(null);
         setPreviewOpen(false);
-        setTimeout(() => setSuccessMessage(null), 5000);
       } else {
-        setError(result.error || 'An error occurred');
+        toast.error(result.error || 'An error occurred');
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      toast.error(errorMessage(err));
     } finally {
       setApplyLoading(false);
     }
@@ -166,10 +193,12 @@ export default function ImportExportPage() {
   if (!isReady) {
     return (
       <ProtectedRoute>
-        <PageContainer title="Import/Export">
+        <PageContainer module="businessCore">
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-green-600 dark:text-green-400 mb-4" />
-            <p className="text-sm text-gray-500 dark:text-gray-400">{isRedirecting ? 'Redirecting…' : 'Loading…'}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {isRedirecting ? 'Redirecting…' : 'Loading…'}
+            </p>
           </div>
         </PageContainer>
       </ProtectedRoute>
@@ -179,25 +208,12 @@ export default function ImportExportPage() {
   return (
     <ProtectedRoute>
       <PageContainer module="businessCore">
-        {/* Two-Tier Header */}
-        <div className="mb-6 -mt-1">
-          {/* Primary Row - Title with Icon */}
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2">
-              <Database className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-600 dark:text-gray-400">
-              Import/Export
-            </h1>
-          </div>
-          {/* Secondary Row - Supporting Text */}
-          <p className="text-sm text-gray-600 dark:text-gray-400 ml-11">
-            Manage data ingestion and export with validation and classification
-          </p>
-        </div>
-
-        {/* Subtle Divider */}
-        <div className="h-px bg-gradient-to-r from-gray-200 dark:from-gray-700 to-transparent mb-4" />
+        <PremiumStickyHeader
+          module="businessCore"
+          icon={Database}
+          title="Import/Export"
+          subtitle="Manage data ingestion and export with validation and classification"
+        />
 
         <div className="space-y-4">
           {/* Hero Matrix */}
@@ -205,8 +221,12 @@ export default function ImportExportPage() {
             <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Table Rows</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{tableRowCount}</p>
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                    Table Rows
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {tableRowCount}
+                  </p>
                 </div>
                 <div className="p-2 bg-gray-200 dark:bg-gray-700 rounded-lg">
                   <Database className="w-6 h-6 text-gray-600 dark:text-gray-300" />
@@ -216,8 +236,12 @@ export default function ImportExportPage() {
             <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-800 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-1">New Rows</p>
-                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.newRows}</p>
+                  <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-1">
+                    New Rows
+                  </p>
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                    {stats.newRows}
+                  </p>
                 </div>
                 <div className="p-2 bg-green-200 dark:bg-green-800/50 rounded-lg">
                   <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
@@ -227,8 +251,12 @@ export default function ImportExportPage() {
             <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-800 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-1">Updates</p>
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.updateRows}</p>
+                  <p className="text-xs font-medium text-blue-700 dark:text-blue-400 mb-1">
+                    Updates
+                  </p>
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    {stats.updateRows}
+                  </p>
                 </div>
                 <div className="p-2 bg-blue-200 dark:bg-blue-800/50 rounded-lg">
                   <AlertTriangle className="w-6 h-6 text-blue-600 dark:text-blue-400" />
@@ -239,7 +267,9 @@ export default function ImportExportPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium text-red-700 dark:text-red-400 mb-1">Invalid</p>
-                  <p className="text-2xl font-bold text-red-600 dark:text-red-400">{stats.invalidRows}</p>
+                  <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                    {stats.invalidRows}
+                  </p>
                 </div>
                 <div className="p-2 bg-red-200 dark:bg-red-800/50 rounded-lg">
                   <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
@@ -255,50 +285,35 @@ export default function ImportExportPage() {
             </div>
           )}
 
-          {successMessage && (
-            <div className="rounded border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-3 flex items-start gap-2">
-              <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-green-700 dark:text-green-300">{successMessage}</p>
-            </div>
-          )}
-
           {/* Export Controls */}
           <div className="flex items-center gap-2">
             <label className="text-xs font-medium text-gray-700 dark:text-gray-300">Table:</label>
             <select
               value={selectedTable}
+              disabled={isLoading}
               onChange={(e) => {
                 setSelectedTable(e.target.value);
                 setImportRows([]);
                 setImportFile(null);
               }}
-              className="w-40 px-2.5 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-1 focus:ring-green-500"
+              className="min-w-[11rem] w-48 px-2.5 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-1 focus:ring-green-500 disabled:opacity-50"
             >
               {tables.map((table) => (
                 <option key={table.name} value={table.name}>
-                  {table.name}
+                  {table.label ?? table.name}
                 </option>
               ))}
             </select>
-            
-            <label className="text-xs font-medium text-gray-700 dark:text-gray-300 ml-3">Format:</label>
-            <select
-              value={exportFormat}
-              onChange={(e) => setExportFormat(e.target.value as 'csv' | 'xlsx')}
-              className="w-40 px-2.5 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-1 focus:ring-green-500"
-            >
-              <option value="csv">CSV</option>
-              <option value="xlsx">Excel (XLSX)</option>
-            </select>
-            
-            <button
-              onClick={handleExport}
-              disabled={!selectedTable || exportLoading}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded text-xs font-medium ml-2"
-            >
-              {exportLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-              Export
-            </button>
+
+            <div className="ml-2">
+              <ExportFormatDropdown
+                title="Export selected table as CSV"
+                disabled={!selectedTable || exportLoading}
+                isLoading={exportLoading}
+                onExport={handleExport}
+                buttonClassName={premiumTertiaryButton('sm', 'standard')}
+              />
+            </div>
           </div>
 
           {/* Import Section */}
@@ -311,7 +326,7 @@ export default function ImportExportPage() {
             <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded p-4 text-center">
               <input
                 type="file"
-                accept=".csv,.xlsx"
+                accept=".csv"
                 onChange={(e) => {
                   if (e.target.files?.[0]) {
                     handleFileSelect(e.target.files[0]);
@@ -321,8 +336,14 @@ export default function ImportExportPage() {
                 id="import-file"
               />
               <label htmlFor="import-file" className="cursor-pointer">
-                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Click to select or drag CSV/Excel file here</p>
-                {importFile && <p className="text-xs text-green-600 dark:text-green-400 font-medium">{importFile.name}</p>}
+                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                  Click to select or drag a CSV file here
+                </p>
+                {importFile && (
+                  <p className="text-xs text-green-600 dark:text-green-400 font-medium">
+                    {importFile.name}
+                  </p>
+                )}
               </label>
             </div>
           </div>
@@ -331,7 +352,9 @@ export default function ImportExportPage() {
           {previewOpen && importRows.length > 0 && (
             <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-3 space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium text-gray-900 dark:text-white">Import Preview</h3>
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+                  Import Preview
+                </h3>
                 <button
                   onClick={() => setPreviewOpen(false)}
                   className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
@@ -343,33 +366,45 @@ export default function ImportExportPage() {
               {/* Classification Sections */}
               <div className="grid grid-cols-4 gap-2 text-xs">
                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded p-2">
-                  <p className="font-medium text-green-900 dark:text-green-100">New ({stats.newRows})</p>
+                  <p className="font-medium text-green-900 dark:text-green-100">
+                    New ({stats.newRows})
+                  </p>
                 </div>
                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded p-2">
-                  <p className="font-medium text-blue-900 dark:text-blue-100">Update ({stats.updateRows})</p>
+                  <p className="font-medium text-blue-900 dark:text-blue-100">
+                    Update ({stats.updateRows})
+                  </p>
                 </div>
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded p-2">
-                  <p className="font-medium text-red-900 dark:text-red-100">Delete ({stats.deleteRows})</p>
+                  <p className="font-medium text-red-900 dark:text-red-100">
+                    Delete ({stats.deleteRows})
+                  </p>
                 </div>
                 <div className="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded p-2">
-                  <p className="font-medium text-gray-900 dark:text-gray-100">Invalid ({stats.invalidRows})</p>
+                  <p className="font-medium text-gray-900 dark:text-gray-100">
+                    Invalid ({stats.invalidRows})
+                  </p>
                 </div>
               </div>
 
               {/* Invalid rows detail */}
               {stats.invalidRows > 0 && (
                 <div className="space-y-1 bg-gray-50 dark:bg-gray-700/30 p-2 rounded">
-                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Issues Found:</p>
+                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    Issues Found:
+                  </p>
                   {importRows
                     .filter((r) => r.classification === 'INVALID')
                     .slice(0, 5)
                     .map((row, idx) => (
                       <p key={idx} className="text-xs text-gray-600 dark:text-gray-400">
-                        Row {idx + 1}: {row.reason}
+                        Row {row.sourceRowNumber ?? idx + 1}: {row.reason}
                       </p>
                     ))}
                   {stats.invalidRows > 5 && (
-                    <p className="text-xs text-gray-600 dark:text-gray-400">... and {stats.invalidRows - 5} more issues</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      ... and {stats.invalidRows - 5} more issues
+                    </p>
                   )}
                 </div>
               )}
@@ -378,9 +413,13 @@ export default function ImportExportPage() {
               <button
                 onClick={handleApplyChanges}
                 disabled={applyLoading || stats.invalidRows > 0}
-                className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded text-xs font-medium"
+                className={`w-full ${premiumPrimaryButton('businessCore', 'md', 'wide')}`}
               >
-                {applyLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                {applyLoading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
                 {applyLoading ? 'Applying...' : 'Apply Changes'}
               </button>
             </div>

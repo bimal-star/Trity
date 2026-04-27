@@ -1,6 +1,6 @@
 /**
  * Audit logging utilities for tracking tenant and user changes
- * 
+ *
  * Logs all significant actions (user creation, role changes, tenant updates)
  * for compliance and security audit trails
  */
@@ -25,7 +25,9 @@ export interface AuditLogEntry {
  * @param entry - Audit log entry to save
  * @returns Promise with result or error
  */
-export async function logAuditAction(entry: AuditLogEntry): Promise<{ success: boolean; error?: string }> {
+export async function logAuditAction(
+  entry: AuditLogEntry
+): Promise<{ success: boolean; error?: string }> {
   try {
     // Capture additional metadata
     const metadata = {
@@ -36,14 +38,18 @@ export async function logAuditAction(entry: AuditLogEntry): Promise<{ success: b
       resource_id: entry.resource_id,
       changes: (entry.changes || null) as any, // Cast to Json
       ip_address: entry.ip_address || null,
-      user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+      // Prefer caller-supplied user_agent (pass from request.headers on API routes); fall back to
+      // navigator.userAgent only in browser contexts where no explicit value was provided.
+      user_agent:
+        entry.user_agent !== undefined
+          ? (entry.user_agent ?? null)
+          : typeof navigator !== 'undefined'
+            ? navigator.userAgent
+            : null,
     };
 
     // Try to insert into audit_logs table
-    const { error, data } = await supabase
-      .from('audit_logs')
-      .insert([metadata])
-      .select();
+    const { error, data } = await supabase.from('audit_logs').insert([metadata]).select();
 
     if (error) {
       // Table might not exist yet or RLS policy issue - log to console
@@ -603,7 +609,7 @@ export async function logCustomerUpdated(
   updatedByUserId: string | null
 ): Promise<void> {
   const delta: Record<string, any> = {};
-  
+
   Object.keys(newData).forEach((key) => {
     if (previousData[key] !== newData[key]) {
       delta[key] = {
@@ -666,5 +672,225 @@ export async function logCustomerArchived(
       deleted_at: new Date().toISOString(),
       status: 'archived',
     },
+  });
+}
+
+export async function logCustomerRestored(
+  tenantId: string,
+  customerId: string,
+  restoredByUserId: string | null
+): Promise<void> {
+  await logAuditAction({
+    tenant_id: tenantId,
+    user_id: restoredByUserId,
+    action: 'customer_restored',
+    resource_type: 'customer',
+    resource_id: customerId,
+    changes: { deleted_at: null },
+  });
+}
+
+export async function logCustomersImported(
+  tenantId: string,
+  count: number,
+  importedByUserId: string | null
+): Promise<void> {
+  await logAuditAction({
+    tenant_id: tenantId,
+    user_id: importedByUserId,
+    action: 'customers_imported',
+    resource_type: 'customer_import',
+    resource_id: `batch-${Date.now()}`,
+    changes: { count, timestamp: new Date().toISOString() },
+  });
+}
+
+export async function logProductArchived(
+  tenantId: string,
+  productId: string,
+  productName: string,
+  archivedByUserId: string | null
+): Promise<void> {
+  await logAuditAction({
+    tenant_id: tenantId,
+    user_id: archivedByUserId,
+    action: 'product_archived',
+    resource_type: 'product',
+    resource_id: productId,
+    changes: { product_name: productName, is_deleted: true },
+  });
+}
+
+export async function logProductRestored(
+  tenantId: string,
+  productId: string,
+  productName: string,
+  restoredByUserId: string | null
+): Promise<void> {
+  await logAuditAction({
+    tenant_id: tenantId,
+    user_id: restoredByUserId,
+    action: 'product_restored',
+    resource_type: 'product',
+    resource_id: productId,
+    changes: { product_name: productName, is_deleted: false },
+  });
+}
+
+export async function logSupplierCreated(
+  tenantId: string,
+  supplierId: string,
+  legalName: string,
+  createdByUserId: string | null
+): Promise<void> {
+  await logAuditAction({
+    tenant_id: tenantId,
+    user_id: createdByUserId,
+    action: 'supplier_created',
+    resource_type: 'supplier',
+    resource_id: supplierId,
+    changes: { legal_name: legalName },
+  });
+}
+
+export async function logSupplierUpdated(
+  tenantId: string,
+  supplierId: string,
+  changes: Record<string, unknown>,
+  updatedByUserId: string | null
+): Promise<void> {
+  await logAuditAction({
+    tenant_id: tenantId,
+    user_id: updatedByUserId,
+    action: 'supplier_updated',
+    resource_type: 'supplier',
+    resource_id: supplierId,
+    changes,
+  });
+}
+
+export async function logSupplierArchived(
+  tenantId: string,
+  supplierId: string,
+  legalName: string,
+  archivedByUserId: string | null
+): Promise<void> {
+  await logAuditAction({
+    tenant_id: tenantId,
+    user_id: archivedByUserId,
+    action: 'supplier_archived',
+    resource_type: 'supplier',
+    resource_id: supplierId,
+    changes: { legal_name: legalName },
+  });
+}
+
+export async function logSupplierRestored(
+  tenantId: string,
+  supplierId: string,
+  legalName: string,
+  restoredByUserId: string | null
+): Promise<void> {
+  await logAuditAction({
+    tenant_id: tenantId,
+    user_id: restoredByUserId,
+    action: 'supplier_restored',
+    resource_type: 'supplier',
+    resource_id: supplierId,
+    changes: { legal_name: legalName },
+  });
+}
+
+export async function logSuppliersImported(
+  tenantId: string,
+  count: number,
+  importedByUserId: string | null
+): Promise<void> {
+  await logAuditAction({
+    tenant_id: tenantId,
+    user_id: importedByUserId,
+    action: 'suppliers_imported',
+    resource_type: 'supplier_import',
+    resource_id: `batch-${Date.now()}`,
+    changes: { count, timestamp: new Date().toISOString() },
+  });
+}
+
+export async function logWarehouseCreated(
+  tenantId: string,
+  warehouseId: string,
+  name: string,
+  createdByUserId: string | null
+): Promise<void> {
+  await logAuditAction({
+    tenant_id: tenantId,
+    user_id: createdByUserId,
+    action: 'warehouse_created',
+    resource_type: 'warehouse',
+    resource_id: warehouseId,
+    changes: { name },
+  });
+}
+
+export async function logWarehouseUpdated(
+  tenantId: string,
+  warehouseId: string,
+  changes: Record<string, unknown>,
+  updatedByUserId: string | null
+): Promise<void> {
+  await logAuditAction({
+    tenant_id: tenantId,
+    user_id: updatedByUserId,
+    action: 'warehouse_updated',
+    resource_type: 'warehouse',
+    resource_id: warehouseId,
+    changes,
+  });
+}
+
+export async function logWarehouseArchived(
+  tenantId: string,
+  warehouseId: string,
+  name: string,
+  archivedByUserId: string | null
+): Promise<void> {
+  await logAuditAction({
+    tenant_id: tenantId,
+    user_id: archivedByUserId,
+    action: 'warehouse_archived',
+    resource_type: 'warehouse',
+    resource_id: warehouseId,
+    changes: { name },
+  });
+}
+
+export async function logWarehouseRestored(
+  tenantId: string,
+  warehouseId: string,
+  name: string,
+  restoredByUserId: string | null
+): Promise<void> {
+  await logAuditAction({
+    tenant_id: tenantId,
+    user_id: restoredByUserId,
+    action: 'warehouse_restored',
+    resource_type: 'warehouse',
+    resource_id: warehouseId,
+    changes: { name },
+  });
+}
+
+export async function logWarehousesImported(
+  tenantId: string,
+  count: number,
+  importedByUserId: string | null
+): Promise<void> {
+  await logAuditAction({
+    tenant_id: tenantId,
+    user_id: importedByUserId,
+    action: 'warehouses_imported',
+    resource_type: 'warehouse_import',
+    resource_id: `batch-${Date.now()}`,
+    changes: { count, timestamp: new Date().toISOString() },
   });
 }

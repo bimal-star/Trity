@@ -23,4 +23,3 @@ This folder contains project documentation, implementation notes, and database r
 ## Internal Assistant Notes
 
 - [AI_PROMPT.md](AI_PROMPT.md)
-

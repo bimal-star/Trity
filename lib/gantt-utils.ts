@@ -1,6 +1,6 @@
 /**
  * Gantt Chart Utilities
- * 
+ *
  * Functions for calculating Gantt chart positions, dates, and rendering
  */
 
@@ -57,8 +57,8 @@ export function getDateRange(items: GanttItem[]): { start: Date; end: Date } | n
 
   if (dates.length === 0) return null;
 
-  const start = new Date(Math.min(...dates.map(d => d.getTime())));
-  const end = new Date(Math.max(...dates.map(d => d.getTime())));
+  const start = new Date(Math.min(...dates.map((d) => d.getTime())));
+  const end = new Date(Math.max(...dates.map((d) => d.getTime())));
 
   // Add padding (7 days before and after)
   start.setDate(start.getDate() - 7);
@@ -80,7 +80,9 @@ export function calculateItemPosition(
   const startDate = new Date(item.start_date);
   const endDate = new Date(item.end_date);
 
-  const daysFromStart = Math.floor((startDate.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
+  const daysFromStart = Math.floor(
+    (startDate.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24)
+  );
   const duration = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
 
   const x = daysFromStart * pixelsPerDay;
@@ -116,7 +118,7 @@ function getWeekNumber(date: Date): number {
   const dayNum = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
 
 /**
@@ -162,10 +164,12 @@ export function generateTimelineDates(start: Date, end: Date, zoomLevel: ZoomLev
 export function getTodayPosition(timelineStart: Date, pixelsPerDay: number): number | null {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   if (today < timelineStart) return null;
 
-  const daysFromStart = Math.floor((today.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24));
+  const daysFromStart = Math.floor(
+    (today.getTime() - timelineStart.getTime()) / (1000 * 60 * 60 * 24)
+  );
   return daysFromStart * pixelsPerDay;
 }
 
@@ -297,7 +301,7 @@ export function getTodayPositionInTimeline(
  */
 function getDayOffsetInWeek(d: Date): number {
   const day = d.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-  return (day + 6) % 7;   // Mon=0, Tue=1, ..., Sun=6
+  return (day + 6) % 7; // Mon=0, Tue=1, ..., Sun=6
 }
 
 /**
@@ -321,10 +325,8 @@ export function getTodayPositionInTimelineFromWeeks(weeks: { date: string }[]): 
   lastSun.setDate(lastSun.getDate() + 6);
   lastSun.setHours(23, 59, 59, 999);
   const t = today.getTime();
-  if (t < firstMon.getTime())
-    return { weekIndex: 0, dayOffset: 0, visible: true };
-  if (t > lastSun.getTime())
-    return { weekIndex: weeks.length - 1, dayOffset: 6, visible: true };
+  if (t < firstMon.getTime()) return { weekIndex: 0, dayOffset: 0, visible: true };
+  if (t > lastSun.getTime()) return { weekIndex: weeks.length - 1, dayOffset: 6, visible: true };
   for (let i = 0; i < weeks.length; i++) {
     if (weekContainsDate(weeks[i].date, today)) {
       const dayOffset = getDayOffsetInWeek(today);
@@ -342,5 +344,5 @@ export function getActualEndDayOffset(actualEndDate: string): number {
   const d = new Date(actualEndDate);
   d.setHours(0, 0, 0, 0);
   const day = d.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-  return (day + 6) % 7;   // Mon=0, Tue=1, ..., Sun=6
+  return (day + 6) % 7; // Mon=0, Tue=1, ..., Sun=6
 }

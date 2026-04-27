@@ -1,9 +1,9 @@
 /**
  * Enhanced Validation Utilities
- * 
+ *
  * This module provides improved validation patterns and helpers.
  * These are isolated utilities that can be integrated into forms as needed.
- * 
+ *
  * @module lib/validation
  */
 
@@ -36,7 +36,8 @@ export function validateEmail(email: string): ValidationResult {
   }
 
   // RFC 5322 compliant email regex (simplified but robust)
-  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  const emailRegex =
+    /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
 
   if (!emailRegex.test(trimmed)) {
     errors.push('Invalid email format');
@@ -174,7 +175,6 @@ export function validateURL(
     if (urlObject.hostname.includes('..') || urlObject.hostname.startsWith('.')) {
       errors.push('URL hostname contains invalid patterns');
     }
-
   } catch (error) {
     errors.push('Invalid URL format');
   }
@@ -480,7 +480,7 @@ export function validateFields(
  * @returns {boolean} True if all validations passed
  */
 export function isAllValid(results: Record<string, ValidationResult>): boolean {
-  return Object.values(results).every(result => result.isValid);
+  return Object.values(results).every((result) => result.isValid);
 }
 
 /**
@@ -489,5 +489,5 @@ export function isAllValid(results: Record<string, ValidationResult>): boolean {
  * @returns {string[]} Array of all error messages
  */
 export function getAllErrors(results: Record<string, ValidationResult>): string[] {
-  return Object.values(results).flatMap(result => result.errors);
+  return Object.values(results).flatMap((result) => result.errors);
 }

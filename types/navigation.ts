@@ -1,22 +1,22 @@
 /**
  * Navigation System - Position-Based Hierarchical Structure
- * 
+ *
  * Updated: January 31, 2026
- * 
+ *
  * The Trity navigation system uses dot-notation position strings to support unlimited
  * hierarchy depth without foreign key constraints. This enables efficient drag-and-drop
  * reorganization and flexible navigation structures.
- * 
+ *
  * POSITION FORMAT:
- * - "1", "2", "3" - Root level (Pillars: Analytics, Business Core, Execution, Admin, Account)
+ * - "1", "2", "3" - Root level product pillars (prefix map: 1 = Analytics, 2 = Business Core, 3 = Execution; UI narrative order is Business Core → Execution → Analytics). Other roots: Admin, Account.
  * - "1.1", "1.2", "2.3" - Level 1 (child of root)
  * - "1.1.1", "2.3.4" - Level 2 (grandchild)
  * - Unlimited depth: "1.1.1.1.1..."
- * 
- * PILLAR SYSTEM:
- * - Analytics (Blue #2563eb) - Reporting, forecasting, analytics
- * - Business Core (Green #16a34a) - Core business entities, products, customers, inventory
- * - Execution (Orange/Amber #b45309) - Planning, calendar, OKRs
+ *
+ * PILLAR SYSTEM (product order):
+ * - Business Core (Green #16a34a) - Core business entities, products, customers, inventory (position prefix 2)
+ * - Execution (Orange/Amber #b45309) - Planning, calendar, OKRs (position prefix 3)
+ * - Analytics (Blue #2563eb) - Reporting, forecasting, analytics (position prefix 1)
  * - Administration (Gray #6b7280) - Users, settings, management
  * - Account (Gray #6b7280) - Profile and user settings
  */
@@ -27,11 +27,11 @@
 export interface NavigationItem {
   id: string;
   label: string;
-  position: string | number;  // Dot-notation: "1", "1.1", "1.1.1", etc.
+  position: string | number; // Dot-notation: "1", "1.1", "1.1.1", etc.
   is_enabled: boolean;
-  path?: string | null;       // URL path or null for parent items
+  path?: string | null; // URL path or null for parent items
   children?: NavigationItem[];
-  [key: string]: any;         // Accept any other fields from Supabase
+  [key: string]: any; // Accept any other fields from Supabase
 }
 
 /**
@@ -53,11 +53,10 @@ export type NavigationPillar = 'analytics' | 'businessCore' | 'execution' | 'oth
  */
 export interface PillarConfig {
   pillar: NavigationPillar;
-  icon: any;  // lucide-react icon component
+  icon: any; // lucide-react icon component
   color: {
-    icon: string;    // Tailwind text color class
-    accent: string;  // Tailwind accent color class
-    hover: string;   // Tailwind hover color class
+    icon: string; // Tailwind text color class
+    accent: string; // Tailwind accent color class
+    hover: string; // Tailwind hover color class
   };
 }
-

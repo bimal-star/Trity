@@ -1,6 +1,6 @@
 /**
  * useFeatureFlags Hook
- * 
+ *
  * Check feature flag status for current tenant
  */
 
@@ -21,16 +21,16 @@ export interface UseFeaturesReturn {
 /**
  * Hook to check feature flags for current tenant
  * @returns Feature flag checking functions and data
- * 
+ *
  * @example
  * const { isEnabled, allFlags } = useFeatureFlags();
- * 
+ *
  * if (isEnabled('product_management')) {
  *   // Show products feature
  * }
  */
 export function useFeatureFlags(): UseFeaturesReturn {
-  const { tenant_id } = useTenant();
+  const { effectiveTenantId: tenant_id } = useTenant();
   const { tenant, isLoading, error } = useTenantDetails(tenant_id);
 
   return useMemo(() => {

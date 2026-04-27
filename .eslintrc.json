@@ -20,10 +20,47 @@
     {
       "files": [
         "components/products/ProductDetailsTabs.tsx",
-        "components/products/ProductCreateModal.tsx"
+        "components/products/ProductCreateForm.tsx"
       ],
       "rules": {
         "@typescript-eslint/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": ["**/*.{ts,tsx,js,jsx}"],
+      "excludedFiles": ["lib/csvDownload.ts", "lib/importExport/io.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "xlsx",
+                "message": "xlsx is not used in this project (CSV only). Do not re-add."
+              },
+              {
+                "name": "papaparse",
+                "message": "Do not statically import papaparse here. Allowed static imports: lib/csvDownload.ts and lib/importExport/io.ts only (prefer dynamic import('papaparse') in io.ts)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["lib/csvDownload.ts", "lib/importExport/io.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "xlsx",
+                "message": "xlsx is not allowed anywhere in the codebase (CSV only)."
+              }
+            ]
+          }
+        ]
       }
     }
   ]

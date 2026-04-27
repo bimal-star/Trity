@@ -1,9 +1,9 @@
 /**
  * useUsers Hook
- * 
+ *
  * Custom React hook for fetching users list
  * Used for user management and collaboration features
- * 
+ *
  * Note: This requires Supabase Auth Admin API or a users profile table
  * For now, we'll use a simplified approach
  */
@@ -91,9 +91,10 @@ export function useUsers(tenantId?: string): UseUsersReturn {
       // This would search in user_profiles table or use Admin API
       // For now, return filtered users from current list
       const searchLower = query.toLowerCase();
-      return users.filter(user => 
-        user.email?.toLowerCase().includes(searchLower) ||
-        user.name?.toLowerCase().includes(searchLower)
+      return users.filter(
+        (user) =>
+          user.email?.toLowerCase().includes(searchLower) ||
+          user.name?.toLowerCase().includes(searchLower)
       );
     } catch (err: any) {
       console.error('Error searching users:', err);

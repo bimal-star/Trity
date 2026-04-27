@@ -335,6 +335,7 @@ products,max_stock_level,numeric,YES,null,NO,null,null,null
 products,reorder_point,numeric,YES,null,NO,null,null,null
 products,reorder_quantity,numeric,YES,null,NO,null,null,null
 products,lead_time_days,integer,YES,null,NO,null,null,null
+products,tracks_inventory,boolean,NO,true,NO,null,null,null
 products,shelf_life_days,integer,YES,null,NO,null,null,null
 products,storage_conditions,text,YES,null,NO,null,null,null
 products,allergens,ARRAY,YES,null,NO,null,null,null
