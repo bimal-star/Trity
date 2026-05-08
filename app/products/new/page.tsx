@@ -37,7 +37,11 @@ export default function NewProductPage() {
         user?.id || null
       );
     }
-    return { success: result.success, error: result.error };
+    const productId =
+      result.success && result.data && typeof result.data.id === 'string'
+        ? result.data.id
+        : undefined;
+    return { success: result.success, error: result.error, productId };
   };
 
   return (
@@ -60,7 +64,9 @@ export default function NewProductPage() {
               refreshCategories={refreshCategories}
               onCreate={handleCreate}
               onCancel={() => router.push('/products')}
-              onSuccess={() => router.push('/products')}
+              onSuccess={(productId) =>
+                router.push(productId ? `/products/${productId}` : '/products')
+              }
             />
           </div>
         </div>

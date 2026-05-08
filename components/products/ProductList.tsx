@@ -1,12 +1,30 @@
 'use client';
 
 import Link from 'next/link';
-import { KeyboardEvent, useMemo } from 'react';
+import type { ReactNode } from 'react';
+import type { TableColumnDefinition } from '@/types/tableView';
+import { KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PremiumCard from '@/components/layout/premium/PremiumCard';
 import { Product, ProductRecordVisibility, ProductType, StatusType } from '@/types/product';
-import { Search, Loader2, Plus } from 'lucide-react';
-import { premiumInputCompact, premiumSecondaryButton, premiumTypography } from '@/lib/premiumUi';
-import { CategoryNode, CategoryTier } from '@/lib/categories';
+import { Filter, Loader2, Package, Plus, Search, TableProperties } from 'lucide-react';
+import {
+  premiumInputCompact,
+  premiumPrimaryButton,
+  premiumSecondaryButton,
+  premiumTypography,
+} from '@/lib/premiumUi';
+import { downloadTableCsv } from '@/lib/csvDownload';
+import {
+  getProductListColumnLabel,
+  isProductListColumnUserConfigurable,
+} from '@/lib/productListColumnCatalog';
+import { ColumnCustomiser } from '@/src/components/common/ColumnCustomiser';
+import { ViewSelector, type ViewSelectorItem } from '@/src/components/common/ViewSelector';
+import {
+  formatMoney,
+  formatProductTypeLabel,
+  renderProductListTableCell,
+} from '@/components/products/productListTableCells';
 
 const STATUS_FILTERS: { value: 'all' | StatusType; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -23,387 +41,609 @@ const VISIBILITY_FILTERS: { value: ProductRecordVisibility; label: string }[] = 
   { value: 'all', label: 'All' },
 ];
 
+/** Stable reference for `ColumnCustomiser` (inline `[]` would reset draft state every parent render). */
+const PRODUCT_LIST_ALWAYS_ON_COLUMN_IDS: string[] = ['_select', '_thumbnail'];
+
+export type SortUiOption = 'recent' | 'name_asc' | 'price_asc';
+
 interface ProductListProps {
   products: Product[];
+  /** Used to format unit prices in the table. */
+  currencyCode?: string;
   selectedProductId: string | null;
   isLoading: boolean;
   error: string | null;
-  categoriesError?: string | null;
   search: string;
   onSearchChange: (value: string) => void;
   onSelect: (product: Product) => void;
   statusFilter: 'all' | StatusType;
-  onStatusFilterChange: (value: 'all' | StatusType) => void;
   productTypeFilter: 'all' | ProductType;
-  onProductTypeFilterChange: (value: 'all' | ProductType) => void;
-  categoryTiers: CategoryTier[];
-  categoryNodesByTier: Record<number, CategoryNode[]>;
-  selectedCategoryNodeIdsByTier: Record<number, string[]>;
-  onToggleCategoryNode: (tierNumber: number, nodeId: string, isMultiSelect: boolean) => void;
   tagFilter: string;
-  onTagFilterChange: (value: string) => void;
-  tagOptions: string[];
+  selectedCategoryNodeIdsByTier: Record<number, string[]>;
   recordVisibility: ProductRecordVisibility;
   onRecordVisibilityChange: (value: ProductRecordVisibility) => void;
+  sortUiValue: SortUiOption;
+  onSortUiChange: (value: SortUiOption) => void;
   filterActive?: boolean;
   onClearFilters?: () => void;
-  /** Opens add-category modal (products list filter row). */
-  onOpenAddCategory?: () => void;
   /** Grouped / matrix catalogue: show product group name column. */
   showGroupColumn?: boolean;
+  /** Soft-delete (archive) by product id — used for bulk actions. */
+  archiveProducts?: (id: string) => Promise<{ success: boolean; error?: string }>;
+  onBulkArchiveComplete?: () => void;
+  /** Opens the slide-in filter drawer (state lives on parent page). */
+  filtersDrawerOpen?: boolean;
+  onOpenFilters?: () => void;
+  /** Page chrome (title + stats) rendered inside the shared sticky stack above the toolbar. */
+  stickyPageChrome?: ReactNode;
+  columnOrder: string[];
+  columnHidden: string[];
+  onColumnStateChange: (order: string[], hidden: string[]) => void;
+  /** Merged catalog definitions (renderType, maps) — drives cell rendering for visible columns. */
+  listColumnDefinitions?: TableColumnDefinition[];
+  listViewsUi?: {
+    views: ViewSelectorItem[];
+    selection: string;
+    onSelectionChange: (key: string) => void;
+    onSaveView: () => void;
+    onSetPersonalDefault: () => void;
+    onClearPersonalDefault: () => void;
+    onSaveWorkspaceDefault?: () => void;
+    canWorkspaceDefault: boolean;
+    loading: boolean;
+    onDeleteSelectedView?: () => void;
+  };
 }
 
 export default function ProductList({
   products,
+  currencyCode = 'GBP',
   selectedProductId,
   isLoading,
   error,
-  categoriesError = null,
   search,
   onSearchChange,
   onSelect,
   statusFilter,
-  onStatusFilterChange,
   productTypeFilter,
-  onProductTypeFilterChange,
-  categoryTiers,
-  categoryNodesByTier,
-  selectedCategoryNodeIdsByTier,
-  onToggleCategoryNode,
   tagFilter,
-  onTagFilterChange,
-  tagOptions,
+  selectedCategoryNodeIdsByTier,
   recordVisibility,
   onRecordVisibilityChange,
+  sortUiValue,
+  onSortUiChange,
   filterActive = false,
   onClearFilters,
-  onOpenAddCategory,
   showGroupColumn = false,
+  archiveProducts,
+  onBulkArchiveComplete,
+  filtersDrawerOpen = false,
+  onOpenFilters,
+  stickyPageChrome,
+  columnOrder,
+  columnHidden,
+  onColumnStateChange,
+  listColumnDefinitions,
+  listViewsUi,
 }: ProductListProps) {
-  const tagsSelectKey = useMemo(
-    () => tagOptions.filter((t) => t !== 'all').join('\u0001'),
-    [tagOptions]
-  );
-  const filterControlClass = `${premiumInputCompact} h-8 ${premiumTypography.tableCell}`;
+  const filterControlClass = `${premiumInputCompact} h-9 ${premiumTypography.tableCell}`;
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [bulkWorking, setBulkWorking] = useState(false);
+  const selectAllRef = useRef<HTMLInputElement>(null);
+  const [columnsOpen, setColumnsOpen] = useState(false);
+  const columnsBtnRef = useRef<HTMLButtonElement>(null);
+  const columnHiddenSet = useMemo(() => new Set(columnHidden), [columnHidden]);
+
+  const listColumnDefinitionById = useMemo(() => {
+    const m = new Map<string, TableColumnDefinition>();
+    for (const d of listColumnDefinitions ?? []) m.set(d.id, d);
+    return m;
+  }, [listColumnDefinitions]);
+
+  const productMap = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
+
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      const next = new Set<string>();
+      for (const id of prev) {
+        if (productMap.has(id)) next.add(id);
+      }
+      if (next.size === prev.size) {
+        let same = true;
+        for (const id of prev) {
+          if (!next.has(id)) {
+            same = false;
+            break;
+          }
+        }
+        if (same) return prev;
+      }
+      return next;
+    });
+  }, [productMap]);
 
   const activateRow = (p: Product) => {
     onSelect(p);
   };
 
-  const onRowKeyDown = (e: KeyboardEvent<HTMLTableRowElement>, p: Product) => {
+  const onRowKeyDown = (e: KeyboardEvent<HTMLElement>, p: Product) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       activateRow(p);
     }
   };
 
+  const filteredSelectedProducts = useMemo(
+    () => products.filter((p) => selectedIds.has(p.id)),
+    [products, selectedIds]
+  );
+
+  const toggleSelect = useCallback((id: string, next: boolean) => {
+    setSelectedIds((prev) => {
+      const n = new Set(prev);
+      if (next) n.add(id);
+      else n.delete(id);
+      return n;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(
+    (next: boolean) => {
+      if (!next) {
+        setSelectedIds(new Set());
+        return;
+      }
+      setSelectedIds(new Set(products.map((p) => p.id)));
+    },
+    [products]
+  );
+
+  const advancedSummary = useMemo(() => {
+    const parts: string[] = [];
+    if (statusFilter !== 'all')
+      parts.push(STATUS_FILTERS.find((s) => s.value === statusFilter)?.label ?? statusFilter);
+    if (productTypeFilter !== 'all') parts.push(formatProductTypeLabel(productTypeFilter));
+    if (tagFilter !== 'all') parts.push(`Tag: ${tagFilter}`);
+    const tierCount = Object.values(selectedCategoryNodeIdsByTier).reduce(
+      (acc, ids) => acc + ids.length,
+      0
+    );
+    if (tierCount > 0) parts.push(`${tierCount} category filter${tierCount === 1 ? '' : 's'}`);
+    return parts.length ? parts.join(' · ') : 'More filters…';
+  }, [statusFilter, productTypeFilter, tagFilter, selectedCategoryNodeIdsByTier]);
+
+  /** Toolbar badge count: mirrors Products page `filterActive` (includes search + visibility). */
+  const toolbarFiltersBadgeCount = useMemo(() => {
+    let n = 0;
+    if (search.trim()) n += 1;
+    if (statusFilter !== 'all') n += 1;
+    if (productTypeFilter !== 'all') n += 1;
+    if (tagFilter !== 'all') n += 1;
+    n += Object.values(selectedCategoryNodeIdsByTier).reduce((acc, ids) => acc + ids.length, 0);
+    if (recordVisibility !== 'active') n += 1;
+    return n;
+  }, [
+    search,
+    statusFilter,
+    productTypeFilter,
+    tagFilter,
+    selectedCategoryNodeIdsByTier,
+    recordVisibility,
+  ]);
+
+  const showFiltersBadge = filterActive;
+
+  const filtersButtonAriaLabel = filterActive
+    ? `Open filters (${toolbarFiltersBadgeCount} filter${toolbarFiltersBadgeCount === 1 ? '' : 's'} applied)`
+    : 'Open filters';
+
+  const exportRowsForProducts = useCallback(
+    (list: Product[]) => ({
+      headers: [
+        'sku',
+        'name',
+        'short_description',
+        'product_type',
+        'industry_type',
+        'status',
+        'cost_price',
+        'sell_price',
+      ],
+      rows: list.map((p) => [
+        p.sku,
+        p.name,
+        p.short_description ?? '',
+        p.product_type,
+        p.industry_type,
+        p.status,
+        p.cost_price ?? '',
+        p.sell_price ?? '',
+      ]),
+    }),
+    []
+  );
+
+  const runBulkArchive = async () => {
+    if (!archiveProducts || filteredSelectedProducts.length === 0) return;
+    const n = filteredSelectedProducts.length;
+    if (
+      !window.confirm(
+        `Archive ${n} product${n === 1 ? '' : 's'}? They will be hidden from default catalog lists.`
+      )
+    ) {
+      return;
+    }
+    setBulkWorking(true);
+    try {
+      for (const p of filteredSelectedProducts) {
+        if (!p.is_deleted) {
+          const r = await archiveProducts(p.id);
+          if (!r.success) console.error(r.error ?? 'Archive failed', p.id);
+        }
+      }
+      setSelectedIds(new Set());
+      onBulkArchiveComplete?.();
+    } finally {
+      setBulkWorking(false);
+    }
+  };
+
+  const runBulkExport = () => {
+    if (filteredSelectedProducts.length === 0) return;
+    const { headers, rows } = exportRowsForProducts(filteredSelectedProducts);
+    downloadTableCsv(`products_selected_${new Date().toISOString().split('T')[0]}`, headers, rows);
+  };
+
+  const allSelectableSelected = products.length > 0 && products.every((p) => selectedIds.has(p.id));
+  const someSelected = filteredSelectedProducts.length > 0;
+
+  useEffect(() => {
+    const el = selectAllRef.current;
+    if (el) el.indeterminate = someSelected && !allSelectableSelected;
+  }, [someSelected, allSelectableSelected]);
+
+  const segmented = `inline-flex rounded-lg border border-gray-200 p-0.5 dark:border-gray-700`;
+
+  const visibleColumnIds = useMemo(
+    () =>
+      columnOrder.filter((id) => {
+        if (columnHiddenSet.has(id)) return false;
+        if (id === 'product_group' && !showGroupColumn) return false;
+        return true;
+      }),
+    [columnOrder, columnHiddenSet, showGroupColumn]
+  );
+
   return (
-    <PremiumCard className="!p-0 flex h-full min-h-0 w-full flex-col overflow-hidden">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-wrap gap-3 items-center min-w-0 shrink-0">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search
-            className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"
-            aria-hidden
-          />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search products..."
-            className={`${premiumInputCompact} py-2 pl-10 pr-4 ${premiumTypography.body}`}
-            aria-label="Search products"
-          />
-        </div>
-      </div>
-
-      <div className="shrink-0 border-b border-gray-200 px-3 py-2 dark:border-gray-700">
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
-          <select
-            value={statusFilter}
-            onChange={(e) => onStatusFilterChange(e.target.value as 'all' | StatusType)}
-            className={filterControlClass}
-            aria-label="Filter by status"
-          >
-            {STATUS_FILTERS.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-          <select
-            value={productTypeFilter}
-            onChange={(e) => onProductTypeFilterChange(e.target.value as 'all' | ProductType)}
-            className={filterControlClass}
-            aria-label="Filter by product type"
-          >
-            <option value="all">All types</option>
-            <option value="raw_material">Raw material</option>
-            <option value="semi_finished">Semi finished</option>
-            <option value="finished_good">Finished good</option>
-            <option value="service">Service</option>
-            <option value="assembly">Assembly</option>
-            <option value="packaging">Packaging</option>
-          </select>
-          <select
-            key={tagsSelectKey}
-            value={tagFilter}
-            onChange={(e) => onTagFilterChange(e.target.value)}
-            className={filterControlClass}
-            aria-label="Filter by tag"
-          >
-            <option value="all">All tags</option>
-            {tagOptions
-              .filter((t) => t !== 'all')
-              .map((tag) => (
-                <option key={tag} value={tag}>
-                  {tag}
-                </option>
-              ))}
-          </select>
-          <div className="flex items-center xl:justify-end xl:col-start-4">
-            {onOpenAddCategory && (
-              <button
-                type="button"
-                onClick={onOpenAddCategory}
-                className={`w-full sm:w-auto ${premiumSecondaryButton('businessCore', 'sm', 'auto')}`}
-                aria-label="Add new category"
-                title="Add new category"
-              >
-                <Plus className="h-3.5 w-3.5" aria-hidden />
-                Add category
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="mt-2 space-y-2">
-          {categoryTiers.map((tier) => {
-            const selectedForTier = selectedCategoryNodeIdsByTier[tier.tier_number] ?? [];
-            const parentTierSelections =
-              tier.tier_number > 1
-                ? (selectedCategoryNodeIdsByTier[tier.tier_number - 1] ?? [])
-                : [];
-            const tierNodes = categoryNodesByTier[tier.tier_number] ?? [];
-            const visibleNodes =
-              tier.tier_number > 1 && parentTierSelections.length > 0
-                ? tierNodes.filter(
-                    (node) => node.parent_id && parentTierSelections.includes(node.parent_id)
-                  )
-                : tierNodes;
-            const isTierBlocked = tier.tier_number > 1 && parentTierSelections.length === 0;
-
-            return (
-              <div
-                key={tier.id}
-                className="rounded-md border border-gray-200 bg-gray-50/60 px-2 py-1.5 dark:border-gray-700 dark:bg-gray-900/40"
-              >
-                <div className="mb-1 flex items-center justify-between gap-2">
-                  <span
-                    className={`font-medium text-gray-700 dark:text-gray-200 ${premiumTypography.tableCell}`}
-                  >
-                    {tier.name}
-                  </span>
-                  <span className={`text-gray-500 dark:text-gray-400 ${premiumTypography.helper}`}>
-                    {tier.is_multi_select ? 'Multi-select' : 'Single-select'}
-                  </span>
-                </div>
-                {isTierBlocked ? (
-                  <p className={`text-gray-500 dark:text-gray-400 ${premiumTypography.helper}`}>
-                    Select a parent tier value first.
-                  </p>
-                ) : (
-                  <div className="flex flex-wrap gap-1">
-                    {visibleNodes.map((node) => {
-                      const selected = selectedForTier.includes(node.id);
-                      return (
-                        <button
-                          key={node.id}
-                          type="button"
-                          onClick={() =>
-                            onToggleCategoryNode(tier.tier_number, node.id, tier.is_multi_select)
-                          }
-                          className={`rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors ${
-                            selected
-                              ? 'border-green-500 bg-green-100 text-green-800 dark:border-green-600 dark:bg-green-900/40 dark:text-green-200'
-                              : 'border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800'
-                          }`}
-                          aria-pressed={selected}
-                        >
-                          {node.name}
-                        </button>
-                      );
-                    })}
-                    {visibleNodes.length === 0 && (
-                      <p className={`text-gray-500 dark:text-gray-400 ${premiumTypography.helper}`}>
-                        No options available.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-          <div className="inline-flex rounded-md border border-gray-200 p-0.5 dark:border-gray-700">
-            {VISIBILITY_FILTERS.map((option) => {
-              const selected = recordVisibility === option.value;
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => onRecordVisibilityChange(option.value)}
-                  className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
-                    selected
-                      ? 'bg-green-600 text-white'
-                      : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
-                  }`}
-                  aria-pressed={selected}
-                >
-                  {option.label}
-                </button>
-              );
-            })}
-          </div>
-          {onClearFilters && (
-            <button
-              type="button"
-              onClick={onClearFilters}
-              disabled={!filterActive}
-              className="rounded px-2.5 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:text-gray-300 dark:hover:bg-gray-800"
+    <PremiumCard className="relative flex min-h-0 w-full flex-1 flex-col !p-0">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="sticky top-0 z-40 shrink-0 border-b border-gray-200/80 bg-gray-50/95 px-3 shadow-sm backdrop-blur-md dark:border-gray-700 dark:bg-gray-900/95 sm:px-6">
+          {stickyPageChrome}
+          {someSelected && (
+            <div
+              className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-green-600 px-1 py-2 text-white dark:border-gray-700 dark:bg-green-700 sm:px-0"
+              role="region"
+              aria-label="Bulk actions"
             >
-              Clear filters
-            </button>
+              <span className={`font-medium ${premiumTypography.tableCell}`}>
+                {filteredSelectedProducts.length} selected
+              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled={bulkWorking}
+                  className={`rounded-md border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-semibold backdrop-blur-sm hover:bg-white/20 disabled:opacity-60`}
+                  onClick={runBulkExport}
+                >
+                  Export
+                </button>
+                <button
+                  type="button"
+                  disabled={bulkWorking || !archiveProducts}
+                  className={`rounded-md border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-semibold backdrop-blur-sm hover:bg-white/20 disabled:opacity-60`}
+                  onClick={() => void runBulkArchive()}
+                >
+                  {bulkWorking ? 'Working…' : 'Archive'}
+                </button>
+                <button
+                  type="button"
+                  disabled={bulkWorking || !archiveProducts}
+                  className={`rounded-md border border-white/40 bg-red-600/90 px-3 py-1.5 text-xs font-semibold hover:bg-red-600 disabled:opacity-60`}
+                  onClick={() => void runBulkArchive()}
+                  title="Archives selected products (soft delete)"
+                >
+                  Delete
+                </button>
+                <button
+                  type="button"
+                  className="rounded-md px-2 py-1 text-xs font-medium text-white/90 hover:bg-white/10"
+                  onClick={() => setSelectedIds(new Set())}
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
           )}
-        </div>
-        {categoriesError && (
-          <p
-            className={`mt-1.5 px-3 text-amber-700 dark:text-amber-400 ${premiumTypography.helper}`}
-            role="status"
-          >
-            Categories could not be loaded ({categoriesError}). The filter may be incomplete.
-          </p>
-        )}
-      </div>
 
-      <div className={`flex min-h-0 flex-1 flex-col overflow-hidden ${premiumTypography.body}`}>
-        {error && !isLoading && (
-          <div className={`shrink-0 p-3 text-red-500 ${premiumTypography.helper}`} role="alert">
-            {error}
-          </div>
-        )}
-        {isLoading && (
-          <div
-            className="flex-1 flex flex-col items-center justify-center gap-2 p-6 text-gray-500"
-            role="status"
-            aria-live="polite"
-          >
-            <Loader2
-              className="w-6 h-6 animate-spin text-green-600 dark:text-green-500"
-              aria-hidden
-            />
-            <span>Loading products…</span>
-          </div>
-        )}
-        {!isLoading && !error && products.length === 0 && !filterActive && (
-          <div className="p-3 text-gray-400">
-            <p className={premiumTypography.helper}>No products found.</p>
-            <p className={`mt-1 text-gray-500 dark:text-gray-400 ${premiumTypography.helper}`}>
-              <Link
-                href="/products/new"
-                className="font-medium text-green-700 dark:text-green-400 hover:underline"
-              >
-                Create product
-              </Link>{' '}
-              to add your first catalog item, or use{' '}
-              <span className="font-medium">New Product</span> in the header.
-            </p>
-          </div>
-        )}
-        {!isLoading && products.length === 0 && filterActive && (
-          <div className={`p-3 ${premiumTypography.helper} text-gray-500 dark:text-gray-400`}>
-            No products match the current filters.
-          </div>
-        )}
-        {!isLoading && (
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
-            <table className="w-full table-fixed text-left">
-              <colgroup>
-                <col className="w-[28%]" />
-                {showGroupColumn ? <col className="w-[22%]" /> : null}
-                <col className={showGroupColumn ? 'w-[50%]' : 'w-[72%]'} />
-              </colgroup>
-              <thead className="sticky top-0 z-20 border-b border-gray-200 bg-gray-50/95 shadow-[0_1px_0_0_rgba(229,231,235,0.9)] backdrop-blur-sm dark:border-gray-700 dark:bg-gray-900/95 dark:shadow-[0_1px_0_0_rgba(55,65,81,0.8)]">
-                <tr>
-                  <th
-                    scope="col"
-                    className={`px-2 py-2 text-gray-600 dark:text-gray-300 ${premiumTypography.tableCell} font-semibold`}
-                  >
-                    SKU
-                  </th>
-                  {showGroupColumn && (
-                    <th
-                      scope="col"
-                      className={`px-2 py-2 text-gray-600 dark:text-gray-300 ${premiumTypography.tableCell} font-semibold`}
-                    >
-                      Group
-                    </th>
-                  )}
-                  <th
-                    scope="col"
-                    className={`px-2 py-2 text-gray-600 dark:text-gray-300 ${premiumTypography.tableCell} font-semibold`}
-                  >
-                    Name
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {products.map((p, idx) => {
-                  const selected = p.id === selectedProductId;
-                  const groupStripe =
-                    showGroupColumn && p.product_group_id
-                      ? (idx === 0 || products[idx - 1]?.product_group_id !== p.product_group_id
-                          ? 'border-l-2 border-l-green-500/60'
-                          : 'border-l-2 border-l-transparent') + ' pl-0.5'
-                      : '';
+          <div className="flex min-h-0 min-w-0 shrink-0 flex-nowrap items-center justify-between gap-4 border-t border-gray-200/60 py-2.5 dark:border-gray-700/60">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-nowrap items-center gap-2 overflow-x-auto">
+              <div className="relative w-[240px] shrink-0">
+                <Search
+                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                  aria-hidden
+                />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => onSearchChange(e.target.value)}
+                  placeholder="Search products…"
+                  className={`${premiumInputCompact} h-10 w-[240px] max-w-full py-2 pl-10 pr-3 ${premiumTypography.body}`}
+                  aria-label="Search products"
+                />
+              </div>
+
+              <div className={`${segmented} shrink-0`}>
+                {VISIBILITY_FILTERS.map((option) => {
+                  const selected = recordVisibility === option.value;
                   return (
-                    <tr
-                      key={p.id}
-                      tabIndex={0}
-                      aria-selected={selected}
-                      aria-label={`${p.name}, SKU ${p.sku}. Press Enter to view details.`}
-                      className={`cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800 ${groupStripe} ${
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => onRecordVisibilityChange(option.value)}
+                      className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors ${
                         selected
-                          ? 'bg-green-50/70 dark:bg-green-900/20 hover:bg-green-50 dark:hover:bg-green-900/25'
-                          : 'hover:bg-gray-50/80 dark:hover:bg-gray-800/50'
+                          ? 'bg-green-600 text-white shadow-sm dark:bg-green-600'
+                          : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
                       }`}
-                      onClick={() => activateRow(p)}
-                      onKeyDown={(e) => onRowKeyDown(e, p)}
+                      aria-pressed={selected}
                     >
-                      <td
-                        className={`truncate px-2 py-1.5 text-gray-900 dark:text-white ${premiumTypography.tableCell}`}
-                      >
-                        {p.sku}
-                      </td>
-                      {showGroupColumn && (
-                        <td
-                          className={`truncate px-2 py-1.5 text-gray-600 dark:text-gray-400 ${premiumTypography.tableCell}`}
-                        >
-                          {p.product_group_name?.trim() || '—'}
-                        </td>
-                      )}
-                      <td
-                        className={`truncate px-2 py-1.5 text-gray-800 dark:text-gray-100 ${premiumTypography.tableCell}`}
-                      >
-                        {p.name}
-                      </td>
-                    </tr>
+                      {option.label}
+                    </button>
                   );
                 })}
-              </tbody>
-            </table>
+              </div>
+
+              <label className="flex shrink-0 items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
+                <span className="sr-only md:not-sr-only md:inline">Sort</span>
+                <select
+                  value={sortUiValue}
+                  onChange={(e) => onSortUiChange(e.target.value as SortUiOption)}
+                  className={`${filterControlClass} min-w-[10.5rem]`}
+                  aria-label="Sort products"
+                >
+                  <option value="name_asc">Name A–Z</option>
+                  <option value="price_asc">Price low–high</option>
+                  <option value="recent">Recently added</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="relative z-[45] flex shrink-0 flex-nowrap items-center gap-2 overflow-visible border-l border-gray-200/90 pl-4 dark:border-gray-600/80">
+              {listViewsUi && (
+                <ViewSelector
+                  views={listViewsUi.views}
+                  selection={listViewsUi.selection}
+                  onSelectionChange={listViewsUi.onSelectionChange}
+                  loading={listViewsUi.loading}
+                  onSaveView={listViewsUi.onSaveView}
+                  onSetPersonalDefault={listViewsUi.onSetPersonalDefault}
+                  onClearPersonalDefault={listViewsUi.onClearPersonalDefault}
+                  onSaveWorkspaceDefault={listViewsUi.onSaveWorkspaceDefault}
+                  canWorkspaceDefault={listViewsUi.canWorkspaceDefault}
+                  onDeleteSelectedView={listViewsUi.onDeleteSelectedView}
+                />
+              )}
+              <button
+                ref={columnsBtnRef}
+                type="button"
+                aria-expanded={columnsOpen}
+                aria-haspopup="dialog"
+                onClick={() => setColumnsOpen((o) => !o)}
+                className={`inline-flex !h-8 shrink-0 items-center gap-1.5 px-2.5 text-xs ${premiumSecondaryButton('businessCore', 'sm', 'auto')} ${premiumTypography.tableCell}`}
+              >
+                <TableProperties className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                Columns
+              </button>
+              <ColumnCustomiser
+                open={columnsOpen}
+                onClose={() => setColumnsOpen(false)}
+                anchorRef={columnsBtnRef}
+                columnOrder={columnOrder}
+                columnHidden={columnHidden}
+                alwaysOnIds={PRODUCT_LIST_ALWAYS_ON_COLUMN_IDS}
+                excludeColumnId={showGroupColumn ? null : 'product_group'}
+                isColumnPickable={isProductListColumnUserConfigurable}
+                getLabel={getProductListColumnLabel}
+                onApply={(order, hidden) => onColumnStateChange(order, hidden)}
+              />
+              <span className="relative inline-flex shrink-0">
+                <button
+                  type="button"
+                  aria-expanded={Boolean(filtersDrawerOpen)}
+                  aria-haspopup="dialog"
+                  aria-label={filtersButtonAriaLabel}
+                  title={advancedSummary}
+                  onClick={() => onOpenFilters?.()}
+                  disabled={!onOpenFilters}
+                  className={`inline-flex !h-8 shrink-0 items-center gap-1.5 px-2.5 text-xs ${premiumSecondaryButton('businessCore', 'sm', 'auto')} disabled:pointer-events-none disabled:opacity-50 ${premiumTypography.tableCell}`}
+                >
+                  <Filter className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  Filters
+                </button>
+                {showFiltersBadge && (
+                  <span
+                    className="pointer-events-none absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-green-600 px-0.5 text-[10px] font-bold tabular-nums leading-none text-white shadow-sm ring-2 ring-white dark:bg-green-500 dark:ring-gray-950"
+                    aria-hidden
+                  >
+                    {toolbarFiltersBadgeCount > 9 ? '9+' : toolbarFiltersBadgeCount}
+                  </span>
+                )}
+              </span>
+              {onClearFilters && (
+                <button
+                  type="button"
+                  onClick={onClearFilters}
+                  disabled={!filterActive}
+                  className={`shrink-0 whitespace-nowrap text-xs font-semibold text-gray-600 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-50 dark:text-gray-300 ${premiumTypography.tableCell}`}
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
           </div>
-        )}
+        </div>
+
+        <div className={`min-h-0 flex-1 overflow-y-auto ${premiumTypography.body}`}>
+          {error && !isLoading && (
+            <div className={`shrink-0 p-3 text-red-500 ${premiumTypography.helper}`} role="alert">
+              {error}
+            </div>
+          )}
+          {isLoading && (
+            <div
+              className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-gray-500"
+              role="status"
+              aria-live="polite"
+            >
+              <Loader2
+                className="h-6 w-6 animate-spin text-green-600 dark:text-green-500"
+                aria-hidden
+              />
+              <span>Loading products…</span>
+            </div>
+          )}
+          {!isLoading && !error && products.length === 0 && !filterActive && (
+            <EmptyCatalogState variant="none" />
+          )}
+          {!isLoading && !error && products.length === 0 && filterActive && (
+            <EmptyCatalogState variant="filtered" />
+          )}
+          {!isLoading && products.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px] table-auto border-collapse text-left">
+                <thead className="border-b border-gray-200 bg-gray-50/95 dark:border-gray-700 dark:bg-gray-900/95">
+                  <tr>
+                    {visibleColumnIds.map((id) => (
+                      <th
+                        key={id}
+                        scope="col"
+                        className={`whitespace-nowrap px-2 py-2 text-left text-gray-600 dark:text-gray-300 ${premiumTypography.tableCell} font-semibold`}
+                      >
+                        {id === '_select' ? (
+                          <input
+                            type="checkbox"
+                            checked={allSelectableSelected}
+                            ref={selectAllRef}
+                            onChange={(e) => toggleSelectAll(e.target.checked)}
+                            aria-label="Select all visible products"
+                            className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                          />
+                        ) : id === '_thumbnail' ? (
+                          <span className="sr-only">Image</span>
+                        ) : (
+                          getProductListColumnLabel(id)
+                        )}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {products.map((p, idx) => {
+                    const listed = p.id === selectedProductId;
+                    const groupStripe =
+                      showGroupColumn && p.product_group_id
+                        ? (idx === 0 || products[idx - 1]?.product_group_id !== p.product_group_id
+                            ? 'border-l-2 border-l-green-500/60'
+                            : 'border-l-2 border-l-transparent') + ' pl-0.5'
+                        : '';
+                    const sel = selectedIds.has(p.id);
+                    const cellCtx = {
+                      p,
+                      idx,
+                      currencyCode,
+                      showGroupColumn,
+                      selected: sel,
+                      onToggleSelect: toggleSelect,
+                      onOpenRow: activateRow,
+                    };
+
+                    return (
+                      <tr
+                        key={p.id}
+                        tabIndex={0}
+                        aria-selected={listed}
+                        aria-label={`${p.name}, SKU ${p.sku}. Press Enter to open product.`}
+                        className={`cursor-pointer transition-colors outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-green-500 ${groupStripe} ${
+                          listed || sel
+                            ? 'bg-green-50/60 dark:bg-green-950/25'
+                            : 'hover:bg-gray-50/90 dark:hover:bg-gray-900/55'
+                        }`}
+                        onClick={() => activateRow(p)}
+                        onKeyDown={(e) => onRowKeyDown(e, p)}
+                      >
+                        {visibleColumnIds.map((colId) =>
+                          renderProductListTableCell(
+                            colId,
+                            cellCtx,
+                            listColumnDefinitionById.get(colId)
+                          )
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
     </PremiumCard>
+  );
+}
+
+function EmptyCatalogState({ variant }: { variant: 'none' | 'filtered' }) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center px-4 py-12 text-center">
+      <div className="mb-6 flex h-28 w-28 items-center justify-center rounded-2xl border border-dashed border-green-400/70 bg-green-500/15 dark:bg-green-950/40">
+        <div className="relative">
+          <Package
+            strokeWidth={1.25}
+            className="h-14 w-14 text-green-700 dark:text-green-400"
+            aria-hidden
+          />
+          <div className="absolute -bottom-2 -right-2 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-md dark:bg-gray-800 dark:shadow-black/40">
+            <Plus className="h-5 w-5 text-green-600 dark:text-green-400" aria-hidden />
+          </div>
+        </div>
+      </div>
+      <h3 className={`${premiumTypography.pageTitle} mb-2 text-xl text-gray-900 dark:text-white`}>
+        {variant === 'filtered' ? 'No matches yet' : 'Build your catalog'}
+      </h3>
+      <p className={`mb-8 max-w-md ${premiumTypography.body} text-gray-600 dark:text-gray-400`}>
+        {variant === 'filtered'
+          ? 'Try clearing filters or broadening search to find products.'
+          : 'Add products to tie together pricing, barcodes, and stock visibility across Business Core.'}
+      </p>
+      {variant === 'none' && (
+        <Link
+          href="/products/new"
+          className={premiumPrimaryButton('businessCore', 'md', 'standard')}
+        >
+          Add your first product
+        </Link>
+      )}
+      {variant === 'filtered' && (
+        <p className={`${premiumTypography.helper} text-gray-500 dark:text-gray-400`}>
+          Adjust filters above or{' '}
+          <Link
+            href="/products/new"
+            className="font-semibold text-green-700 hover:underline dark:text-green-400"
+          >
+            create a product
+          </Link>
+          .
+        </p>
+      )}
+    </div>
   );
 }

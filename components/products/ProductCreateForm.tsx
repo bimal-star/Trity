@@ -23,9 +23,14 @@ interface ProductCreateFormProps {
   availableCategories: ProductCategoryOption[];
   /** Refetch category master list after creating a category in-app. */
   refreshCategories?: () => Promise<void>;
-  onCreate: (data: ProductFormData) => Promise<{ success: boolean; error?: string | undefined }>;
+  onCreate: (data: ProductFormData) => Promise<{
+    success: boolean;
+    error?: string | undefined;
+    productId?: string;
+  }>;
   onCancel: () => void;
-  onSuccess?: () => void;
+  /** Called after a successful create; `productId` is set when the server returned the new row. */
+  onSuccess?: (productId?: string) => void;
 }
 
 const industryOptions: IndustryType[] = [
@@ -317,7 +322,7 @@ export default function ProductCreateForm({
       }
       toast.success('Product created.');
       resetForm();
-      onSuccess?.();
+      onSuccess?.(result.productId);
     } catch (err: any) {
       console.error('Error creating product:', err);
       toast.error(err.message || 'Failed to create product');

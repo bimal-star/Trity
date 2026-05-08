@@ -827,7 +827,10 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
                         {rowSep}
                         <Link
                           href={path}
-                          onClick={() => setOpenSectionId(null)}
+                          onClick={() => {
+                            setUserMenuOpen(false);
+                            setOpenSectionId(null);
+                          }}
                           className={[
                             'flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent px-2.5 py-2 text-sm font-medium transition-colors',
                             sectionActive
@@ -838,6 +841,115 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
                           <SecIcon size={14} className={row2IconClass} aria-hidden />
                           {item.label}
                         </Link>
+                      </Fragment>
+                    );
+                  }
+
+                  const row2Flyout =
+                    isOpen && hasChildren ? (
+                      <div
+                        role="menu"
+                        className="absolute left-0 top-full z-[70] mt-0 max-h-[min(70vh,420px)] min-w-[220px] max-w-[min(92vw,320px)] overflow-y-auto rounded-b-lg rounded-tr-lg border border-gray-200 bg-white py-1 shadow-xl dark:border-gray-700 dark:bg-gray-900"
+                      >
+                        <MenuTree
+                          items={children}
+                          onClose={() => setOpenSectionId(null)}
+                          accentModule={row2TabModule}
+                          variant="lightFlyout"
+                        />
+                      </div>
+                    ) : null;
+
+                  const splitTabBarClass = [
+                    'flex items-stretch gap-0 border-b-2 border-transparent',
+                    sectionActive || isOpen
+                      ? ROW2_TAB_ACTIVE[row2TabModule]
+                      : ROW2_TAB_IDLE[row2TabModule],
+                  ].join(' ');
+
+                  const toggleSectionFlyout = () => {
+                    setUserMenuOpen(false);
+                    setOpenSectionId((id) => (id === item.id ? null : item.id));
+                  };
+
+                  // Path + children: label navigates (matches Sidebar), chevron opens flyout only.
+                  if (hasChildren && pathOk) {
+                    return (
+                      <Fragment key={item.id}>
+                        {rowSep}
+                        <div className="relative shrink-0">
+                          <div className={splitTabBarClass}>
+                            <Link
+                              href={path}
+                              onClick={() => {
+                                setUserMenuOpen(false);
+                                setOpenSectionId(null);
+                              }}
+                              className="flex min-w-0 shrink items-center gap-1.5 whitespace-nowrap px-2 py-2 pl-2.5 text-sm font-medium transition-colors"
+                            >
+                              <SecIcon size={14} className={row2IconClass} aria-hidden />
+                              <span className="max-w-[10rem] truncate">{item.label}</span>
+                            </Link>
+                            <button
+                              type="button"
+                              aria-label={`${item.label} submenu`}
+                              aria-expanded={isOpen}
+                              aria-haspopup="menu"
+                              className="flex shrink-0 items-center px-1.5 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 rounded-none"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                toggleSectionFlyout();
+                              }}
+                            >
+                              <ChevronDown
+                                size={14}
+                                className={`shrink-0 opacity-70 ${isOpen ? 'rotate-180' : ''}`}
+                                aria-hidden
+                              />
+                            </button>
+                          </div>
+                          {row2Flyout}
+                        </div>
+                      </Fragment>
+                    );
+                  }
+
+                  // Invalid path but has children: show help on label; chevron still opens menu.
+                  if (hasChildren && hasPath && !pathOk) {
+                    return (
+                      <Fragment key={item.id}>
+                        {rowSep}
+                        <div className="relative shrink-0">
+                          <div className={splitTabBarClass}>
+                            <div
+                              title={INVALID_DYNAMIC_PATH_TITLE}
+                              className="flex min-w-0 shrink cursor-help items-center gap-1.5 whitespace-nowrap px-2 py-2 pl-2.5 text-sm opacity-70"
+                            >
+                              <SecIcon size={14} className={row2IconClass} aria-hidden />
+                              <span className="max-w-[10rem] truncate">{item.label}</span>
+                            </div>
+                            <button
+                              type="button"
+                              aria-label={`${item.label} submenu`}
+                              aria-expanded={isOpen}
+                              aria-haspopup="menu"
+                              className="flex shrink-0 cursor-pointer items-center px-1.5 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 rounded-none"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                toggleSectionFlyout();
+                              }}
+                            >
+                              <ChevronDown
+                                size={14}
+                                className={`shrink-0 opacity-70 ${isOpen ? 'rotate-180' : ''}`}
+                                aria-hidden
+                              />
+                            </button>
+                          </div>
+                          {row2Flyout}
+                        </div>
                       </Fragment>
                     );
                   }
@@ -869,19 +981,7 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
                             aria-hidden
                           />
                         </button>
-                        {isOpen && hasChildren && (
-                          <div
-                            role="menu"
-                            className="absolute left-0 top-full z-[70] mt-0 max-h-[min(70vh,420px)] min-w-[220px] max-w-[min(92vw,320px)] overflow-y-auto rounded-b-lg rounded-tr-lg border border-gray-200 bg-white py-1 shadow-xl dark:border-gray-700 dark:bg-gray-900"
-                          >
-                            <MenuTree
-                              items={children}
-                              onClose={() => setOpenSectionId(null)}
-                              accentModule={row2TabModule}
-                              variant="lightFlyout"
-                            />
-                          </div>
-                        )}
+                        {row2Flyout}
                       </div>
                     </Fragment>
                   );

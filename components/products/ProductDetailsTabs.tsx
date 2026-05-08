@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { useTenant } from '@/contexts/TenantContext';
@@ -27,6 +27,7 @@ import {
   MoreVertical,
   Pencil,
   Plus,
+  ScanLine,
   Search,
   Trash2,
   X,
@@ -56,6 +57,23 @@ import { packingConfigurationInserts } from '@/lib/productPacking';
 import type { Database } from '@/types/database';
 import { parseAttributeDimensions } from '@/lib/productCatalogue';
 import { useToast } from '@/lib/toast';
+
+function TabBadge({ n }: { n: number }) {
+  if (n <= 0) return null;
+  return (
+    <span className="ml-1.5 inline-flex min-w-[1.25rem] justify-center rounded-full bg-gray-200 px-1.5 py-0.5 text-[10px] font-bold leading-none text-gray-800 dark:bg-gray-700 dark:text-gray-100">
+      {n > 99 ? '99+' : n}
+    </span>
+  );
+}
+
+/** Responsive 12-column grid: compact fields on row 1, wide text on following rows. */
+const DETAIL_FORM_GRID =
+  'grid grid-cols-1 gap-3 sm:grid-cols-12 sm:gap-x-3 sm:gap-y-3 sm:items-end';
+
+const DETAIL_FIELD_LABEL = `block ${premiumTypography.label} mb-1`;
+const DETAIL_FIELD_LABEL_COMPACT =
+  'block text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-1';
 
 interface ProductDetailsTabsProps {
   product: Product;
@@ -220,7 +238,7 @@ function VariantsInGroupPanel({
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {groupProducts.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-3 py-3 text-center text-gray-400">
+                  <td colSpan={4} className="px-3 py-4 text-center text-sm text-gray-400">
                     No other products in this group yet.
                   </td>
                 </tr>
@@ -315,6 +333,15 @@ export default function ProductDetailsTabs({
   const [barcodeActive, setBarcodeActive] = useState(true);
   const [savingBarcode, setSavingBarcode] = useState(false);
   const [barcodeError, setBarcodeError] = useState<string | null>(null);
+  const [editingBarcodeId, setEditingBarcodeId] = useState<string | null>(null);
+  const [editBarcodeBarcode, setEditBarcodeBarcode] = useState('');
+  const [editBarcodeType, setEditBarcodeType] = useState<BarcodeType>('ean13');
+  const [editBarcodePackingLevel, setEditBarcodePackingLevel] = useState<string>('unit');
+  const [editBarcodeQty, setEditBarcodeQty] = useState('1');
+  const [editBarcodeDescription, setEditBarcodeDescription] = useState('');
+  const [editBarcodePrimary, setEditBarcodePrimary] = useState(false);
+  const [editBarcodeActive, setEditBarcodeActive] = useState(true);
+  const [savingBarcodeEdit, setSavingBarcodeEdit] = useState(false);
 
   const [savingCategories, setSavingCategories] = useState(false);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
@@ -392,6 +419,40 @@ export default function ProductDetailsTabs({
 
   const currencyCode = product.currency?.trim() || 'GBP';
 
+  const categoryAssignmentCount = useMemo(
+    () =>
+      catTiers.length === 0
+        ? 0
+        : catTiers.reduce((sum, t) => sum + (catSelectedByTier[t.tier_number]?.length ?? 0), 0),
+    [catTiers, catSelectedByTier]
+  );
+
+  const tabBadges = useMemo(
+    () => ({
+      variants: supportsGroups && groupProducts.length > 0 ? groupProducts.length : 0,
+      barcodes: barcodes.length,
+      categories: categoryAssignmentCount,
+      pricing: priceListItems.length,
+      costing: costHistory.length,
+      metrics: metrics.length,
+      packing: packingConfigs.length,
+      operations: stockLevels.length + stockTransactions.length + productionPlans.length,
+    }),
+    [
+      supportsGroups,
+      groupProducts.length,
+      barcodes.length,
+      categoryAssignmentCount,
+      priceListItems.length,
+      costHistory.length,
+      metrics.length,
+      packingConfigs.length,
+      stockLevels.length,
+      stockTransactions.length,
+      productionPlans.length,
+    ]
+  );
+
   function formatMoney(amount: number | null | undefined): string {
     if (amount == null || Number.isNaN(Number(amount))) return '—';
     try {
@@ -403,6 +464,10 @@ export default function ProductDetailsTabs({
       return `${currencyCode} ${amount}`;
     }
   }
+
+  useEffect(() => {
+    setEditingBarcodeId(null);
+  }, [product.id]);
 
   useEffect(() => {
     setBaseCostInput(product.cost_price != null ? String(product.cost_price) : '');
@@ -824,6 +889,7 @@ export default function ProductDetailsTabs({
   };
 
   const handleDeleteBarcode = (id: string) => {
+    setEditingBarcodeId(null);
     setConfirmDialog({
       title: 'Delete barcode?',
       description: 'This barcode will no longer be linked to the product.',
@@ -846,6 +912,89 @@ export default function ProductDetailsTabs({
         }
       },
     });
+  };
+
+  const startEditBarcode = (b: ProductBarcode) => {
+    setEditingBarcodeId(b.id);
+    setEditBarcodeBarcode(b.barcode);
+    setEditBarcodeType((b.barcode_type as BarcodeType) || 'ean13');
+    const pl = b.packing_level ?? 'unit';
+    setEditBarcodePackingLevel(
+      ['unit', 'inner', 'case', 'pallet', 'container'].includes(String(pl)) ? String(pl) : 'unit'
+    );
+    setEditBarcodeQty(b.quantity != null ? String(b.quantity) : '1');
+    setEditBarcodeDescription(b.description ?? '');
+    setEditBarcodePrimary(Boolean(b.is_primary));
+    setEditBarcodeActive(b.is_active !== false);
+  };
+
+  const cancelEditBarcode = () => {
+    setEditingBarcodeId(null);
+  };
+
+  const handleSaveBarcodeEdit = async () => {
+    if (!editingBarcodeId || !tenant_id) return;
+    if (!editBarcodeBarcode.trim()) {
+      toast.error('Barcode value is required');
+      return;
+    }
+    try {
+      setSavingBarcodeEdit(true);
+      const packingLevelValid = ['unit', 'inner', 'case', 'pallet', 'container'] as const;
+      const resolvedPacking: Database['public']['Enums']['packing_level'] =
+        editBarcodePackingLevel &&
+        (packingLevelValid as readonly string[]).includes(editBarcodePackingLevel)
+          ? (editBarcodePackingLevel as Database['public']['Enums']['packing_level'])
+          : 'unit';
+
+      const { error: upErr } = await supabase
+        .from('product_barcodes')
+        .update({
+          barcode: editBarcodeBarcode.trim(),
+          barcode_type: editBarcodeType,
+          packing_level: resolvedPacking,
+          quantity: editBarcodeQty.trim() === '' ? 1 : Number(editBarcodeQty),
+          description: editBarcodeDescription.trim() === '' ? null : editBarcodeDescription.trim(),
+          is_primary: editBarcodePrimary,
+          is_active: editBarcodeActive,
+        })
+        .eq('id', editingBarcodeId)
+        .eq('product_id', product.id)
+        .eq('tenant_id', tenant_id);
+
+      if (upErr) throw upErr;
+
+      setBarcodes((prev) =>
+        prev.map((row) =>
+          row.id === editingBarcodeId
+            ? ({
+                ...row,
+                barcode: editBarcodeBarcode.trim(),
+                barcode_type: editBarcodeType,
+                packing_level: resolvedPacking,
+                quantity: editBarcodeQty.trim() === '' ? 1 : Number(editBarcodeQty),
+                description:
+                  editBarcodeDescription.trim() === '' ? null : editBarcodeDescription.trim(),
+                is_primary: editBarcodePrimary,
+                is_active: editBarcodeActive,
+              } as ProductBarcode)
+            : row
+        )
+      );
+
+      await logProductUpdated(
+        tenant_id,
+        product.id,
+        { action: 'barcode_updated', id: editingBarcodeId },
+        user?.id ?? null
+      );
+      setEditingBarcodeId(null);
+      toast.success('Barcode updated.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update barcode');
+    } finally {
+      setSavingBarcodeEdit(false);
+    }
   };
 
   const handleTierSelect = (tierNum: number, nodeId: string) => {
@@ -1627,7 +1776,7 @@ export default function ProductDetailsTabs({
         {tierDialogEl}
         {confirmFooter}
         {chipDeleteModalEl}
-        <div className="mt-6 flex flex-1 min-h-0 items-center justify-center py-10 text-gray-500 text-sm">
+        <div className="mt-4 flex min-h-0 flex-1 items-center justify-center py-10 text-sm text-gray-500">
           <Loader2 className="w-4 h-4 mr-2 animate-spin shrink-0" aria-hidden />
           Loading product details...
         </div>
@@ -1640,36 +1789,37 @@ export default function ProductDetailsTabs({
       {tierDialogEl}
       {confirmFooter}
       {chipDeleteModalEl}
-      <div className="mt-6 min-h-0 flex-1 flex flex-col overflow-hidden">
-        <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 mb-4 text-sm overflow-x-auto pb-0.5 -mx-1 px-1">
+      <div className="mt-4 min-h-0 flex-1 flex flex-col overflow-hidden">
+        <div className="-mx-1 mb-3 flex gap-1 overflow-x-auto border-b border-gray-200 px-1 pb-0 dark:border-gray-700">
           {(
             [
-              ...(supportsGroups ? [['variants', 'Variants'] as const] : []),
-              ['barcodes', 'Barcodes'],
-              ['categories', 'Categories'],
-              ['pricing', 'Pricing'],
-              ['costing', 'Cost History'],
-              ['metrics', 'Metrics'],
-              ['packing', 'Packing'],
-              ['operations', 'Ops & Stock'],
+              ...(supportsGroups ? [['variants', 'Variants', tabBadges.variants] as const] : []),
+              ['barcodes', 'Barcodes', tabBadges.barcodes],
+              ['categories', 'Categories', tabBadges.categories],
+              ['pricing', 'Pricing', tabBadges.pricing],
+              ['costing', 'Cost History', tabBadges.costing],
+              ['metrics', 'Metrics', tabBadges.metrics],
+              ['packing', 'Packing', tabBadges.packing],
+              ['operations', 'Ops & Stock', tabBadges.operations],
             ] as const
-          ).map(([key, label]) => (
+          ).map(([key, label, badgeN]) => (
             <button
               key={key}
               type="button"
-              className={`shrink-0 px-3 py-1.5 rounded-t-md border-b-2 transition-colors whitespace-nowrap ${
+              className={`shrink-0 whitespace-nowrap border-b-[3px] px-4 py-2.5 text-sm font-semibold transition-colors ${
                 activeTab === key
-                  ? 'border-green-600 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/10'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                  ? '-mb-[1px] border-green-600 text-green-800 dark:border-green-500 dark:text-green-400'
+                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-800 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-100'
               }`}
               onClick={() => setActiveTab(key as typeof activeTab)}
             >
               {label}
+              <TabBadge n={badgeN} />
             </button>
           ))}
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 text-sm space-y-4 min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto rounded-lg border border-gray-200 bg-white p-3.5 text-sm dark:border-gray-700 dark:bg-gray-800 sm:p-4">
           {activeTab === 'variants' && supportsGroups && (
             <VariantsInGroupPanel
               product={product}
@@ -1683,146 +1833,302 @@ export default function ProductDetailsTabs({
           )}
 
           {activeTab === 'barcodes' && (
-            <div>
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Product Barcodes</h3>
-              {barcodeError && <p className="text-[11px] text-red-500 mb-2">{barcodeError}</p>}
-              <div className="flex flex-wrap items-end gap-2 mb-3">
-                <div>
-                  <label className="block text-[10px] text-gray-500 mb-1">Barcode</label>
-                  <input
-                    className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-sm"
-                    value={barcodeValue}
-                    onChange={(e) => setBarcodeValue(e.target.value)}
-                    placeholder="Scan or enter barcode"
-                  />
+            <div className="space-y-4">
+              <h3 className="font-semibold text-gray-900 dark:text-white">Product barcodes</h3>
+              <div
+                className={`${premiumSurfaces.insetInfo} space-y-4 border border-gray-200/80 bg-gray-50/90 p-3 dark:border-gray-700/80 dark:bg-gray-950/30 sm:p-4`}
+              >
+                {barcodeError && (
+                  <p className="text-[11px] font-medium text-red-500">{barcodeError}</p>
+                )}
+                <div className={`${DETAIL_FORM_GRID} gap-2 sm:gap-2`}>
+                  <div className="sm:col-span-12 md:col-span-5 lg:col-span-5">
+                    <label className={DETAIL_FIELD_LABEL_COMPACT}>Barcode</label>
+                    <input
+                      className={`${premiumInputComfortableBase} py-2 text-xs`}
+                      value={barcodeValue}
+                      onChange={(e) => setBarcodeValue(e.target.value)}
+                      placeholder="Scan or enter barcode"
+                    />
+                  </div>
+                  <div className="sm:col-span-4 md:col-span-3 lg:col-span-2">
+                    <label className={DETAIL_FIELD_LABEL_COMPACT}>Type</label>
+                    <select
+                      className={`${premiumInputComfortableBase} py-2 text-xs`}
+                      value={barcodeType}
+                      onChange={(e) => setBarcodeType(e.target.value as BarcodeType)}
+                    >
+                      {BARCODE_TYPE_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                      {barcodeType &&
+                        !BARCODE_TYPE_OPTIONS.some((o) => o.value === barcodeType) && (
+                          <option value={barcodeType}>Other ({barcodeType})</option>
+                        )}
+                    </select>
+                  </div>
+                  <div className="sm:col-span-4 md:col-span-2 lg:col-span-2">
+                    <label className={DETAIL_FIELD_LABEL_COMPACT}>Packing level</label>
+                    <input
+                      className={`${premiumInputComfortableBase} max-w-full py-2 text-xs`}
+                      value={barcodePackingLevel || ''}
+                      onChange={(e) => setBarcodePackingLevel(e.target.value || null)}
+                      placeholder="unit / case"
+                    />
+                  </div>
+                  <div className="sm:col-span-4 md:col-span-2 lg:col-span-1">
+                    <label className={DETAIL_FIELD_LABEL_COMPACT}>Qty</label>
+                    <input
+                      type="number"
+                      min={1}
+                      className={`${premiumInputComfortableBase} py-2 text-xs`}
+                      value={barcodeQty}
+                      onChange={(e) => setBarcodeQty(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex flex-row flex-wrap items-center gap-x-6 gap-y-2 sm:col-span-12 lg:col-span-2">
+                    <label
+                      className={`flex cursor-pointer items-center gap-2 ${premiumTypography.helper}`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="rounded text-green-600 focus:ring-green-500"
+                        checked={barcodePrimary}
+                        onChange={(e) => setBarcodePrimary(e.target.checked)}
+                      />
+                      Primary
+                    </label>
+                    <label
+                      className={`flex cursor-pointer items-center gap-2 ${premiumTypography.helper}`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="rounded text-green-600 focus:ring-green-500"
+                        checked={barcodeActive}
+                        onChange={(e) => setBarcodeActive(e.target.checked)}
+                      />
+                      Active
+                    </label>
+                  </div>
+                  <div className="flex items-end justify-end sm:col-span-12">
+                    <button
+                      type="button"
+                      onClick={handleAddBarcode}
+                      disabled={savingBarcode}
+                      className={`${premiumPrimaryButton('businessCore', 'sm', 'standard')} px-5 disabled:cursor-not-allowed disabled:opacity-50`}
+                    >
+                      {savingBarcode ? (
+                        <>
+                          <Loader2 className="mr-1.5 inline h-3.5 w-3.5 animate-spin" aria-hidden />
+                          Saving…
+                        </>
+                      ) : (
+                        'Add barcode'
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] text-gray-500 mb-1">Type</label>
-                  <select
-                    className="min-w-[7rem] px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-sm"
-                    value={barcodeType}
-                    onChange={(e) => setBarcodeType(e.target.value as BarcodeType)}
-                  >
-                    {BARCODE_TYPE_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                    {barcodeType && !BARCODE_TYPE_OPTIONS.some((o) => o.value === barcodeType) && (
-                      <option value={barcodeType}>Other ({barcodeType})</option>
-                    )}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] text-gray-500 mb-1">Packing Level</label>
+                  <label className={DETAIL_FIELD_LABEL_COMPACT}>Description (optional)</label>
                   <input
-                    className="w-24 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-sm"
-                    value={barcodePackingLevel || ''}
-                    onChange={(e) => setBarcodePackingLevel(e.target.value || null)}
-                    placeholder="unit / case"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] text-gray-500 mb-1">Qty</label>
-                  <input
-                    type="number"
-                    className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-sm"
-                    value={barcodeQty}
-                    onChange={(e) => setBarcodeQty(e.target.value)}
-                    min={1}
-                  />
-                </div>
-                <div className="flex-1 min-w-[140px]">
-                  <label className="block text-[10px] text-gray-500 mb-1">Description</label>
-                  <input
-                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-sm"
+                    className={`${premiumInputComfortableBase} max-w-xl py-2 text-xs`}
                     value={barcodeDescription}
                     onChange={(e) => setBarcodeDescription(e.target.value)}
-                    placeholder="Optional description"
+                    placeholder="Note for operators"
                   />
                 </div>
-                <label className="flex items-center gap-1 text-[11px] text-gray-600 dark:text-gray-300">
-                  <input
-                    type="checkbox"
-                    className="rounded text-green-600 focus:ring-green-500"
-                    checked={barcodePrimary}
-                    onChange={(e) => setBarcodePrimary(e.target.checked)}
-                  />
-                  Primary
-                </label>
-                <label className="flex items-center gap-1 text-[11px] text-gray-600 dark:text-gray-300">
-                  <input
-                    type="checkbox"
-                    className="rounded text-green-600 focus:ring-green-500"
-                    checked={barcodeActive}
-                    onChange={(e) => setBarcodeActive(e.target.checked)}
-                  />
-                  Active
-                </label>
-                <button
-                  type="button"
-                  onClick={handleAddBarcode}
-                  disabled={savingBarcode}
-                  className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {savingBarcode ? 'Saving...' : 'Add Barcode'}
-                </button>
               </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full border divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-900/40">
-                    <tr>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
-                        Barcode
-                      </th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
-                        Type
-                      </th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
-                        Packing Level
-                      </th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
-                        Qty
-                      </th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
-                        Primary
-                      </th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
-                        Active
-                      </th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {barcodes.length === 0 && (
+
+              {barcodes.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50/70 px-4 py-10 text-center dark:border-gray-700 dark:bg-gray-900/40">
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm dark:bg-gray-800 dark:shadow-black/40">
+                    <ScanLine className="h-6 w-6 text-green-600 dark:text-green-400" aria-hidden />
+                  </div>
+                  <p className="font-semibold text-gray-900 dark:text-white">No barcodes defined</p>
+                  <p
+                    className={`mt-1 max-w-sm ${premiumTypography.helper} text-gray-500 dark:text-gray-400`}
+                  >
+                    Add a barcode above to link scans to this SKU for receiving, POS, and inventory.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+                    <thead className="bg-gray-50 dark:bg-gray-900/50">
                       <tr>
-                        <td colSpan={7} className="px-3 py-3 text-center text-gray-400">
-                          No barcodes defined
-                        </td>
+                        <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                          Barcode
+                        </th>
+                        <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                          Type
+                        </th>
+                        <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                          Packing
+                        </th>
+                        <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                          Qty
+                        </th>
+                        <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                          Primary
+                        </th>
+                        <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                          Active
+                        </th>
+                        <th className={`px-3 py-2 text-right ${premiumTypography.tableHeader}`}>
+                          Actions
+                        </th>
                       </tr>
-                    )}
-                    {barcodes.map((b) => (
-                      <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/40">
-                        <td className="px-3 py-2 text-gray-900 dark:text-white">{b.barcode}</td>
-                        <td className="px-3 py-2">{formatBarcodeTypeLabel(b.barcode_type)}</td>
-                        <td className="px-3 py-2">{b.packing_level}</td>
-                        <td className="px-3 py-2">{b.quantity ?? 1}</td>
-                        <td className="px-3 py-2">{b.is_primary ? 'Yes' : 'No'}</td>
-                        <td className="px-3 py-2">{b.is_active ? 'Yes' : 'No'}</td>
-                        <td className="px-3 py-2 text-right">
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteBarcode(b.id)}
-                            className="px-2 py-0.5 text-[11px] text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                      {barcodes.map((b) => {
+                        const isEditing = editingBarcodeId === b.id;
+                        return (
+                          <tr
+                            key={b.id}
+                            className={`group hover:bg-green-500/[0.04] dark:hover:bg-green-500/[0.06] ${isEditing ? 'bg-green-500/5 dark:bg-green-950/40' : ''}`}
                           >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                            <td className="px-3 py-2 align-top">
+                              {isEditing ? (
+                                <input
+                                  className={`${premiumInputComfortableBase} w-full py-1.5 text-xs`}
+                                  value={editBarcodeBarcode}
+                                  onChange={(e) => setEditBarcodeBarcode(e.target.value)}
+                                />
+                              ) : (
+                                <span className="font-medium text-gray-900 dark:text-white">
+                                  {b.barcode}
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2 align-top">
+                              {isEditing ? (
+                                <select
+                                  className={`${premiumInputComfortableBase} w-full py-1.5 text-xs`}
+                                  value={editBarcodeType}
+                                  onChange={(e) =>
+                                    setEditBarcodeType(e.target.value as BarcodeType)
+                                  }
+                                >
+                                  {BARCODE_TYPE_OPTIONS.map((o) => (
+                                    <option key={o.value} value={o.value}>
+                                      {o.label}
+                                    </option>
+                                  ))}
+                                  {editBarcodeType &&
+                                    !BARCODE_TYPE_OPTIONS.some(
+                                      (o) => o.value === editBarcodeType
+                                    ) && (
+                                      <option value={editBarcodeType}>
+                                        Other ({editBarcodeType})
+                                      </option>
+                                    )}
+                                </select>
+                              ) : (
+                                formatBarcodeTypeLabel(b.barcode_type)
+                              )}
+                            </td>
+                            <td className="px-3 py-2 align-top">
+                              {isEditing ? (
+                                <input
+                                  className={`${premiumInputComfortableBase} w-full max-w-[7rem] py-1.5 text-xs`}
+                                  value={editBarcodePackingLevel}
+                                  onChange={(e) => setEditBarcodePackingLevel(e.target.value)}
+                                />
+                              ) : (
+                                (b.packing_level ?? '—')
+                              )}
+                            </td>
+                            <td className="px-3 py-2 align-top">
+                              {isEditing ? (
+                                <input
+                                  type="number"
+                                  min={1}
+                                  className={`${premiumInputComfortableBase} w-16 py-1.5 text-xs`}
+                                  value={editBarcodeQty}
+                                  onChange={(e) => setEditBarcodeQty(e.target.value)}
+                                />
+                              ) : (
+                                (b.quantity ?? 1)
+                              )}
+                            </td>
+                            <td className="px-3 py-2 align-top">
+                              {isEditing ? (
+                                <input
+                                  type="checkbox"
+                                  className="rounded text-green-600"
+                                  checked={editBarcodePrimary}
+                                  onChange={(e) => setEditBarcodePrimary(e.target.checked)}
+                                />
+                              ) : b.is_primary ? (
+                                'Yes'
+                              ) : (
+                                'No'
+                              )}
+                            </td>
+                            <td className="px-3 py-2 align-top">
+                              {isEditing ? (
+                                <input
+                                  type="checkbox"
+                                  className="rounded text-green-600"
+                                  checked={editBarcodeActive}
+                                  onChange={(e) => setEditBarcodeActive(e.target.checked)}
+                                />
+                              ) : b.is_active !== false ? (
+                                'Yes'
+                              ) : (
+                                'No'
+                              )}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-2 align-top text-right">
+                              {isEditing ? (
+                                <div className="flex justify-end gap-1.5">
+                                  <button
+                                    type="button"
+                                    disabled={savingBarcodeEdit}
+                                    className={`${premiumSecondaryButton('businessCore', 'sm', 'auto')} px-2 py-1 text-[11px]`}
+                                    onClick={cancelEditBarcode}
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={savingBarcodeEdit}
+                                    className={`${premiumPrimaryButton('businessCore', 'sm', 'auto')} px-2 py-1 text-[11px]`}
+                                    onClick={() => void handleSaveBarcodeEdit()}
+                                  >
+                                    Save
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="inline-flex gap-1 opacity-100 md:gap-2 md:opacity-0 md:transition-opacity md:group-hover:opacity-100">
+                                  <button
+                                    type="button"
+                                    title="Edit barcode"
+                                    className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
+                                    onClick={() => startEditBarcode(b)}
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" aria-hidden />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    title="Delete barcode"
+                                    className="rounded p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40"
+                                    onClick={() => handleDeleteBarcode(b.id)}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                                  </button>
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 
@@ -1842,7 +2148,7 @@ export default function ProductDetailsTabs({
 
               return (
                 <div className="flex flex-col gap-3">
-                  <div className="relative">
+                  <div className="relative max-w-2xl">
                     <Search
                       className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
                       aria-hidden
@@ -1852,7 +2158,7 @@ export default function ProductDetailsTabs({
                       placeholder="Search across all tiers…"
                       value={categorySearch}
                       onChange={(e) => setCategorySearch(e.target.value)}
-                      className={`${premiumInputComfortableBase} pl-8 text-xs`}
+                      className={`${premiumInputComfortableBase} w-full pl-8 text-xs`}
                     />
                   </div>
 
@@ -2122,31 +2428,29 @@ export default function ProductDetailsTabs({
                     {basePricingMsg}
                   </p>
                 )}
-                <div className="flex flex-wrap items-end gap-3">
-                  <div>
-                    <label className={`block ${premiumTypography.label} mb-1`}>Cost price</label>
+                <div className={DETAIL_FORM_GRID}>
+                  <div className="sm:col-span-6 md:col-span-3">
+                    <label className={DETAIL_FIELD_LABEL}>Cost price</label>
                     <input
                       type="number"
                       step="any"
-                      className={`!w-28 ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                      className={`w-full max-w-[10rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
                       value={baseCostInput}
                       onChange={(e) => setBaseCostInput(e.target.value)}
                     />
                   </div>
-                  <div>
-                    <label className={`block ${premiumTypography.label} mb-1`}>
-                      Sell price (base)
-                    </label>
+                  <div className="sm:col-span-6 md:col-span-3">
+                    <label className={DETAIL_FIELD_LABEL}>Sell price (base)</label>
                     <input
                       type="number"
                       step="any"
-                      className={`!w-28 ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                      className={`w-full max-w-[10rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
                       value={baseSellInput}
                       onChange={(e) => setBaseSellInput(e.target.value)}
                     />
                   </div>
-                  <div>
-                    <label className={`block ${premiumTypography.label} mb-1`}>Margin</label>
+                  <div className="sm:col-span-6 md:col-span-3 flex flex-col justify-end pb-0.5">
+                    <label className={DETAIL_FIELD_LABEL}>Margin</label>
                     <p
                       className={`text-sm font-medium ${(() => {
                         const sell = parseFloat(baseSellInput);
@@ -2169,14 +2473,16 @@ export default function ProductDetailsTabs({
                       })()}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => void handleSaveBasePricing()}
-                    disabled={savingBasePricing}
-                    className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium shadow-sm disabled:opacity-50"
-                  >
-                    {savingBasePricing ? 'Saving...' : 'Save base prices'}
-                  </button>
+                  <div className="sm:col-span-12 md:col-span-3 flex items-end">
+                    <button
+                      type="button"
+                      onClick={() => void handleSaveBasePricing()}
+                      disabled={savingBasePricing}
+                      className="w-full sm:w-auto px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium shadow-sm disabled:opacity-50"
+                    >
+                      {savingBasePricing ? 'Saving...' : 'Save base prices'}
+                    </button>
+                  </div>
                 </div>
                 {(() => {
                   const sell = parseFloat(baseSellInput);
@@ -2271,11 +2577,11 @@ export default function ProductDetailsTabs({
                 <p className={`${premiumTypography.sectionTitle} uppercase tracking-wide`}>
                   Add to another tier
                 </p>
-                <div className="flex flex-wrap items-end gap-2">
-                  <div>
-                    <label className="block text-[10px] text-gray-500 mb-1">Price tier</label>
+                <div className={DETAIL_FORM_GRID}>
+                  <div className="sm:col-span-12 md:col-span-4">
+                    <label className={DETAIL_FIELD_LABEL_COMPACT}>Price tier</label>
                     <select
-                      className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-sm min-w-[160px]"
+                      className="w-full min-w-0 max-w-md px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-sm"
                       value={priceListId}
                       onChange={(e) => setPriceListId(e.target.value)}
                     >
@@ -2290,44 +2596,46 @@ export default function ProductDetailsTabs({
                         ))}
                     </select>
                   </div>
-                  <div>
-                    <label className="block text-[10px] text-gray-500 mb-1">Unit price</label>
+                  <div className="sm:col-span-4 md:col-span-2">
+                    <label className={DETAIL_FIELD_LABEL_COMPACT}>Unit price</label>
                     <input
                       type="number"
-                      className="w-24 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-sm"
+                      className="w-full max-w-[8rem] px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-sm"
                       value={priceUnit}
                       onChange={(e) => setPriceUnit(e.target.value)}
                       placeholder="0.00"
                     />
                   </div>
-                  <div>
-                    <label className="block text-[10px] text-gray-500 mb-1">Min qty</label>
+                  <div className="sm:col-span-4 md:col-span-2">
+                    <label className={DETAIL_FIELD_LABEL_COMPACT}>Min qty</label>
                     <input
                       type="number"
-                      className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-sm"
+                      className="w-full max-w-[6rem] px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-sm"
                       value={priceMinQty}
                       onChange={(e) => setPriceMinQty(e.target.value)}
                       min={1}
                     />
                   </div>
-                  <div>
-                    <label className="block text-[10px] text-gray-500 mb-1">Max qty</label>
+                  <div className="sm:col-span-4 md:col-span-2">
+                    <label className={DETAIL_FIELD_LABEL_COMPACT}>Max qty</label>
                     <input
                       type="number"
-                      className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-sm"
+                      className="w-full max-w-[6rem] px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-900 text-sm"
                       value={priceMaxQty}
                       onChange={(e) => setPriceMaxQty(e.target.value)}
                       min={1}
                     />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => void handleAddPriceItem()}
-                    disabled={savingPrice}
-                    className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {savingPrice ? 'Saving...' : 'Add to tier'}
-                  </button>
+                  <div className="sm:col-span-12 md:col-span-2 flex items-end">
+                    <button
+                      type="button"
+                      onClick={() => void handleAddPriceItem()}
+                      disabled={savingPrice}
+                      className="w-full sm:w-auto px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {savingPrice ? 'Saving...' : 'Add to tier'}
+                    </button>
+                  </div>
                 </div>
               </section>
 
@@ -2376,42 +2684,44 @@ export default function ProductDetailsTabs({
               <div className={`${premiumSurfaces.insetInfo} space-y-2`}>
                 <p className={premiumTypography.sectionTitle}>Add cost row</p>
                 {costMsg && <p className="text-xs text-red-600 dark:text-red-400">{costMsg}</p>}
-                <div className="flex flex-wrap items-end gap-2">
-                  <div>
-                    <label className={premiumTypography.label}>Effective from</label>
+                <div className={DETAIL_FORM_GRID}>
+                  <div className="sm:col-span-12 md:col-span-4">
+                    <label className={DETAIL_FIELD_LABEL}>Effective from</label>
                     <input
                       type="date"
                       value={newCostEffective}
                       onChange={(e) => setNewCostEffective(e.target.value)}
-                      className={`mt-1 ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                      className={`mt-1 w-full max-w-[11rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
                     />
                   </div>
-                  <div>
-                    <label className={premiumTypography.label}>Cost price</label>
+                  <div className="sm:col-span-6 md:col-span-3">
+                    <label className={DETAIL_FIELD_LABEL}>Cost price</label>
                     <input
                       type="number"
                       step="any"
                       value={newCostPrice}
                       onChange={(e) => setNewCostPrice(e.target.value)}
-                      className={`mt-1 !w-28 ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                      className={`mt-1 w-full max-w-[10rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
                     />
                   </div>
-                  <div>
-                    <label className={premiumTypography.label}>Method</label>
+                  <div className="sm:col-span-6 md:col-span-3">
+                    <label className={DETAIL_FIELD_LABEL}>Method</label>
                     <input
                       value={newCostMethod}
                       onChange={(e) => setNewCostMethod(e.target.value)}
-                      className={`mt-1 !w-32 ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                      className={`mt-1 w-full max-w-[12rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
                     />
                   </div>
-                  <div className="min-w-[120px] flex-1">
-                    <label className={premiumTypography.label}>Notes</label>
-                    <input
-                      value={newCostNotes}
-                      onChange={(e) => setNewCostNotes(e.target.value)}
-                      className={`mt-1 ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
-                    />
-                  </div>
+                </div>
+                <div className="mt-3 max-w-2xl">
+                  <label className={DETAIL_FIELD_LABEL}>Notes</label>
+                  <input
+                    value={newCostNotes}
+                    onChange={(e) => setNewCostNotes(e.target.value)}
+                    className={`mt-1 w-full ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                  />
+                </div>
+                <div className="mt-3">
                   <button
                     type="button"
                     disabled={costSaving}
@@ -2444,7 +2754,7 @@ export default function ProductDetailsTabs({
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {costHistory.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="px-3 py-3 text-center text-gray-400">
+                        <td colSpan={5} className="px-3 py-4 text-center text-sm text-gray-400">
                           No cost history records
                         </td>
                       </tr>
@@ -2477,35 +2787,39 @@ export default function ProductDetailsTabs({
           {activeTab === 'metrics' && (
             <div className="space-y-4">
               <h3 className="font-semibold text-gray-900 dark:text-white">Product Metrics</h3>
-              <div className={`${premiumSurfaces.insetInfo} flex flex-wrap items-end gap-2`}>
+              <div className={`${premiumSurfaces.insetInfo}`}>
                 {metricMsg && (
-                  <p className="w-full text-xs text-red-600 dark:text-red-400">{metricMsg}</p>
+                  <p className="mb-2 text-xs text-red-600 dark:text-red-400">{metricMsg}</p>
                 )}
-                <div>
-                  <label className={premiumTypography.label}>Metric date</label>
-                  <input
-                    type="date"
-                    value={newMetricDate}
-                    onChange={(e) => setNewMetricDate(e.target.value)}
-                    className={`mt-1 ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
-                  />
+                <div className={DETAIL_FORM_GRID}>
+                  <div className="sm:col-span-12 md:col-span-4">
+                    <label className={DETAIL_FIELD_LABEL}>Metric date</label>
+                    <input
+                      type="date"
+                      value={newMetricDate}
+                      onChange={(e) => setNewMetricDate(e.target.value)}
+                      className={`mt-1 w-full max-w-[11rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                    />
+                  </div>
+                  <div className="sm:col-span-6 md:col-span-3">
+                    <label className={DETAIL_FIELD_LABEL}>Period type</label>
+                    <input
+                      value={newMetricPeriod}
+                      onChange={(e) => setNewMetricPeriod(e.target.value)}
+                      className={`mt-1 w-full max-w-[10rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                    />
+                  </div>
+                  <div className="sm:col-span-12 md:col-span-3 flex items-end">
+                    <button
+                      type="button"
+                      disabled={metricSaving}
+                      onClick={() => void handleAddMetricRow()}
+                      className={`w-full sm:w-auto ${premiumPrimaryButton('businessCore', 'sm', 'auto')}`}
+                    >
+                      {metricSaving ? 'Saving…' : 'Add snapshot'}
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <label className={premiumTypography.label}>Period type</label>
-                  <input
-                    value={newMetricPeriod}
-                    onChange={(e) => setNewMetricPeriod(e.target.value)}
-                    className={`mt-1 !w-28 ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
-                  />
-                </div>
-                <button
-                  type="button"
-                  disabled={metricSaving}
-                  onClick={() => void handleAddMetricRow()}
-                  className={premiumPrimaryButton('businessCore', 'sm', 'auto')}
-                >
-                  {metricSaving ? 'Saving…' : 'Add snapshot'}
-                </button>
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full border divide-y divide-gray-200 dark:divide-gray-700">
@@ -2535,7 +2849,7 @@ export default function ProductDetailsTabs({
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {metrics.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="px-3 py-3 text-center text-gray-400">
+                        <td colSpan={7} className="px-3 py-4 text-center text-sm text-gray-400">
                           No metrics available
                         </td>
                       </tr>
@@ -2571,7 +2885,12 @@ export default function ProductDetailsTabs({
                 Packing Configurations
               </h3>
               {packingError && <p className="text-[11px] text-red-500 mb-1">{packingError}</p>}
-              <PackingConfigurationsEditor value={packingConfigs} onChange={handlePackingChange} />
+              <div className="overflow-x-auto rounded-lg">
+                <PackingConfigurationsEditor
+                  value={packingConfigs}
+                  onChange={handlePackingChange}
+                />
+              </div>
               <div className="mt-3 flex items-center gap-2">
                 <button
                   type="button"
@@ -2623,36 +2942,47 @@ export default function ProductDetailsTabs({
                   <div className={`${premiumSurfaces.insetInfo} space-y-2`}>
                     <p className={premiumTypography.sectionTitle}>Add forecast</p>
                     {fcMsg && <p className="text-xs text-red-600 dark:text-red-400">{fcMsg}</p>}
-                    <div className="flex flex-wrap items-end gap-2">
-                      <input
-                        type="date"
-                        value={fcStart}
-                        onChange={(e) => setFcStart(e.target.value)}
-                        className={`${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
-                        aria-label="Period start"
-                      />
-                      <input
-                        type="date"
-                        value={fcEnd}
-                        onChange={(e) => setFcEnd(e.target.value)}
-                        className={`${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
-                        aria-label="Period end"
-                      />
-                      <input
-                        type="number"
-                        placeholder="Forecast qty"
-                        value={fcQty}
-                        onChange={(e) => setFcQty(e.target.value)}
-                        className={`!w-28 ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
-                      />
-                      <button
-                        type="button"
-                        disabled={fcSaving}
-                        onClick={() => void handleAddForecast()}
-                        className={premiumPrimaryButton('businessCore', 'sm', 'auto')}
-                      >
-                        {fcSaving ? 'Saving…' : 'Add'}
-                      </button>
+                    <div className={DETAIL_FORM_GRID}>
+                      <div className="sm:col-span-6 md:col-span-3">
+                        <label className={DETAIL_FIELD_LABEL}>Period start</label>
+                        <input
+                          type="date"
+                          value={fcStart}
+                          onChange={(e) => setFcStart(e.target.value)}
+                          className={`mt-1 w-full max-w-[11rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                          aria-label="Period start"
+                        />
+                      </div>
+                      <div className="sm:col-span-6 md:col-span-3">
+                        <label className={DETAIL_FIELD_LABEL}>Period end</label>
+                        <input
+                          type="date"
+                          value={fcEnd}
+                          onChange={(e) => setFcEnd(e.target.value)}
+                          className={`mt-1 w-full max-w-[11rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                          aria-label="Period end"
+                        />
+                      </div>
+                      <div className="sm:col-span-6 md:col-span-2">
+                        <label className={DETAIL_FIELD_LABEL}>Forecast qty</label>
+                        <input
+                          type="number"
+                          placeholder="Qty"
+                          value={fcQty}
+                          onChange={(e) => setFcQty(e.target.value)}
+                          className={`mt-1 w-full max-w-[8rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                        />
+                      </div>
+                      <div className="sm:col-span-12 md:col-span-4 flex items-end">
+                        <button
+                          type="button"
+                          disabled={fcSaving}
+                          onClick={() => void handleAddForecast()}
+                          className={`w-full sm:w-auto ${premiumPrimaryButton('businessCore', 'sm', 'auto')}`}
+                        >
+                          {fcSaving ? 'Saving…' : 'Add'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div className="overflow-x-auto">
@@ -2679,7 +3009,7 @@ export default function ProductDetailsTabs({
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                         {forecasts.length === 0 && (
                           <tr>
-                            <td colSpan={5} className="px-3 py-3 text-center text-gray-400">
+                            <td colSpan={5} className="px-3 py-4 text-center text-sm text-gray-400">
                               No forecasts
                             </td>
                           </tr>
@@ -2740,7 +3070,10 @@ export default function ProductDetailsTabs({
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                           {stockLevels.length === 0 && (
                             <tr>
-                              <td colSpan={4} className="px-3 py-3 text-center text-gray-400">
+                              <td
+                                colSpan={4}
+                                className="px-3 py-4 text-center text-sm text-gray-400"
+                              >
                                 No stock level records
                               </td>
                             </tr>
@@ -2796,7 +3129,10 @@ export default function ProductDetailsTabs({
                         <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                           {stockTransactions.length === 0 && (
                             <tr>
-                              <td colSpan={5} className="px-3 py-3 text-center text-gray-400">
+                              <td
+                                colSpan={5}
+                                className="px-3 py-4 text-center text-sm text-gray-400"
+                              >
                                 No transactions
                               </td>
                             </tr>
@@ -2827,36 +3163,47 @@ export default function ProductDetailsTabs({
                   <div className={`${premiumSurfaces.insetInfo} space-y-2`}>
                     <p className={premiumTypography.sectionTitle}>Add production plan</p>
                     {ppMsg && <p className="text-xs text-red-600 dark:text-red-400">{ppMsg}</p>}
-                    <div className="flex flex-wrap items-end gap-2">
-                      <input
-                        type="date"
-                        value={ppStart}
-                        onChange={(e) => setPpStart(e.target.value)}
-                        className={`${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
-                        aria-label="Planned start"
-                      />
-                      <input
-                        type="date"
-                        value={ppEnd}
-                        onChange={(e) => setPpEnd(e.target.value)}
-                        className={`${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
-                        aria-label="Planned end"
-                      />
-                      <input
-                        type="number"
-                        placeholder="Planned qty"
-                        value={ppQty}
-                        onChange={(e) => setPpQty(e.target.value)}
-                        className={`!w-28 ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
-                      />
-                      <button
-                        type="button"
-                        disabled={ppSaving}
-                        onClick={() => void handleAddProductionPlan()}
-                        className={premiumPrimaryButton('businessCore', 'sm', 'auto')}
-                      >
-                        {ppSaving ? 'Saving…' : 'Add'}
-                      </button>
+                    <div className={DETAIL_FORM_GRID}>
+                      <div className="sm:col-span-6 md:col-span-3">
+                        <label className={DETAIL_FIELD_LABEL}>Planned start</label>
+                        <input
+                          type="date"
+                          value={ppStart}
+                          onChange={(e) => setPpStart(e.target.value)}
+                          className={`mt-1 w-full max-w-[11rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                          aria-label="Planned start"
+                        />
+                      </div>
+                      <div className="sm:col-span-6 md:col-span-3">
+                        <label className={DETAIL_FIELD_LABEL}>Planned end</label>
+                        <input
+                          type="date"
+                          value={ppEnd}
+                          onChange={(e) => setPpEnd(e.target.value)}
+                          className={`mt-1 w-full max-w-[11rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                          aria-label="Planned end"
+                        />
+                      </div>
+                      <div className="sm:col-span-6 md:col-span-2">
+                        <label className={DETAIL_FIELD_LABEL}>Planned qty</label>
+                        <input
+                          type="number"
+                          placeholder="Qty"
+                          value={ppQty}
+                          onChange={(e) => setPpQty(e.target.value)}
+                          className={`mt-1 w-full max-w-[8rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                        />
+                      </div>
+                      <div className="sm:col-span-12 md:col-span-4 flex items-end">
+                        <button
+                          type="button"
+                          disabled={ppSaving}
+                          onClick={() => void handleAddProductionPlan()}
+                          className={`w-full sm:w-auto ${premiumPrimaryButton('businessCore', 'sm', 'auto')}`}
+                        >
+                          {ppSaving ? 'Saving…' : 'Add'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div className="overflow-x-auto">
@@ -2883,7 +3230,7 @@ export default function ProductDetailsTabs({
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                         {productionPlans.length === 0 && (
                           <tr>
-                            <td colSpan={5} className="px-3 py-3 text-center text-gray-400">
+                            <td colSpan={5} className="px-3 py-4 text-center text-sm text-gray-400">
                               No production plans
                             </td>
                           </tr>
@@ -2934,7 +3281,7 @@ export default function ProductDetailsTabs({
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                         {activityLog.length === 0 && (
                           <tr>
-                            <td colSpan={3} className="px-3 py-3 text-center text-gray-400">
+                            <td colSpan={3} className="px-3 py-4 text-center text-sm text-gray-400">
                               No activity recorded
                             </td>
                           </tr>

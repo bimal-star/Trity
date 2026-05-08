@@ -136,12 +136,12 @@ export default function PackingConfigurationsEditor({
                   onChange={(e) => handleFieldChange(idx, 'is_default', e.target.checked)}
                 />
               </td>
-              <td className="border px-2 py-1">
+              <td className="border px-2 py-1 min-w-[10rem] max-w-xs">
                 <input
                   type="text"
                   value={cfg.description || ''}
                   onChange={(e) => handleFieldChange(idx, 'description', e.target.value)}
-                  className="w-24 px-1 py-0.5 border rounded"
+                  className="w-full min-w-0 max-w-[16rem] px-1 py-0.5 border rounded"
                 />
               </td>
               <td className="border px-2 py-1 text-center">

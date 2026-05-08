@@ -7,6 +7,13 @@ function normalizePath(path: string | null | undefined): string {
   return p.startsWith('/') ? p : `/${p}`;
 }
 
+/** UUID-shaped segment (RFC-style) for readable breadcrumb labels on dynamic routes. */
+function isUuidLikeSegment(segment: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    segment.trim()
+  );
+}
+
 function findPathChain(
   items: NavigationItem[],
   targetPath: string,
@@ -57,8 +64,23 @@ export function buildNavBreadcrumbs(
   }
 
   const titleFromPathTail = (path: string): string => {
-    const tail = path.split('/').filter(Boolean).pop();
-    return tail ? tail.replace(/-/g, ' ') : 'Page';
+    const segments = path.split('/').filter(Boolean);
+    const tail = segments[segments.length - 1];
+    if (!tail) return 'Page';
+
+    if (segments[0] === 'products' && segments.length === 2 && isUuidLikeSegment(tail)) {
+      return 'Product';
+    }
+    if (
+      segments[0] === 'products' &&
+      segments[1] === 'groups' &&
+      segments.length === 3 &&
+      isUuidLikeSegment(tail)
+    ) {
+      return 'Product group';
+    }
+
+    return tail.replace(/-/g, ' ');
   };
 
   if (!navigationItems?.length) {

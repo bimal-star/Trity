@@ -9,11 +9,16 @@ import { premiumTypography } from '@/lib/premiumUi';
 import { Package2 } from 'lucide-react';
 import { getProductPrimaryImageUrl } from '@/lib/productImageStorage';
 import { productTracksInventory } from '@/lib/productInventoryPolicy';
+import { getProductStockStatus, stockHeroBorderClass } from '@/lib/productStockStatus';
 
 interface ProductMasterCardProps {
   product: Product | null;
   onArchive?: (product: Product) => void;
   onRestore?: (product: Product) => void;
+  /** When the page header already shows the product name (e.g. `/products/[id]`). */
+  hideTitle?: boolean;
+  /** Slim chip row — image and title hidden; archive + lifecycle badge only. */
+  badgesOnly?: boolean;
 }
 
 const PRODUCT_STATUS_MAP: Record<string, string> = {
@@ -24,6 +29,8 @@ export default function ProductMasterCard({
   product,
   onArchive,
   onRestore,
+  hideTitle = false,
+  badgesOnly = false,
 }: ProductMasterCardProps) {
   if (!product) {
     return (
@@ -36,9 +43,30 @@ export default function ProductMasterCard({
 
   const primaryImage = getProductPrimaryImageUrl(product);
   const isArchived = Boolean(product.is_deleted);
+  const stockBorder = stockHeroBorderClass(getProductStockStatus(product).bucket);
+
+  if (badgesOnly) {
+    return (
+      <PremiumCard
+        className={`flex flex-wrap items-center justify-end gap-2 !py-2.5 !px-4 border-l-[5px] ${stockBorder}`}
+      >
+        <ArchiveRestoreActions
+          entity={product}
+          isArchived={isArchived}
+          onArchive={onArchive}
+          onRestore={onRestore}
+          archiveTitle="Archive: keep data but hide from default lists."
+          restoreTitle="Restore this product to the active catalog."
+        />
+        <EntityStatusBadge status={product.status} statusMap={PRODUCT_STATUS_MAP} />
+      </PremiumCard>
+    );
+  }
 
   return (
-    <PremiumCard className="relative flex items-center gap-4 overflow-hidden border-l-[5px] border-l-green-600 bg-gradient-to-r from-green-50/70 via-white to-white !px-4 !py-3 dark:border-l-green-500 dark:from-green-950/25 dark:via-gray-800 dark:to-gray-800">
+    <PremiumCard
+      className={`relative flex items-center gap-4 overflow-hidden border-l-[5px] bg-gradient-to-r from-green-50/70 via-white to-white !px-4 !py-3 dark:from-green-950/25 dark:via-gray-800 dark:to-gray-800 ${stockBorder}`}
+    >
       <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-green-200/80 bg-gray-100 shadow-sm dark:border-green-800/50 dark:bg-gray-900">
         {primaryImage ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -56,9 +84,13 @@ export default function ProductMasterCard({
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <h2 className={`truncate text-gray-900 dark:text-white ${premiumTypography.pageTitle}`}>
-          {product.name}
-        </h2>
+        {hideTitle ? (
+          <h2 className="sr-only">{product.name}</h2>
+        ) : (
+          <h2 className={`truncate text-gray-900 dark:text-white ${premiumTypography.pageTitle}`}>
+            {product.name}
+          </h2>
+        )}
         {product.total_stock != null && productTracksInventory(product) && (
           <p className={`mt-0.5 ${premiumTypography.helper} text-gray-600 dark:text-gray-400`}>
             Total stock: {product.total_stock}

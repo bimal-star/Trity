@@ -2752,6 +2752,50 @@ export type Database = {
           },
         ];
       };
+      product_list_saved_views: {
+        Row: {
+          created_at: string;
+          definition: Json;
+          id: string;
+          is_personal_default: boolean;
+          name: string;
+          owner_user_id: string;
+          page_key: string;
+          tenant_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          definition?: Json;
+          id?: string;
+          is_personal_default?: boolean;
+          name: string;
+          owner_user_id: string;
+          page_key: string;
+          tenant_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          definition?: Json;
+          id?: string;
+          is_personal_default?: boolean;
+          name?: string;
+          owner_user_id?: string;
+          page_key?: string;
+          tenant_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'product_list_saved_views_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       products: {
         Row: {
           allergens: string[] | null;
@@ -3961,6 +4005,35 @@ export type Database = {
             foreignKeyName: 'tenant_invites_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      tenant_products_list_settings: {
+        Row: {
+          tenant_id: string;
+          updated_at: string;
+          updated_by: string | null;
+          workspace_default_definition: Json | null;
+        };
+        Insert: {
+          tenant_id: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          workspace_default_definition?: Json | null;
+        };
+        Update: {
+          tenant_id?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          workspace_default_definition?: Json | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'tenant_products_list_settings_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: true;
             referencedRelation: 'tenants';
             referencedColumns: ['id'];
           },

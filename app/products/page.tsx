@@ -1,49 +1,73 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AddCategoryModal from '@/components/products/AddCategoryModal';
 import PremiumStickyHeader from '@/components/layout/premium/PremiumStickyHeader';
 import PageContainer from '@/components/PageContainer';
 import ProductList from '@/components/products/ProductList';
-import ProductMasterCard from '@/components/products/ProductMasterCard';
-import ProductDetailsTabs from '@/components/products/ProductDetailsTabs';
 import { useProducts } from '@/hooks/useProducts';
 import { useTenant } from '@/contexts/TenantContext';
 import { useCatalogueMode } from '@/hooks/useCatalogueMode';
 import {
-  Product,
   ProductFilters,
   ProductRecordVisibility,
+  ProductSortField,
   ProductType,
+  SortDirection,
   StatusType,
 } from '@/types/product';
+import { fetchTenantProductCounts } from '@/lib/productTenantStats';
 import {
   pillarAccent,
+  premiumFocusRing,
+  premiumInputComfortableBase,
   premiumPrimaryButton,
+  premiumSecondaryButton,
+  premiumInputCompact,
+  premiumSurfaces,
   premiumTertiaryButton,
   premiumTypography,
 } from '@/lib/premiumUi';
-import { Package2, Plus } from 'lucide-react';
+import { Loader2, Package2, Plus } from 'lucide-react';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { ExportFormatDropdown } from '@/components/common/ExportFormatDropdown';
-import { logProductArchived, logProductRestored } from '@/lib/auditLog';
 import { CategoryNode, CategoryTier, loadCategoryStructure } from '@/lib/categories';
+import FilterDrawer, { FILTER_DRAWER_DEFAULT_WIDTH_PX } from '@/components/common/FilterDrawer';
+import { useTableView } from '@/src/hooks/useTableView';
+import {
+  buildDefinitionFromPageState,
+  buildSystemDefinitionV1,
+  deserializeCategoryTiers,
+} from '@/lib/productListViewDefinition';
+import {
+  isProductListViewDefinitionV1,
+  type ProductListViewDefinitionV1,
+} from '@/types/productListViews';
+import {
+  getDefaultProductListColumnOrder,
+  getProductListTableColumnDefinitions,
+  getSystemDefaultHidden,
+  PRODUCT_LIST_PAGE_KEY,
+} from '@/lib/productListColumnCatalog';
 
 const bc = pillarAccent('businessCore');
 
-type ConfirmDialogState = {
-  title: string;
-  description: string;
-  confirmLabel: string;
-  confirmClassName: string;
-  onConfirm: () => void | Promise<void>;
-};
+/** Lifecycle status dropdown (Products list drawer). */
+const DRAWER_STATUS_FILTERS: { value: 'all' | StatusType; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'active', label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
+  { value: 'discontinued', label: 'Discontinued' },
+  { value: 'planned', label: 'Planned' },
+  { value: 'development', label: 'Development' },
+];
 
 export default function ProductsPage() {
-  const { effectiveTenantId: tenant_id, user } = useTenant();
+  const router = useRouter();
+  const { effectiveTenantId: tenant_id, user, profile } = useTenant();
   const { supportsGroups } = useCatalogueMode();
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | StatusType>('all');
   const [productTypeFilter, setProductTypeFilter] = useState<'all' | ProductType>('all');
@@ -57,8 +81,35 @@ export default function ProductsPage() {
     {}
   );
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
-  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
-  const [pageError, setPageError] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<ProductSortField>('created_at');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
+  type SortOption = 'recent' | 'name_asc' | 'price_asc';
+
+  const handleSortUiChange = useCallback((key: SortOption) => {
+    switch (key) {
+      case 'name_asc':
+        setSortField('name');
+        setSortDirection('asc');
+        break;
+      case 'price_asc':
+        setSortField('sell_price');
+        setSortDirection('asc');
+        break;
+      case 'recent':
+      default:
+        setSortField('created_at');
+        setSortDirection('desc');
+        break;
+    }
+  }, []);
+
+  const sortUiValue: SortOption =
+    sortField === 'name' && sortDirection === 'asc'
+      ? 'name_asc'
+      : sortField === 'sell_price' && sortDirection === 'asc'
+        ? 'price_asc'
+        : 'recent';
 
   const filters = useMemo((): ProductFilters | undefined => {
     const q = search.trim();
@@ -82,10 +133,136 @@ export default function ProductsPage() {
     recordVisibility,
   ]);
 
-  const { products, isLoading, error, deleteProduct, restoreProduct, refreshProducts } =
-    useProducts(filters, 'created_at', 'desc');
+  const { products, isLoading, error, refreshProducts, deleteProduct } = useProducts(
+    filters,
+    sortField,
+    sortDirection
+  );
 
   const [addCategoryOpen, setAddCategoryOpen] = useState(false);
+  const [filtersDrawerOpen, setFiltersDrawerOpen] = useState(false);
+  const [tenantCounts, setTenantCounts] = useState<{
+    catalogActive: number;
+    archived: number;
+    lowStock: number;
+  } | null>(null);
+  const [columnOrder, setColumnOrder] = useState<string[]>(() =>
+    getDefaultProductListColumnOrder(supportsGroups)
+  );
+  const [columnHidden, setColumnHidden] = useState<string[]>(() => [
+    ...getSystemDefaultHidden(supportsGroups),
+  ]);
+  const [listViewSelection, setListViewSelection] = useState<string>('system');
+  const [saveListViewOpen, setSaveListViewOpen] = useState(false);
+  const [saveListViewName, setSaveListViewName] = useState('');
+  const [saveListViewSaving, setSaveListViewSaving] = useState(false);
+  const [saveListViewError, setSaveListViewError] = useState<string | null>(null);
+  const saveListViewNameInputRef = useRef<HTMLInputElement>(null);
+  const listBootstrapRef = useRef(false);
+  const listTableViewApiRef = useRef<ReturnType<
+    typeof useTableView<ProductListViewDefinitionV1>
+  > | null>(null);
+
+  const columnDefinitions = useMemo(
+    () => getProductListTableColumnDefinitions(supportsGroups),
+    [supportsGroups]
+  );
+
+  const coerceProductListViewDefinition = useCallback(
+    (raw: unknown): ProductListViewDefinitionV1 =>
+      isProductListViewDefinitionV1(raw) ? raw : buildSystemDefinitionV1(supportsGroups),
+    [supportsGroups]
+  );
+
+  const buildProductListSystemDefinition = useCallback(
+    () => buildSystemDefinitionV1(supportsGroups),
+    [supportsGroups]
+  );
+
+  const listTableViewApi = useTableView<ProductListViewDefinitionV1>({
+    pageKey: PRODUCT_LIST_PAGE_KEY,
+    tenantId: tenant_id,
+    userId: user?.id ?? null,
+    columnDefinitions,
+    coerceDefinition: coerceProductListViewDefinition,
+    buildSystemDefinition: buildProductListSystemDefinition,
+  });
+  listTableViewApiRef.current = listTableViewApi;
+
+  const canWorkspaceDefault =
+    profile?.role === 'admin' ||
+    profile?.role === 'super_admin' ||
+    profile?.role === 'platform_admin';
+
+  const applyViewDefinition = useCallback((def: ProductListViewDefinitionV1) => {
+    setSearch(def.filters.search);
+    setStatusFilter(def.filters.statusFilter);
+    setProductTypeFilter(def.filters.productTypeFilter);
+    setTagFilter(def.filters.tagFilter);
+    setRecordVisibility(def.filters.recordVisibility);
+    setSelectedCategoryNodeIdsByTier(
+      deserializeCategoryTiers(def.filters.selectedCategoryNodeIdsByTier)
+    );
+    setSortField(def.sort.sortField);
+    setSortDirection(def.sort.sortDirection);
+    setColumnOrder(def.columns.order);
+    setColumnHidden(def.columns.hidden);
+  }, []);
+
+  useEffect(() => {
+    listBootstrapRef.current = false;
+  }, [tenant_id, user?.id]);
+
+  useEffect(() => {
+    if (!listTableViewApi.ready || !tenant_id || !user?.id) return;
+    if (listBootstrapRef.current) return;
+    listBootstrapRef.current = true;
+    const api = listTableViewApiRef.current;
+    if (!api) return;
+    const def = api.pickInitialDefinition();
+    applyViewDefinition(def);
+    const personal = api.views.find((v) => v.is_personal_default);
+    if (personal) setListViewSelection(personal.id);
+    else if (api.workspaceDefinition) setListViewSelection('workspace');
+    else setListViewSelection('system');
+  }, [listTableViewApi.ready, tenant_id, user?.id, applyViewDefinition]);
+
+  useEffect(() => {
+    setColumnOrder((prev) => {
+      let next = [...prev];
+      if (supportsGroups && !next.includes('product_group')) {
+        const i = next.indexOf('sku');
+        if (i >= 0) next.splice(i + 1, 0, 'product_group');
+        else next.push('product_group');
+      }
+      if (!supportsGroups) next = next.filter((id) => id !== 'product_group');
+      return next;
+    });
+    setColumnHidden((h) => (supportsGroups ? h : h.filter((id) => id !== 'product_group')));
+  }, [supportsGroups]);
+
+  const loadTenantCounts = useCallback(async () => {
+    if (!tenant_id) {
+      setTenantCounts(null);
+      return;
+    }
+    try {
+      const c = await fetchTenantProductCounts(tenant_id);
+      setTenantCounts(c);
+    } catch (e) {
+      console.error('Failed to load product counts', e);
+      setTenantCounts(null);
+    }
+  }, [tenant_id]);
+
+  useEffect(() => {
+    void loadTenantCounts();
+  }, [loadTenantCounts]);
+
+  const refreshProductsAndCounts = useCallback(async () => {
+    await refreshProducts();
+    await loadTenantCounts();
+  }, [refreshProducts, loadTenantCounts]);
 
   const reloadCategoryStructure = useCallback(async () => {
     if (!tenant_id) {
@@ -111,11 +288,6 @@ export default function ProductsPage() {
     void reloadCategoryStructure();
   }, [reloadCategoryStructure]);
 
-  const handleProductUpdated = async () => {
-    const list = await refreshProducts();
-    setSelectedProduct((prev) => (prev ? (list.find((p) => p.id === prev.id) ?? prev) : null));
-  };
-
   const tagOptions = useMemo(() => {
     const tagSet = new Set<string>();
     products.forEach((product) => {
@@ -127,6 +299,13 @@ export default function ProductsPage() {
     if (tagFilter !== 'all') tagSet.add(tagFilter);
     return ['all', ...Array.from(tagSet).sort((a, b) => a.localeCompare(b))];
   }, [products, tagFilter]);
+
+  const tagsSelectKey = useMemo(
+    () => tagOptions.filter((t) => t !== 'all').join('\u0001'),
+    [tagOptions]
+  );
+
+  const drawerFilterControlClass = `${premiumInputCompact} h-9 ${premiumTypography.tableCell}`;
 
   const filterActive =
     Boolean(search.trim()) ||
@@ -172,112 +351,174 @@ export default function ProductsPage() {
     setRecordVisibility('active');
   }, []);
 
-  const handleArchive = (product: Product) => {
-    setConfirmDialog({
-      title: `Archive “${product.name}”?`,
-      description: 'The product will be hidden from default catalog lists but data is preserved.',
-      confirmLabel: 'Archive',
-      confirmClassName:
-        'px-3 py-1.5 text-sm font-medium rounded-lg bg-amber-600 hover:bg-amber-700 text-white',
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        const r = await deleteProduct(product.id);
-        if (r.success && tenant_id) {
-          await logProductArchived(tenant_id, product.id, product.name, user?.id ?? null);
-          if (selectedProduct?.id === product.id) setSelectedProduct(null);
-        } else if (!r.success) {
-          setPageError(r.error ?? 'Archive failed');
-        }
-      },
-    });
-  };
-
-  const handleSelectProductById = useCallback(
-    (id: string) => {
-      const p = products.find((x) => x.id === id);
-      if (p) setSelectedProduct(p);
+  const handleListViewSelectionChange = useCallback(
+    (key: string) => {
+      setListViewSelection(key);
+      const api = listTableViewApiRef.current;
+      if (!api) return;
+      if (key === 'system') {
+        applyViewDefinition(buildSystemDefinitionV1(supportsGroups));
+        return;
+      }
+      if (key === 'workspace') {
+        applyViewDefinition(api.workspaceDefinition ?? buildSystemDefinitionV1(supportsGroups));
+        return;
+      }
+      const row = api.views.find((v) => v.id === key);
+      if (row) applyViewDefinition(row.definition);
     },
-    [products]
+    [applyViewDefinition, supportsGroups]
   );
 
-  const handleRestore = (product: Product) => {
-    setConfirmDialog({
-      title: `Restore “${product.name}”?`,
-      description: 'The product will return to the active catalog and appear in default lists.',
-      confirmLabel: 'Restore',
-      confirmClassName:
-        'px-3 py-1.5 text-sm font-medium rounded-lg bg-green-600 hover:bg-green-700 text-white',
-      onConfirm: async () => {
-        setConfirmDialog(null);
-        const r = await restoreProduct(product.id);
-        if (r.success && tenant_id) {
-          await logProductRestored(tenant_id, product.id, product.name, user?.id ?? null);
-        } else if (!r.success) {
-          setPageError(r.error ?? 'Restore failed');
-        }
-      },
+  const openSaveListViewDialog = useCallback(() => {
+    setSaveListViewName('');
+    setSaveListViewError(null);
+    setSaveListViewOpen(true);
+  }, []);
+
+  const closeSaveListViewDialog = useCallback(() => {
+    if (saveListViewSaving) return;
+    setSaveListViewOpen(false);
+  }, [saveListViewSaving]);
+
+  useEffect(() => {
+    if (!saveListViewOpen) return;
+    const id = window.requestAnimationFrame(() => {
+      saveListViewNameInputRef.current?.focus();
+      saveListViewNameInputRef.current?.select();
     });
-  };
+    return () => window.cancelAnimationFrame(id);
+  }, [saveListViewOpen]);
 
-  const confirmDialogEl = confirmDialog ? (
-    <div
-      className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-black/50"
-      role="presentation"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) setConfirmDialog(null);
-      }}
-    >
-      <div
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby="page-confirm-title"
-        aria-describedby="page-confirm-desc"
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 max-w-md w-full p-5"
-        onMouseDown={(e) => e.stopPropagation()}
-      >
-        <h2
-          id="page-confirm-title"
-          className="text-base font-semibold text-gray-900 dark:text-white"
-        >
-          {confirmDialog.title}
-        </h2>
-        <p id="page-confirm-desc" className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-          {confirmDialog.description}
-        </p>
-        <div className="mt-5 flex justify-end gap-2">
-          <button
-            type="button"
-            className="px-3 py-1.5 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-            onClick={() => setConfirmDialog(null)}
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            className={confirmDialog.confirmClassName}
-            onClick={() => void confirmDialog.onConfirm()}
-          >
-            {confirmDialog.confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
-  ) : null;
+  useEffect(() => {
+    if (!saveListViewOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeSaveListViewDialog();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [saveListViewOpen, closeSaveListViewDialog]);
 
-  return (
-    <ProtectedRoute>
-      {confirmDialogEl}
-      <AddCategoryModal
-        open={addCategoryOpen}
-        onClose={() => setAddCategoryOpen(false)}
-        onCreated={() => {
-          void refreshProducts();
-          void reloadCategoryStructure();
-        }}
-      />
-      <PageContainer module="businessCore">
+  const submitSaveListView = useCallback(async () => {
+    const name = saveListViewName.trim();
+    if (!name) {
+      setSaveListViewError('Enter a view name');
+      return;
+    }
+    const api = listTableViewApiRef.current;
+    if (!api) return;
+    const def = buildDefinitionFromPageState({
+      includeProductGroup: supportsGroups,
+      search,
+      statusFilter,
+      productTypeFilter,
+      tagFilter,
+      selectedCategoryNodeIdsByTier,
+      recordVisibility,
+      sortField,
+      sortDirection,
+      columnOrder,
+      columnHidden,
+    });
+    setSaveListViewSaving(true);
+    setSaveListViewError(null);
+    const r = await api.saveNewView(name, def);
+    setSaveListViewSaving(false);
+    if (!r.success) {
+      setSaveListViewError(r.error ?? 'Could not save view');
+      return;
+    }
+    setSaveListViewOpen(false);
+  }, [
+    saveListViewName,
+    supportsGroups,
+    search,
+    statusFilter,
+    productTypeFilter,
+    tagFilter,
+    selectedCategoryNodeIdsByTier,
+    recordVisibility,
+    sortField,
+    sortDirection,
+    columnOrder,
+    columnHidden,
+  ]);
+
+  const handleSetListViewPersonalDefault = useCallback(async () => {
+    if (listViewSelection === 'system' || listViewSelection === 'workspace') {
+      window.alert('Pick a saved view first.');
+      return;
+    }
+    const api = listTableViewApiRef.current;
+    if (!api) return;
+    const r = await api.setPersonalDefault(listViewSelection);
+    if (!r.success) window.alert(r.error ?? 'Could not set default');
+  }, [listViewSelection]);
+
+  const handleClearListViewPersonalDefault = useCallback(async () => {
+    const api = listTableViewApiRef.current;
+    if (!api) return;
+    const r = await api.clearPersonalDefault();
+    if (!r.success) window.alert(r.error ?? 'Could not clear default');
+  }, []);
+
+  const handleDeleteSelectedListView = useCallback(async () => {
+    if (listViewSelection === 'system' || listViewSelection === 'workspace') return;
+    const api = listTableViewApiRef.current;
+    if (!api) return;
+    const row = api.views.find((v) => v.id === listViewSelection);
+    if (!row) return;
+    if (!window.confirm(`Delete saved view "${row.name}"? This cannot be undone.`)) return;
+    const r = await api.deleteView(listViewSelection);
+    if (!r.success) {
+      window.alert(r.error ?? 'Could not delete view');
+      return;
+    }
+    setListViewSelection('system');
+    applyViewDefinition(buildSystemDefinitionV1(supportsGroups));
+  }, [listViewSelection, supportsGroups, applyViewDefinition]);
+
+  const handleSaveWorkspaceListDefault = useCallback(async () => {
+    if (!canWorkspaceDefault) return;
+    const api = listTableViewApiRef.current;
+    if (!api) return;
+    const def = buildDefinitionFromPageState({
+      includeProductGroup: supportsGroups,
+      search,
+      statusFilter,
+      productTypeFilter,
+      tagFilter,
+      selectedCategoryNodeIdsByTier,
+      recordVisibility,
+      sortField,
+      sortDirection,
+      columnOrder,
+      columnHidden,
+    });
+    const r = await api.saveWorkspaceDefault(def);
+    if (!r.success) window.alert(r.error ?? 'Could not save workspace default');
+  }, [
+    canWorkspaceDefault,
+    supportsGroups,
+    search,
+    statusFilter,
+    productTypeFilter,
+    tagFilter,
+    selectedCategoryNodeIdsByTier,
+    recordVisibility,
+    sortField,
+    sortDirection,
+    columnOrder,
+    columnHidden,
+  ]);
+
+  const stickyPageChrome = useMemo(
+    () => (
+      <>
         <PremiumStickyHeader
           module="businessCore"
+          sticky={false}
+          className="!mb-2 border-0 bg-transparent !py-0 shadow-none dark:bg-transparent"
           icon={Package2}
           title="Products"
           subtitle="Create and manage product catalog, specifications, and pricing"
@@ -309,7 +550,7 @@ export default function ProductsPage() {
                     p.sell_price ?? '',
                   ]),
                 })}
-                buttonClassName={premiumTertiaryButton('sm', 'standard')}
+                buttonClassName={premiumSecondaryButton('businessCore', 'sm', 'standard')}
               />
               {supportsGroups && (
                 <Link href="/products/groups" className={premiumTertiaryButton('sm', 'standard')}>
@@ -318,85 +559,388 @@ export default function ProductsPage() {
               )}
               <Link
                 href="/products/new"
-                className={premiumPrimaryButton('businessCore', 'sm', 'standard')}
+                className={premiumPrimaryButton('businessCore', 'md', 'standard')}
               >
-                <Plus className="w-3.5 h-3.5" aria-hidden />
+                <Plus className="w-4 h-4 shrink-0" aria-hidden />
                 New Product
               </Link>
             </div>
           }
         />
+        <div
+          className={`mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-gray-200 bg-gray-50/80 px-4 py-2.5 dark:border-gray-700 dark:bg-gray-900/30 ${premiumTypography.tableCell} text-gray-600 dark:text-gray-300`}
+          role="status"
+          aria-live="polite"
+        >
+          {tenantCounts ? (
+            <>
+              <span className="font-semibold tabular-nums text-gray-800 dark:text-gray-100">
+                {tenantCounts.catalogActive.toLocaleString()} products
+              </span>
+              <span className="text-gray-300 dark:text-gray-600" aria-hidden>
+                ·
+              </span>
+              <span className="tabular-nums">
+                {tenantCounts.lowStock.toLocaleString()} low stock
+              </span>
+              <span className="text-gray-300 dark:text-gray-600" aria-hidden>
+                ·
+              </span>
+              <span className="tabular-nums">
+                {tenantCounts.archived.toLocaleString()} archived
+              </span>
+            </>
+          ) : (
+            <span className={`${premiumTypography.helper} animate-pulse`}>
+              Loading catalog stats…
+            </span>
+          )}
+        </div>
+      </>
+    ),
+    [tenantCounts, products, supportsGroups]
+  );
 
-        {pageError && (
+  return (
+    <ProtectedRoute>
+      <AddCategoryModal
+        open={addCategoryOpen}
+        onClose={() => setAddCategoryOpen(false)}
+        onCreated={() => {
+          void refreshProductsAndCounts();
+          void reloadCategoryStructure();
+        }}
+      />
+      {saveListViewOpen && (
+        <div
+          className="fixed inset-0 z-[95] flex items-center justify-center bg-black/50 p-4"
+          role="presentation"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeSaveListViewDialog();
+          }}
+        >
           <div
-            className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700 dark:border-red-800/50 dark:bg-red-950/30 dark:text-red-400"
-            role="alert"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="save-list-view-title"
+            className={`${premiumSurfaces.cardElevated} w-full max-w-md`}
+            onMouseDown={(e) => e.stopPropagation()}
           >
-            <span>{pageError}</span>
-            <button
-              type="button"
-              onClick={() => setPageError(null)}
-              className="shrink-0 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-200"
-              aria-label="Dismiss error"
+            <h2
+              id="save-list-view-title"
+              className={`${premiumTypography.pageTitle} ${bc.titleText}`}
             >
-              ✕
-            </button>
-          </div>
-        )}
-        {/* Fill remaining column below header (flex chain from LayoutWrapper → PageContainer) */}
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-          <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden lg:grid-cols-[1.35fr_1.65fr] lg:items-stretch">
-            <div className="flex h-full min-h-0 flex-col">
-              <ProductList
-                products={products}
-                productTypeFilter={productTypeFilter}
-                onProductTypeFilterChange={setProductTypeFilter}
-                categoryTiers={categoryTiers}
-                categoryNodesByTier={categoryNodesByTier}
-                selectedCategoryNodeIdsByTier={selectedCategoryNodeIdsByTier}
-                onToggleCategoryNode={handleToggleCategoryNode}
-                tagFilter={tagFilter}
-                onTagFilterChange={setTagFilter}
-                tagOptions={tagOptions}
-                recordVisibility={recordVisibility}
-                onRecordVisibilityChange={setRecordVisibility}
-                selectedProductId={selectedProduct?.id ?? null}
-                isLoading={isLoading}
-                error={error}
-                categoriesError={categoriesError}
-                search={search}
-                onSearchChange={setSearch}
-                onSelect={setSelectedProduct}
-                statusFilter={statusFilter}
-                onStatusFilterChange={setStatusFilter}
-                filterActive={filterActive}
-                onClearFilters={clearFilters}
-                onOpenAddCategory={() => setAddCategoryOpen(true)}
-                showGroupColumn={supportsGroups}
-              />
-            </div>
-
-            <div className="space-y-4 min-w-0 overflow-hidden min-h-0 h-full flex flex-col">
-              <div className="shrink-0">
-                <ProductMasterCard
-                  product={selectedProduct}
-                  onArchive={handleArchive}
-                  onRestore={handleRestore}
+              Save list view
+            </h2>
+            <p className={`mt-1 ${premiumTypography.helper}`}>
+              Saves filters, sort, and column layout so you can reopen this setup from the View
+              menu.
+            </p>
+            <form
+              className="mt-4 space-y-3"
+              onSubmit={(e: FormEvent) => {
+                e.preventDefault();
+                void submitSaveListView();
+              }}
+            >
+              <div>
+                <label
+                  htmlFor="save-list-view-name"
+                  className={`mb-1 block ${premiumTypography.label}`}
+                >
+                  View name
+                </label>
+                <input
+                  ref={saveListViewNameInputRef}
+                  id="save-list-view-name"
+                  type="text"
+                  value={saveListViewName}
+                  onChange={(e) => setSaveListViewName(e.target.value)}
+                  className={`${premiumInputComfortableBase} ${premiumFocusRing('businessCore')}`}
+                  placeholder="e.g. Low stock review"
+                  autoComplete="off"
+                  disabled={saveListViewSaving}
+                  maxLength={120}
                 />
               </div>
-              {selectedProduct && (
-                <div className="min-h-0 flex-1 flex flex-col overflow-hidden">
-                  <ProductDetailsTabs
-                    product={selectedProduct}
-                    onProductUpdated={handleProductUpdated}
-                    onSelectProduct={handleSelectProductById}
-                  />
-                </div>
+              {saveListViewError && (
+                <p
+                  className={`${premiumTypography.helper} text-red-600 dark:text-red-400`}
+                  role="alert"
+                >
+                  {saveListViewError}
+                </p>
               )}
+              <div className="flex flex-wrap justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  className={premiumSecondaryButton('businessCore', 'sm', 'auto')}
+                  onClick={closeSaveListViewDialog}
+                  disabled={saveListViewSaving}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className={premiumPrimaryButton('businessCore', 'sm', 'standard')}
+                  disabled={saveListViewSaving}
+                >
+                  {saveListViewSaving ? (
+                    <>
+                      <Loader2 className="mr-2 inline h-4 w-4 animate-spin" aria-hidden />
+                      Saving…
+                    </>
+                  ) : (
+                    'Save'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      <PageContainer module="businessCore">
+        <div
+          className="flex min-h-0 min-w-0 flex-1 flex-col transition-[margin-inline-end] duration-[250ms] [transition-timing-function:ease]"
+          style={{
+            marginInlineEnd: filtersDrawerOpen ? FILTER_DRAWER_DEFAULT_WIDTH_PX : 0,
+          }}
+        >
+          {/* Fill remaining column — list includes sticky page chrome + toolbar */}
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+              <ProductList
+                stickyPageChrome={stickyPageChrome}
+                columnOrder={columnOrder}
+                columnHidden={columnHidden}
+                listColumnDefinitions={columnDefinitions}
+                onColumnStateChange={(order, hidden) => {
+                  setColumnOrder(order);
+                  setColumnHidden(hidden);
+                }}
+                listViewsUi={{
+                  views: listTableViewApi.views.map((v) => ({
+                    id: v.id,
+                    name: v.name,
+                    is_personal_default: v.is_personal_default,
+                  })),
+                  selection: listViewSelection,
+                  onSelectionChange: handleListViewSelectionChange,
+                  onSaveView: openSaveListViewDialog,
+                  onSetPersonalDefault: () => void handleSetListViewPersonalDefault(),
+                  onClearPersonalDefault: () => void handleClearListViewPersonalDefault(),
+                  onSaveWorkspaceDefault: canWorkspaceDefault
+                    ? () => void handleSaveWorkspaceListDefault()
+                    : undefined,
+                  canWorkspaceDefault,
+                  loading: listTableViewApi.loading,
+                  onDeleteSelectedView: () => void handleDeleteSelectedListView(),
+                }}
+                products={products}
+                currencyCode={products[0]?.currency?.trim() || 'GBP'}
+                sortUiValue={sortUiValue}
+                onSortUiChange={handleSortUiChange}
+                productTypeFilter={productTypeFilter}
+                tagFilter={tagFilter}
+                selectedCategoryNodeIdsByTier={selectedCategoryNodeIdsByTier}
+                recordVisibility={recordVisibility}
+                onRecordVisibilityChange={setRecordVisibility}
+                selectedProductId={null}
+                isLoading={isLoading}
+                error={error}
+                search={search}
+                onSearchChange={setSearch}
+                onSelect={(p) => router.push(`/products/${p.id}`)}
+                statusFilter={statusFilter}
+                filterActive={filterActive}
+                onClearFilters={clearFilters}
+                showGroupColumn={supportsGroups}
+                archiveProducts={deleteProduct}
+                onBulkArchiveComplete={() => void refreshProductsAndCounts()}
+                filtersDrawerOpen={filtersDrawerOpen}
+                onOpenFilters={() => setFiltersDrawerOpen(true)}
+              />
             </div>
           </div>
         </div>
       </PageContainer>
+
+      <FilterDrawer
+        isOpen={filtersDrawerOpen}
+        onClose={() => setFiltersDrawerOpen(false)}
+        onApply={() => setFiltersDrawerOpen(false)}
+        onClear={clearFilters}
+        title="Filters"
+        width={FILTER_DRAWER_DEFAULT_WIDTH_PX}
+      >
+        <div className="grid grid-cols-1 gap-3">
+          <div>
+            <label
+              className={`mb-1 block ${premiumTypography.helper} font-medium text-gray-700 dark:text-gray-300`}
+            >
+              Status
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | StatusType)}
+              className={`${drawerFilterControlClass} w-full`}
+              aria-label="Filter by lifecycle status"
+            >
+              {DRAWER_STATUS_FILTERS.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label
+              className={`mb-1 block ${premiumTypography.helper} font-medium text-gray-700 dark:text-gray-300`}
+            >
+              Product type
+            </label>
+            <select
+              value={productTypeFilter}
+              onChange={(e) => setProductTypeFilter(e.target.value as 'all' | ProductType)}
+              className={`${drawerFilterControlClass} w-full`}
+              aria-label="Filter by product type"
+            >
+              <option value="all">All types</option>
+              <option value="raw_material">Raw material</option>
+              <option value="semi_finished">Semi finished</option>
+              <option value="finished_good">Finished good</option>
+              <option value="service">Service</option>
+              <option value="assembly">Assembly</option>
+              <option value="packaging">Packaging</option>
+            </select>
+          </div>
+          <div>
+            <label
+              className={`mb-1 block ${premiumTypography.helper} font-medium text-gray-700 dark:text-gray-300`}
+            >
+              Attributes (tags)
+            </label>
+            <select
+              key={tagsSelectKey}
+              value={tagFilter}
+              onChange={(e) => setTagFilter(e.target.value)}
+              className={`${drawerFilterControlClass} w-full`}
+              aria-label="Filter by tag"
+            >
+              <option value="all">All tags</option>
+              {tagOptions
+                .filter((t) => t !== 'all')
+                .map((tag) => (
+                  <option key={tag} value={tag}>
+                    {tag}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAddCategoryOpen(true)}
+            className={`flex w-full items-center justify-center gap-1.5 ${premiumSecondaryButton('businessCore', 'sm', 'auto')}`}
+            aria-label="Add new category"
+            title="Add new category"
+          >
+            <Plus className="h-3.5 w-3.5" aria-hidden />
+            Add category
+          </button>
+        </div>
+
+        <div className="border-t border-gray-200 pt-3 dark:border-gray-700">
+          <p
+            className={`mb-2 ${premiumTypography.helper} font-semibold text-gray-800 dark:text-gray-200`}
+          >
+            Category & subcategory
+          </p>
+          <div className="space-y-2">
+            {categoryTiers.map((tier) => {
+              const selectedForTier = selectedCategoryNodeIdsByTier[tier.tier_number] ?? [];
+              const parentTierSelections =
+                tier.tier_number > 1
+                  ? (selectedCategoryNodeIdsByTier[tier.tier_number - 1] ?? [])
+                  : [];
+              const tierNodes = categoryNodesByTier[tier.tier_number] ?? [];
+              const visibleNodes =
+                tier.tier_number > 1 && parentTierSelections.length > 0
+                  ? tierNodes.filter(
+                      (node) => node.parent_id && parentTierSelections.includes(node.parent_id)
+                    )
+                  : tierNodes;
+              const isTierBlocked = tier.tier_number > 1 && parentTierSelections.length === 0;
+
+              return (
+                <div
+                  key={tier.id}
+                  className="rounded-lg border border-gray-200 bg-gray-50/90 px-2 py-1.5 dark:border-gray-600 dark:bg-gray-900/55"
+                >
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <span
+                      className={`font-semibold text-gray-800 dark:text-gray-100 ${premiumTypography.tableCell}`}
+                    >
+                      {tier.name}
+                    </span>
+                    <span
+                      className={`text-gray-500 dark:text-gray-400 ${premiumTypography.helper}`}
+                    >
+                      {tier.is_multi_select ? 'Multi-select' : 'Single-select'}
+                    </span>
+                  </div>
+                  {isTierBlocked ? (
+                    <p className={`text-gray-500 dark:text-gray-400 ${premiumTypography.helper}`}>
+                      Select a parent tier value first.
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {visibleNodes.map((node) => {
+                        const selected = selectedForTier.includes(node.id);
+                        return (
+                          <button
+                            key={node.id}
+                            type="button"
+                            onClick={() =>
+                              handleToggleCategoryNode(
+                                tier.tier_number,
+                                node.id,
+                                tier.is_multi_select
+                              )
+                            }
+                            className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-colors ${
+                              selected
+                                ? 'border-green-500 bg-green-100 text-green-800 dark:border-green-600 dark:bg-green-900/40 dark:text-green-200'
+                                : 'border-gray-300 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800'
+                            }`}
+                            aria-pressed={selected}
+                          >
+                            {node.name}
+                          </button>
+                        );
+                      })}
+                      {visibleNodes.length === 0 && (
+                        <p
+                          className={`text-gray-500 dark:text-gray-400 ${premiumTypography.helper}`}
+                        >
+                          No options available.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {categoriesError && (
+            <p
+              className={`mt-2 ${premiumTypography.helper} text-amber-700 dark:text-amber-400`}
+              role="status"
+            >
+              Categories could not be loaded ({categoriesError}). The filter may be incomplete.
+            </p>
+          )}
+        </div>
+      </FilterDrawer>
     </ProtectedRoute>
   );
 }

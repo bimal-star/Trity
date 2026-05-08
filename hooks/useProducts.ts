@@ -71,7 +71,7 @@ function normalizeCategoryNames(raw: unknown): string[] | null {
   return null;
 }
 
-function mapViewRowToProduct(row: VwProductRow): Product {
+export function mapViewRowToProduct(row: VwProductRow): Product {
   const { category_names: _cn, ...rest } = row;
   const names = normalizeCategoryNames(row.category_names);
   return {
