@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import type { ReactNode } from 'react';
 import type { TableColumnDefinition } from '@/types/tableView';
 import { KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PremiumCard from '@/components/layout/premium/PremiumCard';
@@ -74,8 +73,6 @@ interface ProductListProps {
   /** Opens the slide-in filter drawer (state lives on parent page). */
   filtersDrawerOpen?: boolean;
   onOpenFilters?: () => void;
-  /** Page chrome (title + stats) rendered inside the shared sticky stack above the toolbar. */
-  stickyPageChrome?: ReactNode;
   columnOrder: string[];
   columnHidden: string[];
   onColumnStateChange: (order: string[], hidden: string[]) => void;
@@ -119,7 +116,6 @@ export default function ProductList({
   onBulkArchiveComplete,
   filtersDrawerOpen = false,
   onOpenFilters,
-  stickyPageChrome,
   columnOrder,
   columnHidden,
   onColumnStateChange,
@@ -315,10 +311,9 @@ export default function ProductList({
   );
 
   return (
-    <PremiumCard className="relative flex min-h-0 w-full flex-1 flex-col !p-0">
+    <PremiumCard className="relative flex min-h-0 w-full flex-1 flex-col !border-t-0 !p-0">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <div className="sticky top-0 z-40 shrink-0 border-b border-gray-200/80 bg-gray-50/95 px-3 shadow-sm backdrop-blur-md dark:border-gray-700 dark:bg-gray-900/95 sm:px-6">
-          {stickyPageChrome}
+        <div className="z-30 shrink-0 -mx-1 mb-0 flex flex-col gap-2 border-b border-gray-200/70 bg-gray-50 px-1 pb-0 dark:border-gray-700 dark:bg-gray-900">
           {someSelected && (
             <div
               className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-green-600 px-1 py-2 text-white dark:border-gray-700 dark:bg-green-700 sm:px-0"
@@ -365,7 +360,7 @@ export default function ProductList({
             </div>
           )}
 
-          <div className="flex min-h-0 min-w-0 shrink-0 flex-nowrap items-center justify-between gap-4 border-t border-gray-200/60 py-2.5 dark:border-gray-700/60">
+          <div className="flex min-h-[3.5rem] min-w-0 shrink-0 flex-nowrap items-center justify-between gap-4">
             <div className="flex min-h-0 min-w-0 flex-1 flex-nowrap items-center gap-2 overflow-x-auto">
               <div className="relative w-[240px] shrink-0">
                 <Search
@@ -493,7 +488,9 @@ export default function ProductList({
           </div>
         </div>
 
-        <div className={`min-h-0 flex-1 overflow-y-auto ${premiumTypography.body}`}>
+        <div
+          className={`min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable] ${premiumTypography.body}`}
+        >
           {error && !isLoading && (
             <div className={`shrink-0 p-3 text-red-500 ${premiumTypography.helper}`} role="alert">
               {error}
@@ -521,7 +518,7 @@ export default function ProductList({
           {!isLoading && products.length > 0 && (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px] table-auto border-collapse text-left">
-                <thead className="border-b border-gray-200 bg-gray-50/95 dark:border-gray-700 dark:bg-gray-900/95">
+                <thead className="sticky top-0 z-20 border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900">
                   <tr>
                     {visibleColumnIds.map((id) => (
                       <th

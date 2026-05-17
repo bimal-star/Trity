@@ -80,6 +80,10 @@ export function mapViewRowToProduct(row: VwProductRow): Product {
     sku: row.sku ?? '',
     name: row.name ?? '',
     categories: names,
+    is_sellable: row.is_sellable ?? true,
+    is_purchasable: row.is_purchasable ?? true,
+    is_manufacturable: row.is_manufacturable ?? false,
+    is_component: row.is_component ?? false,
   };
 }
 
@@ -134,6 +138,10 @@ export function buildProductInsertPayload(
     cost_price: data.cost_price ?? null,
     sell_price: data.sell_price ?? null,
     tracks_inventory: data.tracks_inventory ?? true,
+    is_sellable: data.is_sellable ?? true,
+    is_purchasable: data.is_purchasable ?? true,
+    is_manufacturable: data.is_manufacturable ?? false,
+    is_component: data.is_component ?? false,
     min_stock_level: data.min_stock_level ?? null,
     max_stock_level: data.max_stock_level ?? null,
     reorder_point: data.reorder_point ?? null,
@@ -424,8 +432,17 @@ export function useProducts(
   const updateProduct = async (
     id: string,
     data: Partial<ProductFormData>
-  ): Promise<{ success: boolean; error?: string }> => {
+  ): Promise<{
+    success: boolean;
+    error?: string;
+    image_url?: string | null;
+    images?: Json | null;
+  }> => {
     try {
+      if (!tenant_id) {
+        return { success: false, error: 'Tenant ID not available.' };
+      }
+
       const packingData = data.packing_configurations;
 
       const allowedFields = [
@@ -450,6 +467,11 @@ export function useProducts(
         'documents',
         'specifications_url',
         'tracks_inventory',
+        'is_sellable',
+        'is_purchasable',
+        'is_manufacturable',
+        'is_component',
+        'status',
         'product_group_id',
         'variant_attributes',
       ] as const;
@@ -474,21 +496,36 @@ export function useProducts(
           ) {
             updateData[field] = null;
           } else if (value !== null && value !== undefined) {
-            updateData[field] = value;
+            if (field === 'images' || field === 'documents') {
+              updateData[field] = value as Json;
+            } else {
+              updateData[field] = value;
+            }
           }
         }
       });
 
+      let updatedRow: { id: string; image_url: string | null; images: Json | null } | null = null;
+
       if (Object.keys(updateData).length > 0) {
-        const { error: updateError } = await supabase
+        const { data, error: updateError } = await supabase
           .from('products')
           .update(updateData)
-          .eq('id', id);
+          .eq('id', id)
+          .eq('tenant_id', tenant_id)
+          .select('id, image_url, images')
+          .maybeSingle();
 
         if (updateError) {
           console.error('Product update error:', updateError);
           throw new Error(updateError.message);
         }
+        if (!data) {
+          throw new Error(
+            'Product was not updated. You may not have permission to edit this workspace.'
+          );
+        }
+        updatedRow = data;
       }
 
       if (packingData !== undefined && tenant_id && user) {
@@ -507,7 +544,11 @@ export function useProducts(
       }
 
       await fetchProducts();
-      return { success: true };
+      return {
+        success: true,
+        image_url: updatedRow?.image_url ?? undefined,
+        images: updatedRow?.images ?? undefined,
+      };
     } catch (err: unknown) {
       console.error('Error updating product:', err);
       const msg = err instanceof Error ? err.message : 'Failed to update product';

@@ -488,7 +488,6 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
   };
 
   const initial = displayName.trim().charAt(0).toUpperCase() || '?';
-
   return (
     <>
       <header className="fixed left-0 right-0 top-0 z-50 flex flex-col border-b border-gray-950 bg-gray-950 shadow-md">
@@ -581,7 +580,7 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
                       onClick={() => navigateToPillar(label)}
                       aria-current={isActive ? 'page' : undefined}
                       className={[
-                        'pointer-events-auto flex h-11 min-w-[10.5rem] max-w-[10.5rem] cursor-pointer items-center justify-center gap-2 rounded-full px-3 py-2 text-center text-sm font-semibold leading-tight transition-colors',
+                        'pointer-events-auto flex h-11 min-w-[10.5rem] cursor-pointer items-center justify-center gap-2 rounded-full px-3 py-2 text-center text-sm font-semibold leading-tight transition-colors',
                         isActive
                           ? `${tabAccent.pillSelected} ring-1 ring-inset ring-black/20 dark:ring-white/15`
                           : `${PILLAR_TAB_LABEL_IDLE[mod]} hover:bg-gray-800/80`,
@@ -594,7 +593,7 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
                           isActive ? '' : 'opacity-80',
                         ].join(' ')}
                       />
-                      <span className="min-w-0 shrink truncate text-center">{label}</span>
+                      <span className="whitespace-nowrap text-center">{label}</span>
                     </button>
                     {showConnector ? (
                       <span
@@ -759,7 +758,7 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
                 platformAdminExtras={PLATFORM_ADMIN_LINKS}
               />
             </div>
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5 overflow-visible">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5 overflow-x-auto overflow-y-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {navigationItems === null ? (
                 <div className="flex items-center gap-2 px-2 py-1 text-xs text-gray-500">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
@@ -888,7 +887,7 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
                               className="flex min-w-0 shrink items-center gap-1.5 whitespace-nowrap px-2 py-2 pl-2.5 text-sm font-medium transition-colors"
                             >
                               <SecIcon size={14} className={row2IconClass} aria-hidden />
-                              <span className="max-w-[10rem] truncate">{item.label}</span>
+                              <span className="whitespace-nowrap">{item.label}</span>
                             </Link>
                             <button
                               type="button"
@@ -927,7 +926,7 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
                               className="flex min-w-0 shrink cursor-help items-center gap-1.5 whitespace-nowrap px-2 py-2 pl-2.5 text-sm opacity-70"
                             >
                               <SecIcon size={14} className={row2IconClass} aria-hidden />
-                              <span className="max-w-[10rem] truncate">{item.label}</span>
+                              <span className="whitespace-nowrap">{item.label}</span>
                             </div>
                             <button
                               type="button"
@@ -974,7 +973,7 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
                           ].join(' ')}
                         >
                           <SecIcon size={14} className={row2IconClass} aria-hidden />
-                          <span className="max-w-[10rem] truncate">{item.label}</span>
+                          <span className="whitespace-nowrap">{item.label}</span>
                           <ChevronDown
                             size={14}
                             className={`shrink-0 opacity-70 ${isOpen ? 'rotate-180' : ''}`}
@@ -990,12 +989,12 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
             </div>
           </div>
 
-          <div className="hidden max-w-[min(40vw,24rem)] shrink-0 items-center gap-1 overflow-x-auto text-xs tracking-[var(--trity-tracking)] text-gray-600 dark:text-gray-400 md:flex">
+          <div className="hidden max-w-[min(50vw,32rem)] shrink-0 items-center gap-1 overflow-x-auto text-xs tracking-[var(--trity-tracking)] text-gray-600 [-ms-overflow-style:none] [scrollbar-width:none] dark:text-gray-400 md:flex [&::-webkit-scrollbar]:hidden">
             {breadcrumbs.map((c, i) => {
               const isPillarCrumb = c.label === activePillarLabel;
               const crumbAccent = isPillarCrumb ? activeAccent : null;
               /** Uniform font-medium + explicit tracking so the last crumb does not look wider than links (semibold + same tracking). */
-              const crumbLinkClass = `shrink-0 truncate font-medium hover:underline tracking-[var(--trity-tracking)] ${
+              const crumbLinkClass = `shrink-0 font-medium hover:underline tracking-[var(--trity-tracking)] ${
                 crumbAccent ? crumbAccent.titleText : 'text-gray-600 dark:text-gray-300'
               }`;
               return (
@@ -1021,7 +1020,7 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
                     </Link>
                   ) : (
                     <span
-                      className={`shrink-0 truncate font-medium tracking-[var(--trity-tracking)] ${
+                      className={`shrink-0 font-medium tracking-[var(--trity-tracking)] ${
                         c.current
                           ? 'text-gray-900 dark:text-gray-100'
                           : crumbAccent

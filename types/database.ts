@@ -2821,7 +2821,11 @@ export type Database = {
           industry_type: Database['public']['Enums']['industry_type'];
           integration_metadata: Json;
           is_active: boolean | null;
+          is_component: boolean;
           is_deleted: boolean;
+          is_manufacturable: boolean;
+          is_purchasable: boolean;
+          is_sellable: boolean;
           last_synced_at: string | null;
           lead_time_days: number | null;
           length: number | null;
@@ -2883,7 +2887,11 @@ export type Database = {
           industry_type: Database['public']['Enums']['industry_type'];
           integration_metadata?: Json;
           is_active?: boolean | null;
+          is_component?: boolean;
           is_deleted?: boolean;
+          is_manufacturable?: boolean;
+          is_purchasable?: boolean;
+          is_sellable?: boolean;
           last_synced_at?: string | null;
           lead_time_days?: number | null;
           length?: number | null;
@@ -2945,7 +2953,11 @@ export type Database = {
           industry_type?: Database['public']['Enums']['industry_type'];
           integration_metadata?: Json;
           is_active?: boolean | null;
+          is_component?: boolean;
           is_deleted?: boolean;
+          is_manufacturable?: boolean;
+          is_purchasable?: boolean;
+          is_sellable?: boolean;
           last_synced_at?: string | null;
           lead_time_days?: number | null;
           length?: number | null;
@@ -4692,7 +4704,11 @@ export type Database = {
           industry_type: Database['public']['Enums']['industry_type'] | null;
           integration_metadata: Json | null;
           is_active: boolean | null;
+          is_component: boolean | null;
           is_deleted: boolean | null;
+          is_manufacturable: boolean | null;
+          is_purchasable: boolean | null;
+          is_sellable: boolean | null;
           last_synced_at: string | null;
           lead_time_days: number | null;
           length: number | null;

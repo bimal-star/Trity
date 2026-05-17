@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { useTenant } from '@/contexts/TenantContext';
@@ -20,6 +20,9 @@ import {
   ProductActivityLog,
 } from '@/types/product';
 import PackingConfigurationsEditor from '@/components/PackingConfigurationsEditor';
+import PremiumRecordPanel from '@/components/layout/premium/PremiumRecordPanel';
+import PremiumRecordTabs from '@/components/layout/premium/PremiumRecordTabs';
+import PremiumSectionTitle from '@/components/layout/premium/PremiumSectionTitle';
 import {
   AlertTriangle,
   Check,
@@ -34,11 +37,13 @@ import {
 } from 'lucide-react';
 import { productTracksInventory } from '@/lib/productInventoryPolicy';
 import {
-  premiumInputComfortableBase,
+  premiumFocusRing,
+  premiumInputCompact,
   premiumPrimaryButton,
   premiumSecondaryButton,
   premiumSurfaces,
   premiumTypography,
+  recordDetail,
 } from '@/lib/premiumUi';
 import { logProductUpdated } from '@/lib/auditLog';
 import {
@@ -58,22 +63,35 @@ import type { Database } from '@/types/database';
 import { parseAttributeDimensions } from '@/lib/productCatalogue';
 import { useToast } from '@/lib/toast';
 
-function TabBadge({ n }: { n: number }) {
-  if (n <= 0) return null;
-  return (
-    <span className="ml-1.5 inline-flex min-w-[1.25rem] justify-center rounded-full bg-gray-200 px-1.5 py-0.5 text-[10px] font-bold leading-none text-gray-800 dark:bg-gray-700 dark:text-gray-100">
-      {n > 99 ? '99+' : n}
-    </span>
-  );
+const DETAIL_FORM_GRID = recordDetail.formGrid;
+const DETAIL_FIELD_LABEL_COMPACT = recordDetail.fieldLabelCompact;
+const RECORD_INPUT = `${premiumInputCompact} ${premiumFocusRing('businessCore')}`;
+const PRODUCT_DETAIL_TAB_KEY = 'trity:product-detail-tab';
+
+type ProductDetailTabId =
+  | 'variants'
+  | 'barcodes'
+  | 'categories'
+  | 'pricing'
+  | 'costing'
+  | 'metrics'
+  | 'packing'
+  | 'operations';
+
+const PRODUCT_DETAIL_TAB_IDS: ProductDetailTabId[] = [
+  'variants',
+  'categories',
+  'barcodes',
+  'pricing',
+  'packing',
+  'costing',
+  'metrics',
+  'operations',
+];
+
+function isProductDetailTabId(id: string): id is ProductDetailTabId {
+  return (PRODUCT_DETAIL_TAB_IDS as string[]).includes(id);
 }
-
-/** Responsive 12-column grid: compact fields on row 1, wide text on following rows. */
-const DETAIL_FORM_GRID =
-  'grid grid-cols-1 gap-3 sm:grid-cols-12 sm:gap-x-3 sm:gap-y-3 sm:items-end';
-
-const DETAIL_FIELD_LABEL = `block ${premiumTypography.label} mb-1`;
-const DETAIL_FIELD_LABEL_COMPACT =
-  'block text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-1';
 
 interface ProductDetailsTabsProps {
   product: Product;
@@ -128,7 +146,9 @@ function VariantsInGroupPanel({
   if (!product.product_group_id) {
     return (
       <div className="space-y-3">
-        <h3 className="font-semibold text-gray-900 dark:text-white">Variants</h3>
+        <PremiumSectionTitle as="h3" className="!normal-case tracking-wide">
+          Variants
+        </PremiumSectionTitle>
         <p className="text-gray-600 dark:text-gray-400">
           This product is not part of a group. Add it to a group to see related variants.
         </p>
@@ -144,9 +164,11 @@ function VariantsInGroupPanel({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="font-semibold text-gray-900 dark:text-white">Variants</h3>
+        <PremiumSectionTitle as="h3" className="!normal-case tracking-wide">
+          Variants
+        </PremiumSectionTitle>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Group:{' '}
           <span className="font-medium text-gray-800 dark:text-gray-200">{groupLabel ?? '—'}</span>
@@ -229,16 +251,22 @@ function VariantsInGroupPanel({
           <table className="min-w-full border divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-900/40">
               <tr>
-                <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Name</th>
-                <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>SKU</th>
-                <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Stock</th>
-                <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>Status</th>
+                <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}>
+                  Name
+                </th>
+                <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}>SKU</th>
+                <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}>
+                  Stock
+                </th>
+                <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}>
+                  Status
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {groupProducts.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-3 py-4 text-center text-sm text-gray-400">
+                  <td colSpan={4} className="px-2 py-3 text-center text-sm text-gray-400">
                     No other products in this group yet.
                   </td>
                 </tr>
@@ -254,10 +282,10 @@ function VariantsInGroupPanel({
                     }`}
                     onClick={() => onSelectProduct?.(p.id)}
                   >
-                    <td className="px-3 py-2 text-gray-900 dark:text-white">{p.name}</td>
-                    <td className="px-3 py-2">{p.sku}</td>
-                    <td className="px-3 py-2">{stock}</td>
-                    <td className="px-3 py-2">{p.status}</td>
+                    <td className="px-2 py-1 text-gray-900 dark:text-white">{p.name}</td>
+                    <td className="px-2 py-1">{p.sku}</td>
+                    <td className="px-2 py-1">{stock}</td>
+                    <td className="px-2 py-1">{p.status}</td>
                   </tr>
                 );
               })}
@@ -287,16 +315,8 @@ export default function ProductDetailsTabs({
   const { supportsGroups, isMatrix } = useCatalogueMode();
   const router = useRouter();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<
-    | 'variants'
-    | 'barcodes'
-    | 'categories'
-    | 'pricing'
-    | 'costing'
-    | 'metrics'
-    | 'packing'
-    | 'operations'
-  >('barcodes');
+  const [activeTab, setActiveTab] = useState<ProductDetailTabId>('categories');
+  const tabRestoredRef = useRef(false);
 
   const [groupProducts, setGroupProducts] = useState<Product[]>([]);
   const [groupLabel, setGroupLabel] = useState<string | null>(null);
@@ -452,6 +472,23 @@ export default function ProductDetailsTabs({
       productionPlans.length,
     ]
   );
+
+  const recordTabs = useMemo(() => {
+    const tabs: { id: string; label: string; badge?: number }[] = [];
+    if (supportsGroups) {
+      tabs.push({ id: 'variants', label: 'Variants', badge: tabBadges.variants });
+    }
+    tabs.push(
+      { id: 'categories', label: 'Categories', badge: tabBadges.categories },
+      { id: 'barcodes', label: 'Barcodes', badge: tabBadges.barcodes },
+      { id: 'pricing', label: 'Pricing', badge: tabBadges.pricing },
+      { id: 'packing', label: 'Packing', badge: tabBadges.packing },
+      { id: 'costing', label: 'Cost History', badge: tabBadges.costing },
+      { id: 'metrics', label: 'Metrics', badge: tabBadges.metrics },
+      { id: 'operations', label: 'Ops & Stock', badge: tabBadges.operations }
+    );
+    return tabs;
+  }, [supportsGroups, tabBadges]);
 
   function formatMoney(amount: number | null | undefined): string {
     if (amount == null || Number.isNaN(Number(amount))) return '—';
@@ -609,10 +646,33 @@ export default function ProductDetailsTabs({
   }, [product?.id, tenant_id]);
 
   useEffect(() => {
+    if (tabRestoredRef.current) return;
+    tabRestoredRef.current = true;
+    try {
+      const stored = sessionStorage.getItem(PRODUCT_DETAIL_TAB_KEY);
+      if (stored && isProductDetailTabId(stored) && (stored !== 'variants' || supportsGroups)) {
+        setActiveTab(stored);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [supportsGroups]);
+
+  useEffect(() => {
     if (!supportsGroups && activeTab === 'variants') {
-      setActiveTab('barcodes');
+      setActiveTab('categories');
     }
   }, [supportsGroups, activeTab]);
+
+  const handleTabChange = useCallback((id: string) => {
+    if (!isProductDetailTabId(id)) return;
+    setActiveTab(id);
+    try {
+      sessionStorage.setItem(PRODUCT_DETAIL_TAB_KEY, id);
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   useEffect(() => {
     async function loadGroup() {
@@ -1776,7 +1836,7 @@ export default function ProductDetailsTabs({
         {tierDialogEl}
         {confirmFooter}
         {chipDeleteModalEl}
-        <div className="mt-4 flex min-h-0 flex-1 items-center justify-center py-10 text-sm text-gray-500">
+        <div className="mt-2 flex min-h-0 flex-1 items-center justify-center py-8 text-sm text-gray-500">
           <Loader2 className="w-4 h-4 mr-2 animate-spin shrink-0" aria-hidden />
           Loading product details...
         </div>
@@ -1789,37 +1849,16 @@ export default function ProductDetailsTabs({
       {tierDialogEl}
       {confirmFooter}
       {chipDeleteModalEl}
-      <div className="mt-4 min-h-0 flex-1 flex flex-col overflow-hidden">
-        <div className="-mx-1 mb-3 flex gap-1 overflow-x-auto border-b border-gray-200 px-1 pb-0 dark:border-gray-700">
-          {(
-            [
-              ...(supportsGroups ? [['variants', 'Variants', tabBadges.variants] as const] : []),
-              ['barcodes', 'Barcodes', tabBadges.barcodes],
-              ['categories', 'Categories', tabBadges.categories],
-              ['pricing', 'Pricing', tabBadges.pricing],
-              ['costing', 'Cost History', tabBadges.costing],
-              ['metrics', 'Metrics', tabBadges.metrics],
-              ['packing', 'Packing', tabBadges.packing],
-              ['operations', 'Ops & Stock', tabBadges.operations],
-            ] as const
-          ).map(([key, label, badgeN]) => (
-            <button
-              key={key}
-              type="button"
-              className={`shrink-0 whitespace-nowrap border-b-[3px] px-4 py-2.5 text-sm font-semibold transition-colors ${
-                activeTab === key
-                  ? '-mb-[1px] border-green-600 text-green-800 dark:border-green-500 dark:text-green-400'
-                  : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-800 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-100'
-              }`}
-              onClick={() => setActiveTab(key as typeof activeTab)}
-            >
-              {label}
-              <TabBadge n={badgeN} />
-            </button>
-          ))}
-        </div>
+      <div className="mt-2 min-h-0 flex-1 flex flex-col overflow-hidden">
+        <PremiumRecordTabs
+          module="businessCore"
+          tabs={recordTabs}
+          activeId={activeTab}
+          onChange={handleTabChange}
+          className="mb-2 shrink-0"
+        />
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto rounded-lg border border-gray-200 bg-white p-3.5 text-sm dark:border-gray-700 dark:bg-gray-800 sm:p-4">
+        <PremiumRecordPanel>
           {activeTab === 'variants' && supportsGroups && (
             <VariantsInGroupPanel
               product={product}
@@ -1833,19 +1872,19 @@ export default function ProductDetailsTabs({
           )}
 
           {activeTab === 'barcodes' && (
-            <div className="space-y-4">
-              <h3 className="font-semibold text-gray-900 dark:text-white">Product barcodes</h3>
-              <div
-                className={`${premiumSurfaces.insetInfo} space-y-4 border border-gray-200/80 bg-gray-50/90 p-3 dark:border-gray-700/80 dark:bg-gray-950/30 sm:p-4`}
-              >
+            <div className="space-y-3">
+              <PremiumSectionTitle as="h3" className="!normal-case tracking-wide">
+                Product barcodes
+              </PremiumSectionTitle>
+              <div className="space-y-3">
                 {barcodeError && (
                   <p className="text-[11px] font-medium text-red-500">{barcodeError}</p>
                 )}
-                <div className={`${DETAIL_FORM_GRID} gap-2 sm:gap-2`}>
+                <div className={DETAIL_FORM_GRID}>
                   <div className="sm:col-span-12 md:col-span-5 lg:col-span-5">
                     <label className={DETAIL_FIELD_LABEL_COMPACT}>Barcode</label>
                     <input
-                      className={`${premiumInputComfortableBase} py-2 text-xs`}
+                      className={RECORD_INPUT}
                       value={barcodeValue}
                       onChange={(e) => setBarcodeValue(e.target.value)}
                       placeholder="Scan or enter barcode"
@@ -1854,7 +1893,7 @@ export default function ProductDetailsTabs({
                   <div className="sm:col-span-4 md:col-span-3 lg:col-span-2">
                     <label className={DETAIL_FIELD_LABEL_COMPACT}>Type</label>
                     <select
-                      className={`${premiumInputComfortableBase} py-2 text-xs`}
+                      className={RECORD_INPUT}
                       value={barcodeType}
                       onChange={(e) => setBarcodeType(e.target.value as BarcodeType)}
                     >
@@ -1872,7 +1911,7 @@ export default function ProductDetailsTabs({
                   <div className="sm:col-span-4 md:col-span-2 lg:col-span-2">
                     <label className={DETAIL_FIELD_LABEL_COMPACT}>Packing level</label>
                     <input
-                      className={`${premiumInputComfortableBase} max-w-full py-2 text-xs`}
+                      className={`${RECORD_INPUT} max-w-full`}
                       value={barcodePackingLevel || ''}
                       onChange={(e) => setBarcodePackingLevel(e.target.value || null)}
                       placeholder="unit / case"
@@ -1883,7 +1922,7 @@ export default function ProductDetailsTabs({
                     <input
                       type="number"
                       min={1}
-                      className={`${premiumInputComfortableBase} py-2 text-xs`}
+                      className={RECORD_INPUT}
                       value={barcodeQty}
                       onChange={(e) => setBarcodeQty(e.target.value)}
                     />
@@ -1917,7 +1956,7 @@ export default function ProductDetailsTabs({
                       type="button"
                       onClick={handleAddBarcode}
                       disabled={savingBarcode}
-                      className={`${premiumPrimaryButton('businessCore', 'sm', 'standard')} px-5 disabled:cursor-not-allowed disabled:opacity-50`}
+                      className={`${premiumPrimaryButton('businessCore', 'sm', 'auto')} disabled:cursor-not-allowed disabled:opacity-50`}
                     >
                       {savingBarcode ? (
                         <>
@@ -1933,7 +1972,7 @@ export default function ProductDetailsTabs({
                 <div>
                   <label className={DETAIL_FIELD_LABEL_COMPACT}>Description (optional)</label>
                   <input
-                    className={`${premiumInputComfortableBase} max-w-xl py-2 text-xs`}
+                    className={`${RECORD_INPUT} max-w-xl`}
                     value={barcodeDescription}
                     onChange={(e) => setBarcodeDescription(e.target.value)}
                     placeholder="Note for operators"
@@ -1942,11 +1981,14 @@ export default function ProductDetailsTabs({
               </div>
 
               {barcodes.length === 0 ? (
-                <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50/70 px-4 py-10 text-center dark:border-gray-700 dark:bg-gray-900/40">
-                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm dark:bg-gray-800 dark:shadow-black/40">
-                    <ScanLine className="h-6 w-6 text-green-600 dark:text-green-400" aria-hidden />
-                  </div>
-                  <p className="font-semibold text-gray-900 dark:text-white">No barcodes defined</p>
+                <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50/70 px-4 py-6 text-center dark:border-gray-700 dark:bg-gray-900/40">
+                  <ScanLine
+                    className="mb-2 h-9 w-9 text-green-600 dark:text-green-400"
+                    aria-hidden
+                  />
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    No barcodes defined
+                  </p>
                   <p
                     className={`mt-1 max-w-sm ${premiumTypography.helper} text-gray-500 dark:text-gray-400`}
                   >
@@ -1958,25 +2000,27 @@ export default function ProductDetailsTabs({
                   <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
                     <thead className="bg-gray-50 dark:bg-gray-900/50">
                       <tr>
-                        <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}>
                           Barcode
                         </th>
-                        <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}>
                           Type
                         </th>
-                        <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}>
                           Packing
                         </th>
-                        <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}>
                           Qty
                         </th>
-                        <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}>
                           Primary
                         </th>
-                        <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                        <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}>
                           Active
                         </th>
-                        <th className={`px-3 py-2 text-right ${premiumTypography.tableHeader}`}>
+                        <th
+                          className={`px-2 py-1 text-right ${premiumTypography.tableHeaderDense}`}
+                        >
                           Actions
                         </th>
                       </tr>
@@ -1989,10 +2033,10 @@ export default function ProductDetailsTabs({
                             key={b.id}
                             className={`group hover:bg-green-500/[0.04] dark:hover:bg-green-500/[0.06] ${isEditing ? 'bg-green-500/5 dark:bg-green-950/40' : ''}`}
                           >
-                            <td className="px-3 py-2 align-top">
+                            <td className="px-2 py-1 align-top">
                               {isEditing ? (
                                 <input
-                                  className={`${premiumInputComfortableBase} w-full py-1.5 text-xs`}
+                                  className={`${RECORD_INPUT} w-full`}
                                   value={editBarcodeBarcode}
                                   onChange={(e) => setEditBarcodeBarcode(e.target.value)}
                                 />
@@ -2002,10 +2046,10 @@ export default function ProductDetailsTabs({
                                 </span>
                               )}
                             </td>
-                            <td className="px-3 py-2 align-top">
+                            <td className="px-2 py-1 align-top">
                               {isEditing ? (
                                 <select
-                                  className={`${premiumInputComfortableBase} w-full py-1.5 text-xs`}
+                                  className={`${RECORD_INPUT} w-full`}
                                   value={editBarcodeType}
                                   onChange={(e) =>
                                     setEditBarcodeType(e.target.value as BarcodeType)
@@ -2029,10 +2073,10 @@ export default function ProductDetailsTabs({
                                 formatBarcodeTypeLabel(b.barcode_type)
                               )}
                             </td>
-                            <td className="px-3 py-2 align-top">
+                            <td className="px-2 py-1 align-top">
                               {isEditing ? (
                                 <input
-                                  className={`${premiumInputComfortableBase} w-full max-w-[7rem] py-1.5 text-xs`}
+                                  className={`${RECORD_INPUT} w-full max-w-[7rem]`}
                                   value={editBarcodePackingLevel}
                                   onChange={(e) => setEditBarcodePackingLevel(e.target.value)}
                                 />
@@ -2040,12 +2084,12 @@ export default function ProductDetailsTabs({
                                 (b.packing_level ?? '—')
                               )}
                             </td>
-                            <td className="px-3 py-2 align-top">
+                            <td className="px-2 py-1 align-top">
                               {isEditing ? (
                                 <input
                                   type="number"
                                   min={1}
-                                  className={`${premiumInputComfortableBase} w-16 py-1.5 text-xs`}
+                                  className={`${RECORD_INPUT} w-16`}
                                   value={editBarcodeQty}
                                   onChange={(e) => setEditBarcodeQty(e.target.value)}
                                 />
@@ -2053,7 +2097,7 @@ export default function ProductDetailsTabs({
                                 (b.quantity ?? 1)
                               )}
                             </td>
-                            <td className="px-3 py-2 align-top">
+                            <td className="px-2 py-1 align-top">
                               {isEditing ? (
                                 <input
                                   type="checkbox"
@@ -2067,7 +2111,7 @@ export default function ProductDetailsTabs({
                                 'No'
                               )}
                             </td>
-                            <td className="px-3 py-2 align-top">
+                            <td className="px-2 py-1 align-top">
                               {isEditing ? (
                                 <input
                                   type="checkbox"
@@ -2158,7 +2202,7 @@ export default function ProductDetailsTabs({
                       placeholder="Search across all tiers…"
                       value={categorySearch}
                       onChange={(e) => setCategorySearch(e.target.value)}
-                      className={`${premiumInputComfortableBase} w-full pl-8 text-xs`}
+                      className={`${RECORD_INPUT} w-full pl-8`}
                     />
                   </div>
 
@@ -2336,7 +2380,7 @@ export default function ProductDetailsTabs({
                                     value={inlineAddName}
                                     onChange={(e) => setInlineAddName(e.target.value)}
                                     placeholder="Name…"
-                                    className={`${premiumInputComfortableBase} w-36 text-xs`}
+                                    className={`${RECORD_INPUT} w-36`}
                                     onKeyDown={(e) => {
                                       if (e.key === 'Enter')
                                         void handleInlineAddNode(tier.tier_number);
@@ -2413,7 +2457,9 @@ export default function ProductDetailsTabs({
 
           {activeTab === 'pricing' && (
             <div className="space-y-6">
-              <h3 className="font-semibold text-gray-900 dark:text-white">Pricing</h3>
+              <PremiumSectionTitle as="h3" className="!normal-case tracking-wide">
+                Pricing
+              </PremiumSectionTitle>
               {priceError && <p className="text-[11px] text-red-500 mb-2">{priceError}</p>}
 
               <section className={`${premiumSurfaces.insetInfo} space-y-3`}>
@@ -2430,27 +2476,27 @@ export default function ProductDetailsTabs({
                 )}
                 <div className={DETAIL_FORM_GRID}>
                   <div className="sm:col-span-6 md:col-span-3">
-                    <label className={DETAIL_FIELD_LABEL}>Cost price</label>
+                    <label className={DETAIL_FIELD_LABEL_COMPACT}>Cost price</label>
                     <input
                       type="number"
                       step="any"
-                      className={`w-full max-w-[10rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                      className={`w-full max-w-[10rem] ${RECORD_INPUT}`}
                       value={baseCostInput}
                       onChange={(e) => setBaseCostInput(e.target.value)}
                     />
                   </div>
                   <div className="sm:col-span-6 md:col-span-3">
-                    <label className={DETAIL_FIELD_LABEL}>Sell price (base)</label>
+                    <label className={DETAIL_FIELD_LABEL_COMPACT}>Sell price (base)</label>
                     <input
                       type="number"
                       step="any"
-                      className={`w-full max-w-[10rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                      className={`w-full max-w-[10rem] ${RECORD_INPUT}`}
                       value={baseSellInput}
                       onChange={(e) => setBaseSellInput(e.target.value)}
                     />
                   </div>
                   <div className="sm:col-span-6 md:col-span-3 flex flex-col justify-end pb-0.5">
-                    <label className={DETAIL_FIELD_LABEL}>Margin</label>
+                    <label className={DETAIL_FIELD_LABEL_COMPACT}>Margin</label>
                     <p
                       className={`text-sm font-medium ${(() => {
                         const sell = parseFloat(baseSellInput);
@@ -2679,46 +2725,48 @@ export default function ProductDetailsTabs({
           )}
 
           {activeTab === 'costing' && (
-            <div className="space-y-4">
-              <h3 className="font-semibold text-gray-900 dark:text-white">Product Cost History</h3>
+            <div className="space-y-3">
+              <PremiumSectionTitle as="h3" className="!normal-case tracking-wide">
+                Product Cost History
+              </PremiumSectionTitle>
               <div className={`${premiumSurfaces.insetInfo} space-y-2`}>
                 <p className={premiumTypography.sectionTitle}>Add cost row</p>
                 {costMsg && <p className="text-xs text-red-600 dark:text-red-400">{costMsg}</p>}
                 <div className={DETAIL_FORM_GRID}>
                   <div className="sm:col-span-12 md:col-span-4">
-                    <label className={DETAIL_FIELD_LABEL}>Effective from</label>
+                    <label className={DETAIL_FIELD_LABEL_COMPACT}>Effective from</label>
                     <input
                       type="date"
                       value={newCostEffective}
                       onChange={(e) => setNewCostEffective(e.target.value)}
-                      className={`mt-1 w-full max-w-[11rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                      className={`mt-1 w-full max-w-[11rem] ${RECORD_INPUT}`}
                     />
                   </div>
                   <div className="sm:col-span-6 md:col-span-3">
-                    <label className={DETAIL_FIELD_LABEL}>Cost price</label>
+                    <label className={DETAIL_FIELD_LABEL_COMPACT}>Cost price</label>
                     <input
                       type="number"
                       step="any"
                       value={newCostPrice}
                       onChange={(e) => setNewCostPrice(e.target.value)}
-                      className={`mt-1 w-full max-w-[10rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                      className={`mt-1 w-full max-w-[10rem] ${RECORD_INPUT}`}
                     />
                   </div>
                   <div className="sm:col-span-6 md:col-span-3">
-                    <label className={DETAIL_FIELD_LABEL}>Method</label>
+                    <label className={DETAIL_FIELD_LABEL_COMPACT}>Method</label>
                     <input
                       value={newCostMethod}
                       onChange={(e) => setNewCostMethod(e.target.value)}
-                      className={`mt-1 w-full max-w-[12rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                      className={`mt-1 w-full max-w-[12rem] ${RECORD_INPUT}`}
                     />
                   </div>
                 </div>
                 <div className="mt-3 max-w-2xl">
-                  <label className={DETAIL_FIELD_LABEL}>Notes</label>
+                  <label className={DETAIL_FIELD_LABEL_COMPACT}>Notes</label>
                   <input
                     value={newCostNotes}
                     onChange={(e) => setNewCostNotes(e.target.value)}
-                    className={`mt-1 w-full ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                    className={`mt-1 w-full ${RECORD_INPUT}`}
                   />
                 </div>
                 <div className="mt-3">
@@ -2736,38 +2784,38 @@ export default function ProductDetailsTabs({
                 <table className="min-w-full border divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-900/40">
                     <tr>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                      <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}>
                         Effective From
                       </th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                      <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}>
                         Cost Price
                       </th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                      <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}>
                         Method
                       </th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                      <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}>
                         Notes
                       </th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`} />
+                      <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`} />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {costHistory.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="px-3 py-4 text-center text-sm text-gray-400">
+                        <td colSpan={5} className="px-2 py-3 text-center text-sm text-gray-400">
                           No cost history records
                         </td>
                       </tr>
                     )}
                     {costHistory.map((c) => (
                       <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/40">
-                        <td className="px-3 py-2 text-gray-900 dark:text-white">
+                        <td className="px-2 py-1 text-gray-900 dark:text-white">
                           {c.effective_from}
                         </td>
-                        <td className="px-3 py-2">{c.cost_price}</td>
-                        <td className="px-3 py-2">{c.cost_method}</td>
-                        <td className="px-3 py-2 max-w-xs truncate">{c.notes}</td>
-                        <td className="px-3 py-2 text-right">
+                        <td className="px-2 py-1">{c.cost_price}</td>
+                        <td className="px-2 py-1">{c.cost_method}</td>
+                        <td className="px-2 py-1 max-w-xs truncate">{c.notes}</td>
+                        <td className="px-2 py-1 text-right">
                           <button
                             type="button"
                             onClick={() => handleDeleteCostRow(c.id)}
@@ -2785,28 +2833,30 @@ export default function ProductDetailsTabs({
           )}
 
           {activeTab === 'metrics' && (
-            <div className="space-y-4">
-              <h3 className="font-semibold text-gray-900 dark:text-white">Product Metrics</h3>
+            <div className="space-y-3">
+              <PremiumSectionTitle as="h3" className="!normal-case tracking-wide">
+                Product Metrics
+              </PremiumSectionTitle>
               <div className={`${premiumSurfaces.insetInfo}`}>
                 {metricMsg && (
                   <p className="mb-2 text-xs text-red-600 dark:text-red-400">{metricMsg}</p>
                 )}
                 <div className={DETAIL_FORM_GRID}>
                   <div className="sm:col-span-12 md:col-span-4">
-                    <label className={DETAIL_FIELD_LABEL}>Metric date</label>
+                    <label className={DETAIL_FIELD_LABEL_COMPACT}>Metric date</label>
                     <input
                       type="date"
                       value={newMetricDate}
                       onChange={(e) => setNewMetricDate(e.target.value)}
-                      className={`mt-1 w-full max-w-[11rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                      className={`mt-1 w-full max-w-[11rem] ${RECORD_INPUT}`}
                     />
                   </div>
                   <div className="sm:col-span-6 md:col-span-3">
-                    <label className={DETAIL_FIELD_LABEL}>Period type</label>
+                    <label className={DETAIL_FIELD_LABEL_COMPACT}>Period type</label>
                     <input
                       value={newMetricPeriod}
                       onChange={(e) => setNewMetricPeriod(e.target.value)}
-                      className={`mt-1 w-full max-w-[10rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                      className={`mt-1 w-full max-w-[10rem] ${RECORD_INPUT}`}
                     />
                   </div>
                   <div className="sm:col-span-12 md:col-span-3 flex items-end">
@@ -2825,44 +2875,44 @@ export default function ProductDetailsTabs({
                 <table className="min-w-full border divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-900/40">
                     <tr>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                      <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}>
                         Date
                       </th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                      <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}>
                         Period
                       </th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                      <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}>
                         Sales Qty
                       </th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                      <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}>
                         Sales Rev.
                       </th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                      <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}>
                         Stock Value
                       </th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                      <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}>
                         Turnover
                       </th>
-                      <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`} />
+                      <th className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`} />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {metrics.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="px-3 py-4 text-center text-sm text-gray-400">
+                        <td colSpan={7} className="px-2 py-3 text-center text-sm text-gray-400">
                           No metrics available
                         </td>
                       </tr>
                     )}
                     {metrics.map((m) => (
                       <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/40">
-                        <td className="px-3 py-2 text-gray-900 dark:text-white">{m.metric_date}</td>
-                        <td className="px-3 py-2">{m.period_type}</td>
-                        <td className="px-3 py-2">{m.sales_quantity ?? 0}</td>
-                        <td className="px-3 py-2">{m.sales_revenue ?? 0}</td>
-                        <td className="px-3 py-2">{m.stock_value ?? 0}</td>
-                        <td className="px-3 py-2">{m.turnover_rate ?? 0}</td>
-                        <td className="px-3 py-2 text-right">
+                        <td className="px-2 py-1 text-gray-900 dark:text-white">{m.metric_date}</td>
+                        <td className="px-2 py-1">{m.period_type}</td>
+                        <td className="px-2 py-1">{m.sales_quantity ?? 0}</td>
+                        <td className="px-2 py-1">{m.sales_revenue ?? 0}</td>
+                        <td className="px-2 py-1">{m.stock_value ?? 0}</td>
+                        <td className="px-2 py-1">{m.turnover_rate ?? 0}</td>
+                        <td className="px-2 py-1 text-right">
                           <button
                             type="button"
                             onClick={() => handleDeleteMetricRow(m.id)}
@@ -2881,9 +2931,9 @@ export default function ProductDetailsTabs({
 
           {activeTab === 'packing' && (
             <div className="space-y-3">
-              <h3 className="font-semibold text-gray-900 dark:text-white">
+              <PremiumSectionTitle as="h3" className="!normal-case tracking-wide">
                 Packing Configurations
-              </h3>
+              </PremiumSectionTitle>
               {packingError && <p className="text-[11px] text-red-500 mb-1">{packingError}</p>}
               <div className="overflow-x-auto rounded-lg">
                 <PackingConfigurationsEditor
@@ -2936,41 +2986,41 @@ export default function ProductDetailsTabs({
 
               {opsSubTab === 'forecasts' && (
                 <div className="space-y-3">
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                  <PremiumSectionTitle as="h3" className="!normal-case tracking-wide mb-2">
                     Demand Forecasts
-                  </h3>
+                  </PremiumSectionTitle>
                   <div className={`${premiumSurfaces.insetInfo} space-y-2`}>
                     <p className={premiumTypography.sectionTitle}>Add forecast</p>
                     {fcMsg && <p className="text-xs text-red-600 dark:text-red-400">{fcMsg}</p>}
                     <div className={DETAIL_FORM_GRID}>
                       <div className="sm:col-span-6 md:col-span-3">
-                        <label className={DETAIL_FIELD_LABEL}>Period start</label>
+                        <label className={DETAIL_FIELD_LABEL_COMPACT}>Period start</label>
                         <input
                           type="date"
                           value={fcStart}
                           onChange={(e) => setFcStart(e.target.value)}
-                          className={`mt-1 w-full max-w-[11rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                          className={`mt-1 w-full max-w-[11rem] ${RECORD_INPUT}`}
                           aria-label="Period start"
                         />
                       </div>
                       <div className="sm:col-span-6 md:col-span-3">
-                        <label className={DETAIL_FIELD_LABEL}>Period end</label>
+                        <label className={DETAIL_FIELD_LABEL_COMPACT}>Period end</label>
                         <input
                           type="date"
                           value={fcEnd}
                           onChange={(e) => setFcEnd(e.target.value)}
-                          className={`mt-1 w-full max-w-[11rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                          className={`mt-1 w-full max-w-[11rem] ${RECORD_INPUT}`}
                           aria-label="Period end"
                         />
                       </div>
                       <div className="sm:col-span-6 md:col-span-2">
-                        <label className={DETAIL_FIELD_LABEL}>Forecast qty</label>
+                        <label className={DETAIL_FIELD_LABEL_COMPACT}>Forecast qty</label>
                         <input
                           type="number"
                           placeholder="Qty"
                           value={fcQty}
                           onChange={(e) => setFcQty(e.target.value)}
-                          className={`mt-1 w-full max-w-[8rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                          className={`mt-1 w-full max-w-[8rem] ${RECORD_INPUT}`}
                         />
                       </div>
                       <div className="sm:col-span-12 md:col-span-4 flex items-end">
@@ -2989,19 +3039,29 @@ export default function ProductDetailsTabs({
                     <table className="min-w-full border divide-y divide-gray-200 dark:divide-gray-700">
                       <thead className="bg-gray-50 dark:bg-gray-900/40">
                         <tr>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                          <th
+                            className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}
+                          >
                             Period
                           </th>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                          <th
+                            className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}
+                          >
                             Forecast Qty
                           </th>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                          <th
+                            className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}
+                          >
                             Actual Qty
                           </th>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                          <th
+                            className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}
+                          >
                             Confidence
                           </th>
-                          <th className={`px-3 py-2 text-right ${premiumTypography.tableHeader}`}>
+                          <th
+                            className={`px-2 py-1 text-right ${premiumTypography.tableHeaderDense}`}
+                          >
                             Actions
                           </th>
                         </tr>
@@ -3009,22 +3069,22 @@ export default function ProductDetailsTabs({
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                         {forecasts.length === 0 && (
                           <tr>
-                            <td colSpan={5} className="px-3 py-4 text-center text-sm text-gray-400">
+                            <td colSpan={5} className="px-2 py-3 text-center text-sm text-gray-400">
                               No forecasts
                             </td>
                           </tr>
                         )}
                         {forecasts.map((f) => (
                           <tr key={f.id}>
-                            <td className="px-3 py-2 text-gray-900 dark:text-white">
+                            <td className="px-2 py-1 text-gray-900 dark:text-white">
                               {f.period_start} - {f.period_end}
                             </td>
-                            <td className="px-3 py-2">{f.forecast_quantity}</td>
-                            <td className="px-3 py-2">{f.actual_quantity ?? '-'}</td>
-                            <td className="px-3 py-2">
+                            <td className="px-2 py-1">{f.forecast_quantity}</td>
+                            <td className="px-2 py-1">{f.actual_quantity ?? '-'}</td>
+                            <td className="px-2 py-1">
                               {f.confidence_level ? `${f.confidence_level}%` : '-'}
                             </td>
-                            <td className="px-3 py-2 text-right">
+                            <td className="px-2 py-1 text-right">
                               <button
                                 type="button"
                                 onClick={() => handleDeleteForecast(f.id)}
@@ -3043,7 +3103,9 @@ export default function ProductDetailsTabs({
 
               {opsSubTab === 'stock' && (
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Stock Levels</h3>
+                  <PremiumSectionTitle as="h3" className="!normal-case tracking-wide mb-2">
+                    Stock Levels
+                  </PremiumSectionTitle>
                   {!productTracksInventory(product) ? (
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       This product is not set up as a stocked item. Stock levels do not apply.
@@ -3053,16 +3115,24 @@ export default function ProductDetailsTabs({
                       <table className="min-w-full border divide-y divide-gray-200 dark:divide-gray-700">
                         <thead className="bg-gray-50 dark:bg-gray-900/40">
                           <tr>
-                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                            <th
+                              className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}
+                            >
                               Location
                             </th>
-                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                            <th
+                              className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}
+                            >
                               Quantity
                             </th>
-                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                            <th
+                              className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}
+                            >
                               Available
                             </th>
-                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                            <th
+                              className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}
+                            >
                               Reserved
                             </th>
                           </tr>
@@ -3072,7 +3142,7 @@ export default function ProductDetailsTabs({
                             <tr>
                               <td
                                 colSpan={4}
-                                className="px-3 py-4 text-center text-sm text-gray-400"
+                                className="px-2 py-3 text-center text-sm text-gray-400"
                               >
                                 No stock level records
                               </td>
@@ -3080,12 +3150,12 @@ export default function ProductDetailsTabs({
                           )}
                           {stockLevels.map((s) => (
                             <tr key={s.id}>
-                              <td className="px-3 py-2 text-gray-900 dark:text-white">
+                              <td className="px-2 py-1 text-gray-900 dark:text-white">
                                 {s.location_id || '(default)'}
                               </td>
-                              <td className="px-3 py-2">{s.quantity}</td>
-                              <td className="px-3 py-2">{s.available_quantity ?? s.quantity}</td>
-                              <td className="px-3 py-2">{s.reserved_quantity ?? 0}</td>
+                              <td className="px-2 py-1">{s.quantity}</td>
+                              <td className="px-2 py-1">{s.available_quantity ?? s.quantity}</td>
+                              <td className="px-2 py-1">{s.reserved_quantity ?? 0}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -3097,9 +3167,9 @@ export default function ProductDetailsTabs({
 
               {opsSubTab === 'transactions' && (
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                  <PremiumSectionTitle as="h3" className="!normal-case tracking-wide mb-2">
                     Stock Transactions
-                  </h3>
+                  </PremiumSectionTitle>
                   {!productTracksInventory(product) ? (
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       This product is not set up as a stocked item. Stock transactions do not apply.
@@ -3109,19 +3179,29 @@ export default function ProductDetailsTabs({
                       <table className="min-w-full border divide-y divide-gray-200 dark:divide-gray-700">
                         <thead className="bg-gray-50 dark:bg-gray-900/40">
                           <tr>
-                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                            <th
+                              className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}
+                            >
                               Date
                             </th>
-                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                            <th
+                              className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}
+                            >
                               Type
                             </th>
-                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                            <th
+                              className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}
+                            >
                               Qty
                             </th>
-                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                            <th
+                              className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}
+                            >
                               From
                             </th>
-                            <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                            <th
+                              className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}
+                            >
                               To
                             </th>
                           </tr>
@@ -3131,7 +3211,7 @@ export default function ProductDetailsTabs({
                             <tr>
                               <td
                                 colSpan={5}
-                                className="px-3 py-4 text-center text-sm text-gray-400"
+                                className="px-2 py-3 text-center text-sm text-gray-400"
                               >
                                 No transactions
                               </td>
@@ -3139,13 +3219,13 @@ export default function ProductDetailsTabs({
                           )}
                           {stockTransactions.map((t) => (
                             <tr key={t.id}>
-                              <td className="px-3 py-2 text-gray-900 dark:text-white">
+                              <td className="px-2 py-1 text-gray-900 dark:text-white">
                                 {t.transaction_date || ''}
                               </td>
-                              <td className="px-3 py-2">{t.transaction_type}</td>
-                              <td className="px-3 py-2">{t.quantity}</td>
-                              <td className="px-3 py-2">{t.from_location_id || '-'}</td>
-                              <td className="px-3 py-2">{t.to_location_id || '-'}</td>
+                              <td className="px-2 py-1">{t.transaction_type}</td>
+                              <td className="px-2 py-1">{t.quantity}</td>
+                              <td className="px-2 py-1">{t.from_location_id || '-'}</td>
+                              <td className="px-2 py-1">{t.to_location_id || '-'}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -3157,41 +3237,41 @@ export default function ProductDetailsTabs({
 
               {opsSubTab === 'production' && (
                 <div className="space-y-3">
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                  <PremiumSectionTitle as="h3" className="!normal-case tracking-wide mb-2">
                     Production Plans
-                  </h3>
+                  </PremiumSectionTitle>
                   <div className={`${premiumSurfaces.insetInfo} space-y-2`}>
                     <p className={premiumTypography.sectionTitle}>Add production plan</p>
                     {ppMsg && <p className="text-xs text-red-600 dark:text-red-400">{ppMsg}</p>}
                     <div className={DETAIL_FORM_GRID}>
                       <div className="sm:col-span-6 md:col-span-3">
-                        <label className={DETAIL_FIELD_LABEL}>Planned start</label>
+                        <label className={DETAIL_FIELD_LABEL_COMPACT}>Planned start</label>
                         <input
                           type="date"
                           value={ppStart}
                           onChange={(e) => setPpStart(e.target.value)}
-                          className={`mt-1 w-full max-w-[11rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                          className={`mt-1 w-full max-w-[11rem] ${RECORD_INPUT}`}
                           aria-label="Planned start"
                         />
                       </div>
                       <div className="sm:col-span-6 md:col-span-3">
-                        <label className={DETAIL_FIELD_LABEL}>Planned end</label>
+                        <label className={DETAIL_FIELD_LABEL_COMPACT}>Planned end</label>
                         <input
                           type="date"
                           value={ppEnd}
                           onChange={(e) => setPpEnd(e.target.value)}
-                          className={`mt-1 w-full max-w-[11rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                          className={`mt-1 w-full max-w-[11rem] ${RECORD_INPUT}`}
                           aria-label="Planned end"
                         />
                       </div>
                       <div className="sm:col-span-6 md:col-span-2">
-                        <label className={DETAIL_FIELD_LABEL}>Planned qty</label>
+                        <label className={DETAIL_FIELD_LABEL_COMPACT}>Planned qty</label>
                         <input
                           type="number"
                           placeholder="Qty"
                           value={ppQty}
                           onChange={(e) => setPpQty(e.target.value)}
-                          className={`mt-1 w-full max-w-[8rem] ${premiumInputComfortableBase} focus:outline-none focus:ring-2 focus:ring-green-500`}
+                          className={`mt-1 w-full max-w-[8rem] ${RECORD_INPUT}`}
                         />
                       </div>
                       <div className="sm:col-span-12 md:col-span-4 flex items-end">
@@ -3210,19 +3290,29 @@ export default function ProductDetailsTabs({
                     <table className="min-w-full border divide-y divide-gray-200 dark:divide-gray-700">
                       <thead className="bg-gray-50 dark:bg-gray-900/40">
                         <tr>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                          <th
+                            className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}
+                          >
                             Planned Start
                           </th>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                          <th
+                            className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}
+                          >
                             Planned End
                           </th>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                          <th
+                            className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}
+                          >
                             Planned Qty
                           </th>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                          <th
+                            className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}
+                          >
                             Status
                           </th>
-                          <th className={`px-3 py-2 text-right ${premiumTypography.tableHeader}`}>
+                          <th
+                            className={`px-2 py-1 text-right ${premiumTypography.tableHeaderDense}`}
+                          >
                             Actions
                           </th>
                         </tr>
@@ -3230,20 +3320,20 @@ export default function ProductDetailsTabs({
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                         {productionPlans.length === 0 && (
                           <tr>
-                            <td colSpan={5} className="px-3 py-4 text-center text-sm text-gray-400">
+                            <td colSpan={5} className="px-2 py-3 text-center text-sm text-gray-400">
                               No production plans
                             </td>
                           </tr>
                         )}
                         {productionPlans.map((p) => (
                           <tr key={p.id}>
-                            <td className="px-3 py-2 text-gray-900 dark:text-white">
+                            <td className="px-2 py-1 text-gray-900 dark:text-white">
                               {p.planned_start_date}
                             </td>
-                            <td className="px-3 py-2">{p.planned_end_date}</td>
-                            <td className="px-3 py-2">{p.planned_quantity}</td>
-                            <td className="px-3 py-2">{p.status || 'planned'}</td>
-                            <td className="px-3 py-2 text-right">
+                            <td className="px-2 py-1">{p.planned_end_date}</td>
+                            <td className="px-2 py-1">{p.planned_quantity}</td>
+                            <td className="px-2 py-1">{p.status || 'planned'}</td>
+                            <td className="px-2 py-1 text-right">
                               <button
                                 type="button"
                                 onClick={() => handleDeleteProductionPlan(p.id)}
@@ -3262,18 +3352,26 @@ export default function ProductDetailsTabs({
 
               {opsSubTab === 'activity' && (
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Activity Log</h3>
+                  <PremiumSectionTitle as="h3" className="!normal-case tracking-wide mb-2">
+                    Activity Log
+                  </PremiumSectionTitle>
                   <div className="overflow-x-auto max-h-60">
                     <table className="min-w-full border divide-y divide-gray-200 dark:divide-gray-700">
                       <thead className="bg-gray-50 dark:bg-gray-900/40">
                         <tr>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                          <th
+                            className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}
+                          >
                             Timestamp
                           </th>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                          <th
+                            className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}
+                          >
                             Action
                           </th>
-                          <th className={`px-3 py-2 text-left ${premiumTypography.tableHeader}`}>
+                          <th
+                            className={`px-2 py-1 text-left ${premiumTypography.tableHeaderDense}`}
+                          >
                             User
                           </th>
                         </tr>
@@ -3281,18 +3379,18 @@ export default function ProductDetailsTabs({
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                         {activityLog.length === 0 && (
                           <tr>
-                            <td colSpan={3} className="px-3 py-4 text-center text-sm text-gray-400">
+                            <td colSpan={3} className="px-2 py-3 text-center text-sm text-gray-400">
                               No activity recorded
                             </td>
                           </tr>
                         )}
                         {activityLog.map((a) => (
                           <tr key={a.id}>
-                            <td className="px-3 py-2 text-gray-900 dark:text-white">
+                            <td className="px-2 py-1 text-gray-900 dark:text-white">
                               {a.created_at}
                             </td>
-                            <td className="px-3 py-2">{a.action}</td>
-                            <td className="px-3 py-2">{a.user_id || 'system'}</td>
+                            <td className="px-2 py-1">{a.action}</td>
+                            <td className="px-2 py-1">{a.user_id || 'system'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -3302,7 +3400,7 @@ export default function ProductDetailsTabs({
               )}
             </div>
           )}
-        </div>
+        </PremiumRecordPanel>
       </div>
     </>
   );

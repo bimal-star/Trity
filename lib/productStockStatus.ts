@@ -49,8 +49,17 @@ export function stockStatusBadgeClass(bucket: ProductStockBucket): string {
   }
 }
 
-/** Left border accent for product hero cards (tailwind border-l-* + color). */
+/** Border color only — pair with `border-l-[5px]` on list master cards. */
 export function stockHeroBorderClass(bucket: ProductStockBucket): string {
+  return stockBorderColorClass(bucket);
+}
+
+/** Thin left accent for record detail headers (`PremiumRecordHeader`). */
+export function stockRecordBorderClass(bucket: ProductStockBucket): string {
+  return `border-l-2 ${stockBorderColorClass(bucket)}`;
+}
+
+function stockBorderColorClass(bucket: ProductStockBucket): string {
   switch (bucket) {
     case 'in':
       return 'border-l-emerald-500';

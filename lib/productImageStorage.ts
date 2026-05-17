@@ -1,4 +1,8 @@
 import { supabase } from '@/lib/supabaseClient';
+import {
+  getProductPrimaryImageUrlFromNormalized,
+  normalizeProductImages,
+} from '@/lib/productImages';
 import type { Product } from '@/types/product';
 
 export const PRODUCT_IMAGES_BUCKET = 'product-images';
@@ -34,17 +38,25 @@ export async function uploadProductImage(tenantId: string, file: File): Promise<
   return data.publicUrl;
 }
 
-/** Cover image: `image_url`, else first entry in `images` jsonb. */
+/** Storage object path from a public `product-images` URL, if applicable. */
+export function storagePathFromProductImageUrl(publicUrl: string): string | null {
+  const marker = `/object/public/${PRODUCT_IMAGES_BUCKET}/`;
+  const idx = publicUrl.indexOf(marker);
+  if (idx === -1) return null;
+  const path = publicUrl.slice(idx + marker.length).split('?')[0];
+  return path.trim() || null;
+}
+
+/** Delete a file from `product-images` when the URL points at our bucket (no-op for external URLs). */
+export async function deleteProductImageByUrl(url: string): Promise<void> {
+  const path = storagePathFromProductImageUrl(url);
+  if (!path) return;
+  const { error } = await supabase.storage.from(PRODUCT_IMAGES_BUCKET).remove([path]);
+  if (error) throw error;
+}
+
+/** Cover image: `image_url`, else first entry in normalized `images` gallery. */
 export function getProductPrimaryImageUrl(product: Product): string | null {
-  const direct = product.image_url?.trim();
-  if (direct) return direct;
-  const imgs = product.images;
-  if (!Array.isArray(imgs) || imgs.length === 0) return null;
-  const first = imgs[0];
-  if (typeof first === 'string' && first.trim()) return first.trim();
-  if (first && typeof first === 'object' && 'url' in first) {
-    const u = (first as { url?: unknown }).url;
-    if (typeof u === 'string' && u.trim()) return u.trim();
-  }
-  return null;
+  const entries = normalizeProductImages(product);
+  return getProductPrimaryImageUrlFromNormalized(entries, product.image_url);
 }

@@ -2,7 +2,13 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { X, Plus, ChevronDown, ImageIcon, Upload, AlertCircle, Tag } from 'lucide-react';
-import { IndustryType, ProductFormData, ProductType, StatusType } from '@/types/product';
+import {
+  IndustryType,
+  ProductFormData,
+  ProductImageEntry,
+  ProductType,
+  StatusType,
+} from '@/types/product';
 import { useTenant } from '@/contexts/TenantContext';
 import { useCatalogueMode } from '@/hooks/useCatalogueMode';
 import { useProductGroups, type ProductGroupRow } from '@/hooks/useProductGroups';
@@ -11,6 +17,7 @@ import { uploadProductImage } from '@/lib/productImageStorage';
 import { productTypography } from '@/components/products/typography';
 import AddCategoryModal from '@/components/products/AddCategoryModal';
 import { premiumSecondaryButton } from '@/lib/premiumUi';
+import { defaultUsageForProductType } from '@/lib/productUsageDefaults';
 import { useToast } from '@/lib/toast';
 
 export interface ProductCategoryOption {
@@ -99,6 +106,10 @@ export default function ProductCreateForm({
   const { toast } = useToast();
   const [openSection, setOpenSection] = useState<RightSectionId | null>(null);
   const [tracksInventory, setTracksInventory] = useState(true);
+  const [isSellable, setIsSellable] = useState(true);
+  const [isPurchasable, setIsPurchasable] = useState(true);
+  const [isManufacturable, setIsManufacturable] = useState(false);
+  const [isComponent, setIsComponent] = useState(false);
   const [addCategoryOpen, setAddCategoryOpen] = useState(false);
   const { effectiveTenantId: tenant_id } = useTenant();
   const { supportsGroups, isMatrix } = useCatalogueMode();
@@ -109,6 +120,17 @@ export default function ProductCreateForm({
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [groupedVariantDetails, setGroupedVariantDetails] = useState('');
   const [matrixAttrSelection, setMatrixAttrSelection] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const usage = defaultUsageForProductType(productType);
+    setIsSellable(usage.is_sellable);
+    setIsPurchasable(usage.is_purchasable);
+    setIsManufacturable(usage.is_manufacturable);
+    setIsComponent(usage.is_component);
+    if (productType === 'service') {
+      setTracksInventory(false);
+    }
+  }, [productType]);
 
   useEffect(() => {
     if (!supportsGroups || !tenant_id) {
@@ -206,6 +228,11 @@ export default function ProductCreateForm({
     setValidationError(null);
     setOpenSection(null);
     setTracksInventory(true);
+    const usage = defaultUsageForProductType('finished_good');
+    setIsSellable(usage.is_sellable);
+    setIsPurchasable(usage.is_purchasable);
+    setIsManufacturable(usage.is_manufacturable);
+    setIsComponent(usage.is_component);
     setSelectedGroupId('');
     setNewGroupName('');
     setGroupedVariantDetails('');
@@ -243,7 +270,7 @@ export default function ProductCreateForm({
     setValidationError(null);
 
     let resolvedImageUrl: string | undefined;
-    let gallery: unknown | undefined;
+    let gallery: ProductImageEntry[] | undefined;
 
     try {
       if (pendingImageFile) {
@@ -295,6 +322,10 @@ export default function ProductCreateForm({
           : undefined,
       is_active: true,
       tracks_inventory: tracksInventory,
+      is_sellable: isSellable,
+      is_purchasable: isPurchasable,
+      is_manufacturable: isManufacturable,
+      is_component: isComponent,
       ...(resolvedImageUrl ? { image_url: resolvedImageUrl, images: gallery } : {}),
     };
 
@@ -639,6 +670,44 @@ export default function ProductCreateForm({
                         </option>
                       ))}
                     </select>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50/80 dark:bg-gray-900/40 p-3 space-y-3">
+                  <p className={sectionTitleClass}>Product usage</p>
+                  <p className={helperTextClass}>
+                    Controls where this SKU can be used in Trity workflows.
+                  </p>
+                  <div className="flex flex-wrap gap-x-6 gap-y-2">
+                    {(
+                      [
+                        ['is-sellable', 'Sellable', isSellable, setIsSellable],
+                        ['is-purchasable', 'Purchasable', isPurchasable, setIsPurchasable],
+                        [
+                          'is-manufacturable',
+                          'Manufacturable',
+                          isManufacturable,
+                          setIsManufacturable,
+                        ],
+                        ['is-component', 'Component', isComponent, setIsComponent],
+                      ] as const
+                    ).map(([id, label, checked, setter]) => (
+                      <label
+                        key={id}
+                        htmlFor={id}
+                        className="inline-flex cursor-pointer items-center gap-2 text-sm text-gray-700 dark:text-gray-300"
+                      >
+                        <input
+                          id={id}
+                          type="checkbox"
+                          className="rounded text-green-600 focus:ring-green-500"
+                          checked={checked}
+                          onChange={(e) => setter(e.target.checked)}
+                          disabled={isSubmitting}
+                        />
+                        {label}
+                      </label>
+                    ))}
                   </div>
                 </div>
 

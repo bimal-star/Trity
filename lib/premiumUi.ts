@@ -232,6 +232,45 @@ export function premiumFocusRing(module: PremiumModule | null | undefined): stri
   return pillarAccent(module).focusRing;
 }
 
+/**
+ * Record detail layout (entity pages, tabbed workspaces).
+ * Consumers: `/products/[id]` first; extend to other modules when rolling out.
+ */
+export const recordDetail = {
+  title: 'text-xl font-semibold leading-tight text-gray-950 dark:text-white',
+  meta: premiumTypography.helper,
+  headerShell:
+    'rounded-lg border border-gray-200/80 bg-white px-3 py-2.5 dark:border-gray-700/80 dark:bg-gray-900/80',
+  headerAccent: 'border-l-2',
+  tabBar: 'flex gap-0.5 overflow-x-auto border-b border-gray-200 dark:border-gray-700',
+  tabButtonBase:
+    'shrink-0 whitespace-nowrap px-3 py-1.5 text-sm font-medium border-b-2 -mb-px transition-colors',
+  panel:
+    'min-h-0 flex-1 space-y-3 overflow-y-auto rounded-lg border border-gray-200 bg-white p-2.5 text-sm dark:border-gray-700 dark:bg-gray-800 sm:p-3',
+  formGrid: 'grid grid-cols-1 gap-2 sm:grid-cols-12 sm:gap-x-2 sm:gap-y-2 sm:items-end',
+  fieldLabelCompact: 'block text-[10px] font-medium text-gray-500 dark:text-gray-400 mb-0.5',
+  sectionTitle: premiumTypography.sectionTitle,
+} as const;
+
+const recordTabActiveClass: Record<PremiumModule, string> = {
+  businessCore: 'border-green-600 text-green-800 dark:border-green-500 dark:text-green-400',
+  analytics: 'border-blue-600 text-blue-800 dark:border-blue-500 dark:text-blue-400',
+  execution: 'border-orange-600 text-orange-800 dark:border-orange-500 dark:text-orange-400',
+  platform: 'border-amber-600 text-amber-900 dark:border-amber-500 dark:text-amber-300',
+};
+
+/** Underline tab button classes for record detail tab bars. */
+export function recordTabClass(module: PremiumModule | null | undefined, active: boolean): string {
+  const base = recordDetail.tabButtonBase;
+  if (!active) {
+    return `${base} border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-200`;
+  }
+  const activeClass = module
+    ? recordTabActiveClass[module]
+    : 'border-gray-600 text-gray-900 dark:border-gray-400 dark:text-gray-100';
+  return `${base} ${activeClass}`;
+}
+
 export type PremiumButtonSize = 'sm' | 'md' | 'lg';
 export type PremiumButtonWidth = 'auto' | 'standard' | 'wide';
 

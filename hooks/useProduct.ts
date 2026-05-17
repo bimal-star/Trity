@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import type { Database } from '@/types/database';
 import type { Product } from '@/types/product';
@@ -17,15 +17,18 @@ export function useProduct(productId: string | undefined) {
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(Boolean(productId && tenant_id));
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedOnceRef = useRef(false);
 
   const refreshProduct = useCallback(async () => {
     if (!tenant_id || !productId) {
       setProduct(null);
       setIsLoading(false);
       setError(null);
+      hasLoadedOnceRef.current = false;
       return null;
     }
-    setIsLoading(true);
+    const isInitialLoad = !hasLoadedOnceRef.current;
+    if (isInitialLoad) setIsLoading(true);
     setError(null);
     try {
       const { data, error: fetchError } = await supabase
@@ -43,15 +46,18 @@ export function useProduct(productId: string | undefined) {
       }
       const mapped = mapViewRowToProduct(data as VwProductRow);
       setProduct(mapped);
+      hasLoadedOnceRef.current = true;
       return mapped;
     } catch (err: unknown) {
       console.error('Error fetching product:', err);
       const msg = err instanceof Error ? err.message : 'Failed to load product';
       setError(msg);
-      setProduct(null);
+      if (!hasLoadedOnceRef.current) {
+        setProduct(null);
+      }
       return null;
     } finally {
-      setIsLoading(false);
+      if (isInitialLoad) setIsLoading(false);
     }
   }, [tenant_id, productId]);
 

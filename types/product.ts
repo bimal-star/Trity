@@ -1,3 +1,6 @@
+/** Gallery item stored in `products.images` jsonb. */
+export type ProductImageEntry = { url: string; sort_order: number };
+
 // Packing Configuration Type
 export interface PackingConfiguration {
   id?: string;
@@ -286,6 +289,14 @@ export interface Product {
   // Inventory
   /** When false, SKU is non-stocked (e.g. service); defaults true when omitted. */
   tracks_inventory?: boolean | null;
+  /** May be sold in sales-facing workflows. */
+  is_sellable: boolean;
+  /** May be purchased on POs / supplier pricing. */
+  is_purchasable: boolean;
+  /** May be produced (BOM output / production). */
+  is_manufacturable: boolean;
+  /** May be used as a BOM line component. */
+  is_component: boolean;
   min_stock_level: number | null;
   max_stock_level: number | null;
   reorder_point: number | null;
@@ -310,7 +321,7 @@ export interface Product {
 
   // Media & Documentation
   image_url: string | null;
-  images: any | null;
+  images: ProductImageEntry[] | null;
   documents: any | null;
   specifications_url: string | null;
 
@@ -319,6 +330,9 @@ export interface Product {
   metadata: any | null;
   tags: string[] | null;
   categories: string[] | null;
+  /** From `vw_products_full` joins. */
+  category_name?: string | null;
+  base_unit_symbol?: string | null;
 
   /** Optional product group (grouped / matrix catalogue modes). */
   product_group_id?: string | null;
@@ -353,6 +367,10 @@ export interface ProductFormData {
 
   // Inventory
   tracks_inventory?: boolean | null;
+  is_sellable?: boolean;
+  is_purchasable?: boolean;
+  is_manufacturable?: boolean;
+  is_component?: boolean;
   min_stock_level?: number;
   max_stock_level?: number;
   reorder_point?: number;
@@ -383,7 +401,7 @@ export interface ProductFormData {
 
   // Media
   image_url?: string | null;
-  images?: any;
+  images?: ProductImageEntry[] | null;
 
   // Metadata & Tags
   metadata?: any;

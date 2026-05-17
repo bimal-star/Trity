@@ -39,6 +39,55 @@ function isPillarRootLabel(label: string): label is PillarRootLabel {
   return (PILLAR_ROOT_LABEL_ORDER as readonly string[]).includes(String(label ?? '').trim());
 }
 
+/** Shorter labels for the contextual breadcrumb bar (nav/sidebar labels stay full). */
+const BREADCRUMB_LABEL_SHORT: Record<string, string> = {
+  'Business Core': 'Core',
+  'Purchase Management': 'Purchase',
+  'Order Management': 'Orders',
+  'Goods Receipt': 'Receipt',
+  'Purchase Invoices': 'Invoices',
+  'Purchase Returns': 'Returns',
+  'Purchase reports': 'Reports',
+  'Purchase Orders': 'POs',
+  'Customer pricing': 'Cust. pricing',
+  'Supplier pricing': 'Supp. pricing',
+  'Stock Adjustments': 'Stock adj.',
+  'Order Fulfillment': 'Fulfillment',
+  'Tenant Settings': 'Settings',
+  'Subscription packages': 'Packages',
+  'Navigation Manager': 'Navigation',
+  'Import/Export': 'Import',
+  'Access Levels': 'Access',
+};
+
+/** Collapse when more than this many segments after Home (pillar + sections + current). */
+const COLLAPSE_AFTER_HOME_THRESHOLD = 3;
+
+export function abbreviateNavBreadcrumbLabel(label: string): string {
+  const trimmed = String(label ?? '').trim();
+  if (!trimmed) return 'Untitled';
+  return BREADCRUMB_LABEL_SHORT[trimmed] ?? trimmed;
+}
+
+/** Apply short labels; collapse middle segments when the trail is deep. */
+export function compactNavBreadcrumbs(crumbs: NavBreadcrumbSegment[]): NavBreadcrumbSegment[] {
+  if (crumbs.length === 0) return crumbs;
+
+  const abbreviated = crumbs.map((crumb, index) => {
+    if (index === 0 && crumb.label === 'Home') return crumb;
+    return { ...crumb, label: abbreviateNavBreadcrumbLabel(crumb.label) };
+  });
+
+  const afterHome = abbreviated.length - 1;
+  if (afterHome <= COLLAPSE_AFTER_HOME_THRESHOLD) return abbreviated;
+
+  const home = abbreviated[0];
+  const pillar = abbreviated[1];
+  const current = abbreviated[abbreviated.length - 1];
+
+  return [home, pillar, { href: null, label: '…' }, { ...current, current: true }];
+}
+
 export type NavBreadcrumbSegment = {
   href: string | null;
   label: string;
@@ -60,7 +109,7 @@ export function buildNavBreadcrumbs(
   const pathNorm = normalizePath(pathname);
   if (pillarLabel == null && pathNorm === '/') {
     crumbs.push({ href: null, label: 'Dashboard', current: true });
-    return crumbs;
+    return compactNavBreadcrumbs(crumbs);
   }
 
   const titleFromPathTail = (path: string): string => {
@@ -97,7 +146,7 @@ export function buildNavBreadcrumbs(
         current: true,
       });
     }
-    return crumbs;
+    return compactNavBreadcrumbs(crumbs);
   }
 
   const chain = findPathChain(navigationItems, pathname);
@@ -119,7 +168,7 @@ export function buildNavBreadcrumbs(
         current: true,
       });
     }
-    return crumbs;
+    return compactNavBreadcrumbs(crumbs);
   }
 
   const pillarIdx = chain.findIndex((n) => isPillarRootLabel(String(n.label ?? '').trim()));
@@ -142,5 +191,5 @@ export function buildNavBreadcrumbs(
     });
   }
 
-  return crumbs;
+  return compactNavBreadcrumbs(crumbs);
 }

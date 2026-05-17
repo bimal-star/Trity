@@ -512,95 +512,6 @@ export default function ProductsPage() {
     columnHidden,
   ]);
 
-  const stickyPageChrome = useMemo(
-    () => (
-      <>
-        <PremiumStickyHeader
-          module="businessCore"
-          sticky={false}
-          className="!mb-2 border-0 bg-transparent !py-0 shadow-none dark:bg-transparent"
-          icon={Package2}
-          title="Products"
-          subtitle="Create and manage product catalog, specifications, and pricing"
-          subtitleClassName={`${premiumTypography.pageSubtitle} ${bc.subtitleTint}`}
-          right={
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <ExportFormatDropdown
-                filenameBase={`products_export_${new Date().toISOString().split('T')[0]}`}
-                title="Export visible list as CSV"
-                getData={() => ({
-                  headers: [
-                    'sku',
-                    'name',
-                    'short_description',
-                    'product_type',
-                    'industry_type',
-                    'status',
-                    'cost_price',
-                    'sell_price',
-                  ],
-                  rows: products.map((p) => [
-                    p.sku,
-                    p.name,
-                    p.short_description ?? '',
-                    p.product_type,
-                    p.industry_type,
-                    p.status,
-                    p.cost_price ?? '',
-                    p.sell_price ?? '',
-                  ]),
-                })}
-                buttonClassName={premiumSecondaryButton('businessCore', 'sm', 'standard')}
-              />
-              {supportsGroups && (
-                <Link href="/products/groups" className={premiumTertiaryButton('sm', 'standard')}>
-                  Product groups
-                </Link>
-              )}
-              <Link
-                href="/products/new"
-                className={premiumPrimaryButton('businessCore', 'md', 'standard')}
-              >
-                <Plus className="w-4 h-4 shrink-0" aria-hidden />
-                New Product
-              </Link>
-            </div>
-          }
-        />
-        <div
-          className={`mb-2 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-gray-200 bg-gray-50/80 px-4 py-2.5 dark:border-gray-700 dark:bg-gray-900/30 ${premiumTypography.tableCell} text-gray-600 dark:text-gray-300`}
-          role="status"
-          aria-live="polite"
-        >
-          {tenantCounts ? (
-            <>
-              <span className="font-semibold tabular-nums text-gray-800 dark:text-gray-100">
-                {tenantCounts.catalogActive.toLocaleString()} products
-              </span>
-              <span className="text-gray-300 dark:text-gray-600" aria-hidden>
-                ·
-              </span>
-              <span className="tabular-nums">
-                {tenantCounts.lowStock.toLocaleString()} low stock
-              </span>
-              <span className="text-gray-300 dark:text-gray-600" aria-hidden>
-                ·
-              </span>
-              <span className="tabular-nums">
-                {tenantCounts.archived.toLocaleString()} archived
-              </span>
-            </>
-          ) : (
-            <span className={`${premiumTypography.helper} animate-pulse`}>
-              Loading catalog stats…
-            </span>
-          )}
-        </div>
-      </>
-    ),
-    [tenantCounts, products, supportsGroups]
-  );
-
   return (
     <ProtectedRoute>
       <AddCategoryModal
@@ -699,7 +610,63 @@ export default function ProductsPage() {
           </div>
         </div>
       )}
-      <PageContainer module="businessCore">
+      <PageContainer
+        module="businessCore"
+        rootClassName="flex min-h-0 max-h-full flex-1 flex-col overflow-hidden bg-gray-50 px-3 pb-2 pt-4 dark:bg-gray-900 sm:px-6"
+        innerClassName="flex min-h-0 flex-1 flex-col overflow-hidden"
+      >
+        <PremiumStickyHeader
+          module="businessCore"
+          sticky={false}
+          className="shrink-0"
+          icon={Package2}
+          title="Products"
+          subtitle="Create and manage product catalog, specifications, and pricing"
+          subtitleClassName={`${premiumTypography.pageSubtitle} ${bc.subtitleTint}`}
+          right={
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <ExportFormatDropdown
+                filenameBase={`products_export_${new Date().toISOString().split('T')[0]}`}
+                title="Export visible list as CSV"
+                getData={() => ({
+                  headers: [
+                    'sku',
+                    'name',
+                    'short_description',
+                    'product_type',
+                    'industry_type',
+                    'status',
+                    'cost_price',
+                    'sell_price',
+                  ],
+                  rows: products.map((p) => [
+                    p.sku,
+                    p.name,
+                    p.short_description ?? '',
+                    p.product_type,
+                    p.industry_type,
+                    p.status,
+                    p.cost_price ?? '',
+                    p.sell_price ?? '',
+                  ]),
+                })}
+                buttonClassName={premiumSecondaryButton('businessCore', 'sm', 'standard')}
+              />
+              {supportsGroups && (
+                <Link href="/products/groups" className={premiumTertiaryButton('sm', 'standard')}>
+                  Product groups
+                </Link>
+              )}
+              <Link
+                href="/products/new"
+                className={premiumPrimaryButton('businessCore', 'md', 'standard')}
+              >
+                <Plus className="w-4 h-4 shrink-0" aria-hidden />
+                New Product
+              </Link>
+            </div>
+          }
+        />
         <div
           className="flex min-h-0 min-w-0 flex-1 flex-col transition-[margin-inline-end] duration-[250ms] [transition-timing-function:ease]"
           style={{
@@ -710,7 +677,6 @@ export default function ProductsPage() {
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             <div className="flex min-h-0 min-w-0 flex-1 flex-col">
               <ProductList
-                stickyPageChrome={stickyPageChrome}
                 columnOrder={columnOrder}
                 columnHidden={columnHidden}
                 listColumnDefinitions={columnDefinitions}

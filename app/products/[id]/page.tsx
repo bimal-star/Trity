@@ -2,32 +2,38 @@
 
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Copy, FileDown, Loader2, MoreVertical, Package2, Trash2, Upload } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Copy, FileDown, Loader2, MoreVertical, Package2, Trash2 } from 'lucide-react';
 import PageContainer from '@/components/PageContainer';
 import PremiumStickyHeader from '@/components/layout/premium/PremiumStickyHeader';
 import ProductDetailsTabs from '@/components/products/ProductDetailsTabs';
+import ProductImageGallery from '@/components/products/ProductImageGallery';
+import ProductRecordSummaryCard from '@/components/products/ProductRecordSummaryCard';
+import { type ProductUsagePatch } from '@/components/products/ProductUsageToggles';
 import { ArchiveRestoreActions } from '@/components/common/ArchiveRestoreActions';
-import { EntityStatusBadge } from '@/components/common/EntityStatusBadge';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useTenant } from '@/contexts/TenantContext';
 import { useProduct } from '@/hooks/useProduct';
+import { useProductRecordNav } from '@/hooks/useProductRecordNav';
 import { useProducts } from '@/hooks/useProducts';
 import { logProductArchived, logProductRestored } from '@/lib/auditLog';
 import { pillarAccent, premiumTypography } from '@/lib/premiumUi';
 import { downloadTableCsv } from '@/lib/csvDownload';
-import { getProductPrimaryImageUrl, uploadProductImage } from '@/lib/productImageStorage';
-import { productTracksInventory } from '@/lib/productInventoryPolicy';
-import { getProductStockStatus, stockHeroBorderClass } from '@/lib/productStockStatus';
-import { supabase } from '@/lib/supabaseClient';
+import { getImpersonationFromSession } from '@/lib/impersonation';
+import {
+  appendProductImages,
+  buildProductImagesRemovePatch,
+  clampImageIndex,
+  getDefaultImageIndex,
+  normalizeProductImages,
+  productImageDefaultPatch,
+} from '@/lib/productImages';
+import { deleteProductImageByUrl, uploadProductImage } from '@/lib/productImageStorage';
+import { getProductStockStatus, stockRecordBorderClass } from '@/lib/productStockStatus';
 import { useToast } from '@/lib/toast';
-import type { Product } from '@/types/product';
+import type { Product, StatusType } from '@/types/product';
 
 const bc = pillarAccent('businessCore');
-
-const PRODUCT_STATUS_MAP: Record<string, string> = {
-  discontinued: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-};
 
 type ConfirmDialogState = {
   title: string;
@@ -70,16 +76,76 @@ export default function ProductDetailPage() {
   const [pageError, setPageError] = useState<string | null>(null);
   const [overflowOpen, setOverflowOpen] = useState(false);
   const overflowRef = useRef<HTMLDivElement>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
   const [imageUploading, setImageUploading] = useState(false);
-  const [detailCounts, setDetailCounts] = useState<{
-    activeBarcodes: number;
-    linkedSuppliers: number;
-  } | null>(null);
+  const [imageRemoving, setImageRemoving] = useState(false);
+  const [settingDefault, setSettingDefault] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [statusUpdating, setStatusUpdating] = useState(false);
+  const recordNav = useProductRecordNav(tenant_id ?? undefined, productId);
+
+  const galleryEntries = useMemo(() => (product ? normalizeProductImages(product) : []), [product]);
+
+  useEffect(() => {
+    setSelectedImageIndex(0);
+  }, [productId]);
+
+  useEffect(() => {
+    if (!product || product.id !== productId) return;
+    const entries = normalizeProductImages(product);
+    setSelectedImageIndex((prev) => {
+      if (entries.length === 0) return 0;
+      if (prev >= entries.length) {
+        return getDefaultImageIndex(entries, product.image_url);
+      }
+      return prev;
+    });
+  }, [product, productId]);
+
+  const mediaDisabled = useMemo(() => {
+    if (!product || product.is_deleted) return true;
+    if (user) {
+      const imp = getImpersonationFromSession(user);
+      if (imp?.readOnly) return true;
+    }
+    return false;
+  }, [product, user]);
 
   const handleProductUpdated = useCallback(async () => {
     await refreshProduct();
   }, [refreshProduct]);
+
+  const handleUsageUpdate = useCallback(
+    async (patch: ProductUsagePatch) => {
+      if (!product) return;
+      const result = await updateProduct(product.id, patch);
+      if (!result.success) {
+        toast.error(result.error ?? 'Failed to update product usage');
+        throw new Error(result.error);
+      }
+      await refreshProduct();
+      toast.success('Product usage updated.');
+    },
+    [product, updateProduct, refreshProduct, toast]
+  );
+
+  const handleStatusChange = useCallback(
+    async (status: StatusType) => {
+      if (!product || product.status === status) return;
+      setStatusUpdating(true);
+      try {
+        const result = await updateProduct(product.id, { status });
+        if (!result.success) {
+          toast.error(result.error ?? 'Failed to update status');
+          return;
+        }
+        await refreshProduct();
+        toast.success('Status updated.');
+      } finally {
+        setStatusUpdating(false);
+      }
+    },
+    [product, updateProduct, refreshProduct, toast]
+  );
 
   useEffect(() => {
     if (!overflowOpen) return;
@@ -91,52 +157,6 @@ export default function ProductDetailPage() {
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, [overflowOpen]);
-
-  useEffect(() => {
-    if (!product?.id) {
-      setDetailCounts(null);
-      return;
-    }
-    const pid = product.id;
-    let cancelled = false;
-
-    async function load() {
-      try {
-        const [{ data: barcodes }, priceQuery] = await Promise.all([
-          supabase.from('product_barcodes').select('is_active').eq('product_id', pid),
-          tenant_id
-            ? supabase
-                .from('supplier_product_prices')
-                .select('supplier_id')
-                .eq('product_id', pid)
-                .eq('tenant_id', tenant_id)
-            : Promise.resolve({ data: [] as { supplier_id: string }[] | null, error: null }),
-        ]);
-        const priceLinks = priceQuery.data;
-
-        if (cancelled) return;
-
-        const activeBarcodes = (barcodes ?? []).filter((b) => b.is_active !== false).length ?? 0;
-        const suppliers = new Set(
-          (priceLinks ?? [])
-            .map((row) => row.supplier_id)
-            .filter((id): id is string => typeof id === 'string' && Boolean(id))
-        );
-
-        setDetailCounts({
-          activeBarcodes,
-          linkedSuppliers: suppliers.size,
-        });
-      } catch {
-        if (!cancelled) setDetailCounts({ activeBarcodes: 0, linkedSuppliers: 0 });
-      }
-    }
-
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [product?.id, tenant_id]);
 
   const exportProductCsv = useCallback(() => {
     if (!product) return;
@@ -178,28 +198,112 @@ export default function ProductDetailPage() {
     setOverflowOpen(false);
   }, [product]);
 
-  const handlePickImage = useCallback(() => {
-    imageInputRef.current?.click();
-  }, []);
+  const handleImageUpload = useCallback(
+    async (files: File[]) => {
+      if (!product || files.length === 0) return;
+      if (!tenant_id) {
+        toast.error('Workspace is not available. Sign in again or select a tenant.');
+        return;
+      }
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file || !tenant_id || !product) return;
+      try {
+        setImageUploading(true);
+        const urls: string[] = [];
+        for (const file of files) {
+          urls.push(await uploadProductImage(tenant_id, file));
+        }
+        if (urls.length === 0) {
+          throw new Error('No images were uploaded.');
+        }
+
+        const current = normalizeProductImages(product);
+        const nextGallery = appendProductImages(current, urls);
+        if (nextGallery.length === current.length) {
+          throw new Error('Image was not added to the gallery.');
+        }
+
+        const hasCover = Boolean(product.image_url?.trim());
+        const patch: { images: typeof nextGallery; image_url?: string } = {
+          images: nextGallery,
+        };
+        if (!hasCover && urls[0]) {
+          patch.image_url = urls[0];
+        }
+
+        const result = await updateProduct(product.id, patch);
+        if (!result.success) throw new Error(result.error ?? 'Update failed');
+
+        const firstNewIdx = nextGallery.findIndex((e) => urls.includes(e.url));
+        if (firstNewIdx >= 0) {
+          setSelectedImageIndex(firstNewIdx);
+        }
+
+        const refreshed = await refreshProduct();
+        if (refreshed) {
+          const synced = normalizeProductImages(refreshed);
+          setSelectedImageIndex(
+            clampImageIndex(
+              synced.findIndex((e) => urls.includes(e.url)),
+              synced.length
+            )
+          );
+        }
+        toast.success(urls.length === 1 ? 'Image added.' : `${urls.length} images added.`);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to upload image');
+      } finally {
+        setImageUploading(false);
+      }
+    },
+    [tenant_id, product, updateProduct, refreshProduct, toast]
+  );
+
+  const handleImageRemove = useCallback(
+    async (url: string) => {
+      if (!product || !url.trim()) return;
+
+      try {
+        setImageRemoving(true);
+        const patch = buildProductImagesRemovePatch(product, url);
+        const result = await updateProduct(product.id, patch);
+        if (!result.success) throw new Error(result.error ?? 'Update failed');
+
+        try {
+          await deleteProductImageByUrl(url);
+        } catch (storageErr) {
+          console.warn('Storage delete failed (gallery updated):', storageErr);
+        }
+
+        await refreshProduct();
+        toast.success('Image removed.');
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to remove image');
+      } finally {
+        setImageRemoving(false);
+      }
+    },
+    [product, updateProduct, refreshProduct, toast]
+  );
+
+  const handleSetDefaultImage = useCallback(async () => {
+    if (!product) return;
+    const entries = normalizeProductImages(product);
+    const entry = entries[selectedImageIndex];
+    if (!entry) return;
+    if (product.image_url?.trim() === entry.url) return;
 
     try {
-      setImageUploading(true);
-      const url = await uploadProductImage(tenant_id, file);
-      const result = await updateProduct(product.id, { image_url: url });
+      setSettingDefault(true);
+      const result = await updateProduct(product.id, productImageDefaultPatch(entry.url));
       if (!result.success) throw new Error(result.error ?? 'Update failed');
       await refreshProduct();
-      toast.success('Image updated.');
+      toast.success('Default image updated.');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to upload image');
+      toast.error(err instanceof Error ? err.message : 'Failed to set default image');
     } finally {
-      setImageUploading(false);
+      setSettingDefault(false);
     }
-  };
+  }, [product, selectedImageIndex, updateProduct, refreshProduct, toast]);
 
   const handleArchive = (p: Product) => {
     setOverflowOpen(false);
@@ -291,199 +395,130 @@ export default function ProductDetailPage() {
     </div>
   ) : null;
 
-  const loadingTitleSlot = (
-    <div className="flex min-w-0 items-center gap-3">
-      <div className={bc.iconTile}>
-        <Package2 className={`h-5 w-5 ${bc.iconColor}`} aria-hidden />
-      </div>
-      <div className="min-w-0">
-        <h1 className={`truncate ${premiumTypography.pageTitle} ${bc.titleText}`}>Product</h1>
-        <p className={`mt-0.5 ${premiumTypography.pageSubtitle} ${bc.subtitleTint}`}>Loading…</p>
-      </div>
-    </div>
-  );
-
-  const heroTitleSlot =
-    product &&
-    (() => {
-      const primaryImage = getProductPrimaryImageUrl(product);
-      const stock = getProductStockStatus(product);
-      const borderAccent = stockHeroBorderClass(stock.bucket);
-      const isArchived = Boolean(product.is_deleted);
-      const tracked = productTracksInventory(product);
-      const totalStockDisplay =
-        product.total_stock != null && tracked ? String(product.total_stock) : tracked ? '0' : '—';
-
-      return (
-        <div
-          className={`relative rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900/80 border-l-[5px] ${borderAccent}`}
-        >
-          <div className="flex flex-wrap gap-4 p-4 sm:gap-5">
-            <div className="flex shrink-0 flex-col items-center gap-2">
-              <div className="h-28 w-28 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 shadow-inner dark:border-gray-600 dark:bg-gray-950">
-                {primaryImage ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={primaryImage}
-                    alt=""
-                    className="h-full w-full object-cover"
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center">
-                    <Package2 className="h-10 w-10 text-gray-400" aria-hidden />
-                  </div>
-                )}
-              </div>
-              <input
-                ref={imageInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                className="sr-only"
-                aria-hidden
-                onChange={(e) => void handleImageChange(e)}
-              />
+  const renderSummaryCard = (p: Product) => {
+    const entries = p.id === product?.id ? galleryEntries : normalizeProductImages(p);
+    const stock = getProductStockStatus(p);
+    const isArchived = Boolean(p.is_deleted);
+    return (
+      <ProductRecordSummaryCard
+        product={p}
+        title={p.name}
+        subtitle={
+          <>
+            SKU {p.sku || '—'} · {p.currency?.trim() || 'GBP'}
+          </>
+        }
+        updatedAt={formatShortDate(p.updated_at)}
+        accentClassName={stockRecordBorderClass(stock.bucket)}
+        imagePanel={
+          <ProductImageGallery
+            entries={entries}
+            defaultUrl={p.image_url}
+            selectedIndex={
+              p.id === product?.id ? selectedImageIndex : getDefaultImageIndex(entries, p.image_url)
+            }
+            onSelectIndex={p.id === product?.id ? setSelectedImageIndex : () => {}}
+            onUpload={handleImageUpload}
+            onSetDefault={handleSetDefaultImage}
+            onRemove={mediaDisabled ? undefined : handleImageRemove}
+            uploading={imageUploading}
+            settingDefault={settingDefault}
+            removing={imageRemoving}
+            disabled={mediaDisabled}
+          />
+        }
+        actions={
+          <>
+            <ArchiveRestoreActions
+              entity={p}
+              isArchived={isArchived}
+              onArchive={handleArchive}
+              onRestore={handleRestore}
+              archiveTitle="Archive: keep data but hide from default lists."
+              restoreTitle="Restore this product to the active catalog."
+            />
+            <div className="relative" ref={overflowRef}>
               <button
                 type="button"
-                disabled={imageUploading}
-                onClick={handlePickImage}
-                className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-2 py-1 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                aria-expanded={overflowOpen}
+                aria-haspopup="menu"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOverflowOpen((o) => !o);
+                }}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+                title="More actions"
               >
-                {imageUploading ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-                ) : (
-                  <Upload className="h-3.5 w-3.5" aria-hidden />
-                )}
-                {imageUploading ? 'Uploading…' : 'Change image'}
+                <MoreVertical className="h-4 w-4" aria-hidden />
               </button>
-            </div>
-
-            <div className="min-w-0 flex-1 space-y-2">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <h1
-                    className={`${premiumTypography.pageTitle} leading-tight text-gray-950 dark:text-white`}
+              {overflowOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 z-40 mt-1 min-w-[11rem] overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-600 dark:bg-gray-900"
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled
+                    title="Coming soon"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-400 dark:text-gray-500"
                   >
-                    {product.name}
-                  </h1>
-                  <p
-                    className={`mt-0.5 text-sm ${bc.subtitleTint} ${premiumTypography.pageSubtitle}`}
+                    <Copy className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
+                    Duplicate
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-800 hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-gray-800"
+                    onClick={exportProductCsv}
                   >
-                    SKU {product.sku || '—'}
-                    {' · '}
-                    {product.currency?.trim() || 'GBP'}
-                  </p>
-                  <dl className={`mt-2 flex flex-wrap gap-x-4 gap-y-1 ${premiumTypography.helper}`}>
-                    <div className="flex gap-1.5 whitespace-nowrap text-gray-600 dark:text-gray-400">
-                      <dt className="font-semibold text-gray-800 dark:text-gray-200">
-                        Total stock
-                      </dt>
-                      <dd className="tabular-nums">{totalStockDisplay}</dd>
-                    </div>
-                    <div className="flex gap-1.5 whitespace-nowrap text-gray-600 dark:text-gray-400">
-                      <dt className="font-semibold text-gray-800 dark:text-gray-200">
-                        Active barcodes
-                      </dt>
-                      <dd className="tabular-nums">
-                        {detailCounts ? detailCounts.activeBarcodes : '—'}
-                      </dd>
-                    </div>
-                    <div className="flex gap-1.5 whitespace-nowrap text-gray-600 dark:text-gray-400">
-                      <dt className="font-semibold text-gray-800 dark:text-gray-200">
-                        Linked suppliers
-                      </dt>
-                      <dd className="tabular-nums">
-                        {detailCounts ? detailCounts.linkedSuppliers : '—'}
-                      </dd>
-                    </div>
-                    <div className="flex min-w-[10rem] gap-1.5 text-gray-600 dark:text-gray-400">
-                      <dt className="shrink-0 font-semibold text-gray-800 dark:text-gray-200">
-                        Last updated
-                      </dt>
-                      <dd className="min-w-0 truncate">{formatShortDate(product.updated_at)}</dd>
-                    </div>
-                  </dl>
-                  {isArchived && (
-                    <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-400">
-                      Archived — hidden from default catalog lists.
-                    </p>
+                    <FileDown className="h-4 w-4 shrink-0" aria-hidden />
+                    Export CSV
+                  </button>
+                  {!isArchived && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                      onClick={() => handleArchive(p)}
+                    >
+                      <Trash2 className="h-4 w-4 shrink-0" aria-hidden />
+                      Delete
+                    </button>
                   )}
                 </div>
-
-                <div className="flex shrink-0 flex-col items-end gap-2">
-                  <div className="flex flex-wrap items-center justify-end gap-2">
-                    <ArchiveRestoreActions
-                      entity={product}
-                      isArchived={isArchived}
-                      onArchive={handleArchive}
-                      onRestore={handleRestore}
-                      archiveTitle="Archive: keep data but hide from default lists."
-                      restoreTitle="Restore this product to the active catalog."
-                    />
-
-                    <div className="relative" ref={overflowRef}>
-                      <button
-                        type="button"
-                        aria-expanded={overflowOpen}
-                        aria-haspopup="menu"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOverflowOpen((o) => !o);
-                        }}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
-                        title="More actions"
-                      >
-                        <MoreVertical className="h-4 w-4" aria-hidden />
-                      </button>
-                      {overflowOpen && (
-                        <div
-                          role="menu"
-                          className="absolute right-0 z-40 mt-1 min-w-[11rem] overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-600 dark:bg-gray-900"
-                          onMouseDown={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            type="button"
-                            role="menuitem"
-                            disabled
-                            title="Coming soon"
-                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-400 dark:text-gray-500"
-                          >
-                            <Copy className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
-                            Duplicate
-                          </button>
-                          <button
-                            type="button"
-                            role="menuitem"
-                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-800 hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-gray-800"
-                            onClick={exportProductCsv}
-                          >
-                            <FileDown className="h-4 w-4 shrink-0" aria-hidden />
-                            Export CSV
-                          </button>
-                          {!isArchived && (
-                            <button
-                              type="button"
-                              role="menuitem"
-                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
-                              onClick={() => handleArchive(product)}
-                            >
-                              <Trash2 className="h-4 w-4 shrink-0" aria-hidden />
-                              Delete
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <EntityStatusBadge status={product.status} statusMap={PRODUCT_STATUS_MAP} />
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
-          </div>
-        </div>
-      );
-    })();
+          </>
+        }
+        footer={
+          isArchived ? (
+            <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+              Archived — hidden from default catalog lists.
+            </p>
+          ) : undefined
+        }
+        isArchived={isArchived}
+        statusUpdating={statusUpdating}
+        onStatusChange={(s) => void handleStatusChange(s)}
+        onUsageUpdate={handleUsageUpdate}
+        recordNav={
+          recordNav.total > 0
+            ? {
+                index: recordNav.index,
+                total: recordNav.total,
+                prevId: recordNav.prevId,
+                nextId: recordNav.nextId,
+                isLoading: recordNav.isLoading,
+                onNavigate: (id) => router.push(`/products/${id}`),
+              }
+            : undefined
+        }
+        className="mb-0 shrink-0"
+      />
+    );
+  };
 
   return (
     <ProtectedRoute>
@@ -493,23 +528,29 @@ export default function ProductDetailPage() {
           module="businessCore"
           backHref="/products"
           backLabel="Products"
-          {...(product && !isLoading
-            ? { titleSlot: heroTitleSlot }
-            : error && !isLoading
+          className="!mb-0 !border-b-0 !py-0 [&_a]:!mb-1"
+          {...(error && !isLoading
+            ? {
+                icon: Package2,
+                title: 'Product',
+                subtitle: typeof error === 'string' ? error : 'Unable to load this product',
+                subtitleClassName: `${premiumTypography.pageSubtitle} ${bc.subtitleTint}`,
+              }
+            : isLoading
               ? {
                   icon: Package2,
                   title: 'Product',
-                  subtitle: typeof error === 'string' ? error : 'Unable to load this product',
+                  subtitle: 'Loading…',
                   subtitleClassName: `${premiumTypography.pageSubtitle} ${bc.subtitleTint}`,
                 }
-              : isLoading
-                ? { titleSlot: loadingTitleSlot }
-                : {
+              : !product
+                ? {
                     icon: Package2,
                     title: 'Product',
                     subtitle: 'Select a product from the list',
                     subtitleClassName: `${premiumTypography.pageSubtitle} ${bc.subtitleTint}`,
-                  })}
+                  }
+                : {})}
         />
 
         {pageError && (
@@ -554,7 +595,8 @@ export default function ProductDetailPage() {
           )}
 
           {!isLoading && product && (
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden pt-2">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+              {renderSummaryCard(product)}
               <ProductDetailsTabs
                 product={product}
                 onProductUpdated={handleProductUpdated}
