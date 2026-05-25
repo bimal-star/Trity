@@ -186,7 +186,6 @@ export function useCustomers(
       const { error: err } = await tenantedSupabase
         .from('customers')
         .update({
-          customer_code: d.customer_code !== undefined ? d.customer_code : undefined,
           customer_type: d.customer_type !== undefined ? d.customer_type : undefined,
           logo_url: d.logo_url !== undefined ? d.logo_url : undefined,
           email: d.email,

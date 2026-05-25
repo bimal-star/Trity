@@ -6,6 +6,7 @@ import { getProductPrimaryImageUrl } from '@/lib/productImageStorage';
 import { getProductListColumnUi } from '@/lib/productListColumnCatalog';
 import { getProductStockStatus } from '@/lib/productStockStatus';
 import { premiumTypography } from '@/lib/premiumUi';
+import ProductListCategoriesCell from '@/components/products/ProductListCategoriesCell';
 import { Tooltip } from '@/src/components/common/Tooltip';
 
 export function formatProductTypeLabel(t: ProductType): string {
@@ -100,7 +101,7 @@ function renderIconStatusCell(
     label: key ? key.replace(/_/g, ' ') : 'Unknown',
   };
   return (
-    <td key={columnId} className={`px-2 py-2 ${premiumTypography.tableCell}`}>
+    <td key={columnId} className={`px-2 py-1 ${premiumTypography.tableCell}`}>
       <Tooltip label={entry.label}>
         <span className="inline-flex cursor-default items-center justify-center py-0.5">
           <span
@@ -120,7 +121,7 @@ function renderBooleanCell(columnId: string, ctx: CellCtx): ReactNode {
   const on = raw === true;
   const label = on ? 'Yes' : 'No';
   return (
-    <td key={columnId} className={`px-2 py-2 ${premiumTypography.tableCell}`}>
+    <td key={columnId} className={`px-2 py-1 ${premiumTypography.tableCell}`}>
       <Tooltip label={label}>
         <span className="inline-flex cursor-default items-center justify-center py-0.5 text-gray-600 dark:text-gray-400">
           {on ? (
@@ -145,7 +146,7 @@ function renderCurrencyCell(columnId: string, ctx: CellCtx): ReactNode {
   return (
     <td
       key={columnId}
-      className={`whitespace-nowrap px-2 py-2 tabular-nums text-gray-800 dark:text-gray-100 ${premiumTypography.tableCell}`}
+      className={`whitespace-nowrap px-2 py-1 tabular-nums text-gray-800 dark:text-gray-100 ${premiumTypography.tableCell}`}
     >
       {formatCurrencyColumnDisplay(amount, cur)}
     </td>
@@ -166,7 +167,7 @@ function renderBadgeCell(
       'border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-600 dark:bg-gray-900/40 dark:text-gray-300',
   };
   return (
-    <td key={columnId} className={`px-2 py-2 ${premiumTypography.tableCell}`}>
+    <td key={columnId} className={`px-2 py-1 ${premiumTypography.tableCell}`}>
       <span
         className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${entry.className}`}
       >
@@ -188,7 +189,7 @@ export function renderProductListTableCell(
       return (
         <td
           key={columnId}
-          className="px-2 py-1.5 align-middle"
+          className="px-2 py-1 align-middle"
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
         >
@@ -205,7 +206,7 @@ export function renderProductListTableCell(
     case '_thumbnail': {
       const thumb = getProductPrimaryImageUrl(p);
       return (
-        <td key={columnId} className="px-1 py-1 align-middle">
+        <td key={columnId} className="px-1 py-0.5 align-middle">
           <button
             type="button"
             className="h-11 w-11 overflow-hidden rounded-lg border border-gray-200 bg-gray-50 dark:border-gray-600 dark:bg-gray-900"
@@ -224,22 +225,20 @@ export function renderProductListTableCell(
         </td>
       );
     }
-    case 'categories': {
-      const cat = p.categories?.length ? p.categories.slice(0, 2).join(' · ') : '—';
+    case 'categories':
       return (
         <td
           key={columnId}
-          className={`truncate px-2 py-2 text-gray-600 dark:text-gray-400 ${premiumTypography.tableCell}`}
+          className={`overflow-hidden px-2 py-1 text-gray-600 dark:text-gray-400 ${premiumTypography.tableCell}`}
         >
-          {cat}
+          <ProductListCategoriesCell categories={p.categories} />
         </td>
       );
-    }
     case 'product_group':
       return (
         <td
           key={columnId}
-          className={`truncate px-2 py-2 text-gray-600 dark:text-gray-400 ${premiumTypography.tableCell}`}
+          className={`truncate px-2 py-1 text-gray-600 dark:text-gray-400 ${premiumTypography.tableCell}`}
         >
           {p.product_group_name?.trim() || '—'}
         </td>
@@ -248,7 +247,7 @@ export function renderProductListTableCell(
       return (
         <td
           key={columnId}
-          className={`truncate px-2 py-2 capitalize text-gray-600 dark:text-gray-400 ${premiumTypography.tableCell}`}
+          className={`truncate px-2 py-1 capitalize text-gray-600 dark:text-gray-400 ${premiumTypography.tableCell}`}
         >
           {formatProductTypeLabel(p.product_type)}
         </td>
@@ -257,7 +256,7 @@ export function renderProductListTableCell(
       return (
         <td
           key={columnId}
-          className={`whitespace-nowrap px-2 py-2 tabular-nums text-gray-800 dark:text-gray-100 ${premiumTypography.tableCell}`}
+          className={`whitespace-nowrap px-2 py-1 tabular-nums text-gray-800 dark:text-gray-100 ${premiumTypography.tableCell}`}
         >
           {formatMoney(p.sell_price, currencyCode)}
         </td>
@@ -266,7 +265,7 @@ export function renderProductListTableCell(
       return (
         <td
           key={columnId}
-          className={`truncate px-2 py-2 font-medium text-gray-900 dark:text-white ${premiumTypography.tableCell}`}
+          className={`truncate px-2 py-1 font-medium text-gray-900 dark:text-white ${premiumTypography.tableCell}`}
         >
           {p.sku}
         </td>
@@ -275,7 +274,7 @@ export function renderProductListTableCell(
       return (
         <td
           key={columnId}
-          className={`truncate px-2 py-2 text-gray-900 dark:text-gray-50 ${premiumTypography.tableCell}`}
+          className={`truncate px-2 py-1 text-gray-900 dark:text-gray-50 ${premiumTypography.tableCell}`}
         >
           {p.name}
         </td>
@@ -303,7 +302,7 @@ export function renderProductListTableCell(
   return (
     <td
       key={columnId}
-      className={`max-w-[16rem] truncate px-2 py-2 text-gray-700 dark:text-gray-300 ${premiumTypography.tableCell}`}
+      className={`max-w-[16rem] truncate px-2 py-1 text-gray-700 dark:text-gray-300 ${premiumTypography.tableCell}`}
     >
       {formatScalar(p, columnId)}
     </td>

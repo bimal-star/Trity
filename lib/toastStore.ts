@@ -4,7 +4,12 @@
  * `vitest.config.ts`.
  */
 
-export type ToastVariant = 'success' | 'error' | 'info';
+export type ToastVariant = 'success' | 'warning' | 'error' | 'info';
+
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
 
 export interface ToastItem {
   id: number;
@@ -13,6 +18,7 @@ export interface ToastItem {
   createdAt: number;
   /** ms until auto-dismiss. `null` or <=0 means "keep until manually dismissed". */
   duration: number | null;
+  action?: ToastAction;
 }
 
 export interface ToastStoreOptions {
@@ -29,12 +35,14 @@ export interface AddToastInput {
   message: string;
   /** Override default duration (ms). Pass `null` or 0 to require manual dismiss. */
   duration?: number | null;
+  action?: ToastAction;
 }
 
-const DEFAULT_DURATIONS: Record<ToastVariant, number> = {
+const DEFAULT_DURATIONS: Record<ToastVariant, number | null> = {
   success: 4000,
   info: 4000,
-  error: 6000,
+  warning: null,
+  error: null,
 };
 
 const DEFAULT_MAX_STACK = 5;
@@ -66,7 +74,7 @@ export function createToastStore(options: ToastStoreOptions = {}): ToastStore {
     for (const listener of listeners) listener(toasts);
   };
 
-  const add = ({ variant, message, duration }: AddToastInput) => {
+  const add = ({ variant, message, duration, action }: AddToastInput) => {
     const id = nextId++;
     const resolvedDuration = duration === undefined ? defaults[variant] : duration;
     const item: ToastItem = {
@@ -75,6 +83,7 @@ export function createToastStore(options: ToastStoreOptions = {}): ToastStore {
       message,
       createdAt: now(),
       duration: resolvedDuration ?? null,
+      ...(action ? { action } : {}),
     };
     const next = [...toasts, item];
     toasts = next.length > maxStack ? next.slice(next.length - maxStack) : next;

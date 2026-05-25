@@ -221,3 +221,30 @@ export function pillarSectionRowItems(
   });
   return orphans.sort((a, b) => comparePositions(a.position, b.position));
 }
+
+/**
+ * Enabled direct children for a row-2 section tab flyout.
+ * Uses nested `children` when present; otherwise resolves by position parent
+ * (covers rows listed via position fallback while the organized link is incomplete).
+ */
+export function enabledSectionChildren(
+  item: NavigationItem,
+  navigationItems: NavigationItem[] | null | undefined
+): NavigationItem[] {
+  const fromTree = (item.children ?? []).filter((c) => c.is_enabled !== false);
+  if (fromTree.length > 0) {
+    return [...fromTree].sort((a, b) => comparePositions(a.position, b.position));
+  }
+  if (!navigationItems?.length) return [];
+
+  const parentPos = String(item.position ?? '').trim();
+  if (!parentPos) return [];
+
+  const byParent = flattenNavigationItems(navigationItems)
+    .filter(
+      (row) => row.is_enabled !== false && getParentPosition(String(row.position)) === parentPos
+    )
+    .sort((a, b) => comparePositions(a.position, b.position));
+
+  return byParent;
+}

@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { isSuperAdminSession } from '@/lib/permissions';
+import { isTenantInactiveError } from '@/lib/tenantAccess';
 import { useTenant } from '@/contexts/TenantContext';
 
 interface ProtectedRouteProps {
@@ -51,7 +52,9 @@ export function ProtectedRoute({
     profile,
     ready,
     error: tenantError,
+    tenantAccessBlocked,
     refreshTenant,
+    signOut,
   } = useTenant();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
@@ -125,6 +128,39 @@ export function ProtectedRoute({
 
   /** Super admin with no tenant (platform shell) must not hit the tenant-config error UI when `error` is stale or from another code path. */
   const isPlatformSuperShell = Boolean(user && !tenant_id && isAuthedSuperShell);
+
+  const isInactiveTenantBlock = tenantAccessBlocked || isTenantInactiveError(tenantError);
+
+  if (isInactiveTenantBlock && user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-900">
+        <div className="text-center max-w-md p-6">
+          <div
+            role="alert"
+            className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700/50 rounded-lg p-6"
+          >
+            <h2 className="text-xl font-semibold text-amber-900 dark:text-amber-100 mb-2">
+              Organization deactivated
+            </h2>
+            <p className="text-amber-800 dark:text-amber-200/90 mb-4">
+              {tenantError ||
+                'This organization has been deactivated. Contact your administrator or support if you need access.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                void signOut();
+                router.push('/login');
+              }}
+              className="px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:bg-amber-600 dark:hover:bg-amber-500"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Show error if tenant is required but missing or context reported a config error
   if (

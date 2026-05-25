@@ -123,9 +123,7 @@ export async function upsertProductCategoryAssignments(
     is_primary: a.is_primary ?? false,
   }));
 
-  const { error } = await supabase
-    .from('product_category_assignments')
-    .upsert(rows, { onConflict: 'product_id,category_node_id' });
+  const { error } = await supabase.from('product_category_assignments').insert(rows);
 
   if (error) throw new Error(error.message);
 }
@@ -156,7 +154,8 @@ export async function saveProductCategories(
       continue;
     }
 
-    if (!tier.is_multi_select && tierAssignments.length > 1) {
+    const allowsMultiple = tier.is_multi_select || tier.tier_number === 1;
+    if (!allowsMultiple && tierAssignments.length > 1) {
       errors.push({
         tier_number: tierNum,
         message: `Tier "${tier.name}" only allows a single selection.`,

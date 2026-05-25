@@ -26,6 +26,11 @@ import {
 } from '@/lib/tenantCache';
 import { type CatalogueMode, normalizeCatalogueMode } from '@/lib/productCatalogue';
 import { getImpersonationFromSession, endTenantImpersonation } from '@/lib/impersonation';
+import {
+  TENANT_STATUS_CHANGED_EVENT,
+  evaluateTenantAccess,
+  fetchTenantIsActive,
+} from '@/lib/tenantAccess';
 
 /**
  * TenantContext - Global Authentication & Tenant State Provider
@@ -145,6 +150,16 @@ function writeWorkspaceStored(userId: string, id: string, label?: string | null)
   }
 }
 
+function readStoredWorkspaceForSuperAdmin(
+  userId: string,
+  authUser: User,
+  profile: UserProfile | null
+): { id: string; label?: string } | null {
+  if (!isSuperAdminSession(authUser, profile)) return null;
+  if (typeof localStorage === 'undefined') return null;
+  return parseWorkspaceStored(localStorage.getItem(workspaceStorageKey(userId)));
+}
+
 const PROFILE_FETCH_TIMEOUT_MS = 25_000;
 const NAV_FETCH_TIMEOUT_MS = 25_000;
 const SESSION_GET_TIMEOUT_MS = 3_000;
@@ -170,6 +185,7 @@ export type EffectiveTenantSurface = {
   mode: CatalogueMode;
   displayName: string | null;
   logoUrl: string | null;
+  isActive: boolean | null;
 };
 
 function tenantRowToSurface(data: Record<string, unknown> | null): EffectiveTenantSurface {
@@ -180,12 +196,21 @@ function tenantRowToSurface(data: Record<string, unknown> | null): EffectiveTena
   const name = typeof data?.name === 'string' && data.name.trim() ? data.name.trim() : null;
   const logoRaw =
     typeof data?.logo_url === 'string' && data.logo_url.trim() ? data.logo_url.trim() : null;
+  const isActiveRaw = data?.is_active;
+  const isActive =
+    typeof isActiveRaw === 'boolean'
+      ? isActiveRaw
+      : isActiveRaw == null
+        ? null
+        : Boolean(isActiveRaw);
+
   return {
     mode: normalizeCatalogueMode(
       typeof data?.catalogue_mode === 'string' ? data.catalogue_mode : undefined
     ),
     displayName: company || name,
     logoUrl: logoRaw,
+    isActive,
   };
 }
 
@@ -193,13 +218,13 @@ async function fetchEffectiveTenantSurface(tenantId: string): Promise<EffectiveT
   try {
     const { data, error } = await supabase
       .from('tenants')
-      .select('catalogue_mode, name, company_name, logo_url')
+      .select('catalogue_mode, name, company_name, logo_url, is_active')
       .eq('id', tenantId)
       .maybeSingle();
     if (error) throw error;
     return tenantRowToSurface((data as Record<string, unknown>) ?? null);
   } catch {
-    return { mode: 'simple', displayName: null, logoUrl: null };
+    return { mode: 'simple', displayName: null, logoUrl: null, isActive: null };
   }
 }
 
@@ -252,6 +277,8 @@ export interface TenantContextType {
    * Logged-in: ready even without tenant_id (e.g. platform super_admin shell). */
   ready: boolean;
   error: string | null;
+  /** True when the user's home tenant is inactive and they are not a platform super admin. */
+  tenantAccessBlocked: boolean;
   /** Tenant features (navigation items). Cached in memory; refetch only on session/tenant change. */
   navigationItems: NavigationItem[] | null;
   navigationError: Error | null;
@@ -267,6 +294,8 @@ export interface TenantContextType {
   /** Super-admin JWT impersonation (see `lib/impersonation.ts`). */
   impersonation: { targetTenantId: string; readOnly: boolean } | null;
   endTenantImpersonation: () => Promise<void>;
+  /** False until super-admin stored workspace (if any) is applied on boot. */
+  workspaceHydrated: boolean;
 }
 
 const TenantContext = createContext<TenantContextType>({
@@ -281,6 +310,7 @@ const TenantContext = createContext<TenantContextType>({
   isLoading: true,
   ready: false,
   error: null,
+  tenantAccessBlocked: false,
   navigationItems: null,
   navigationError: null,
   catalogue_mode: 'simple',
@@ -291,6 +321,7 @@ const TenantContext = createContext<TenantContextType>({
   signOut: async () => {},
   impersonation: null,
   endTenantImpersonation: async () => {},
+  workspaceHydrated: false,
 });
 
 async function fetchNavigation(
@@ -367,8 +398,11 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   const [catalogueMode, setCatalogueMode] = useState<CatalogueMode>('simple');
   const [effectiveTenantDisplayName, setEffectiveTenantDisplayName] = useState<string | null>(null);
   const [effectiveTenantLogoUrl, setEffectiveTenantLogoUrl] = useState<string | null>(null);
+  const [workspaceHydrated, setWorkspaceHydrated] = useState(false);
+  const [tenantAccessBlocked, setTenantAccessBlocked] = useState(false);
 
   const lastNavigationFetchAt = useRef(0);
+  const forceAccessRecheckRef = useRef(false);
   const hasUserAndTenantRef = useRef(false);
   const hasSignedOutRef = useRef(false);
   /** In-memory cache: we only re-fetch tenant/profile/features when session or tenant_id changes. */
@@ -541,8 +575,13 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     (targetId: string, displayLabel?: string | null) => {
       if (!user || !isValidTenantId(targetId)) return;
       if (!isSuperAdminSession(user, profileRef.current)) return;
+      const label = displayLabel?.trim() || null;
       setWorkspaceTenantId(targetId);
-      setWorkspaceTenantLabel(displayLabel?.trim() || null);
+      setWorkspaceTenantLabel(label);
+      if (label) {
+        setEffectiveTenantDisplayName(label);
+      }
+      setWorkspaceHydrated(true);
       writeWorkspaceStored(user.id, targetId, displayLabel);
       tenantedSupabase.setTenantId(targetId);
       void Promise.all([
@@ -550,7 +589,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         fetchEffectiveTenantSurface(targetId).then((s) => {
           if (hasSignedOutRef.current) return;
           setCatalogueMode(s.mode);
-          setEffectiveTenantDisplayName(s.displayName);
+          setEffectiveTenantDisplayName(s.displayName ?? label);
           setEffectiveTenantLogoUrl(s.logoUrl);
         }),
       ]);
@@ -562,6 +601,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     if (!user) return;
     setWorkspaceTenantId(null);
     setWorkspaceTenantLabel(null);
+    setWorkspaceHydrated(true);
     try {
       localStorage.removeItem(workspaceStorageKey(user.id));
     } catch {
@@ -642,6 +682,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         // Stable check: same user ID and already loaded → no re-fetch. Ensures session
         // refresh / tab return never triggers profile/tenant/features reload.
         if (
+          !forceAccessRecheckRef.current &&
           currentUser.id === lastUserIdRef.current &&
           profileLoadedRef.current &&
           (lastTenantIdRef.current || superAdminNoTenantRef.current)
@@ -649,13 +690,23 @@ export function TenantProvider({ children }: { children: ReactNode }) {
           console.log('✓ Using cached tenant data, no re-fetch needed');
           if (!navigationHydratedRef.current) {
             if (lastTenantIdRef.current) {
-              await loadNavigation(background, lastTenantIdRef.current);
+              await loadNavigation(
+                background,
+                workspaceTenantIdRef.current ?? lastTenantIdRef.current
+              );
             } else if (superAdminNoTenantRef.current) {
               await loadNavigation(background, null);
             }
           }
-          if (!background) setIsLoading(false);
+          if (!background) {
+            setWorkspaceHydrated(true);
+            setIsLoading(false);
+          }
           return;
+        }
+
+        if (forceAccessRecheckRef.current) {
+          forceAccessRecheckRef.current = false;
         }
 
         console.log('📊 Fetching profile and tenant...');
@@ -750,6 +801,40 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
         if (hasSignedOutRef.current) return;
 
+        const effectiveProfile = userProfile ?? profileRef.current;
+        const isPlatformSuper = isSuperAdminSession(currentUser, effectiveProfile);
+        const homeTenantActive = await fetchTenantIsActive(supabase, tid);
+        const accessGate = evaluateTenantAccess(homeTenantActive, isPlatformSuper);
+        if (!accessGate.allowed) {
+          hasUserAndTenantRef.current = false;
+          superAdminNoTenantRef.current = false;
+          lastUserIdRef.current = currentUser.id;
+          lastTenantIdRef.current = null;
+          profileLoadedRef.current = Boolean(userProfile);
+          setUser(currentUser);
+          if (userProfile) setProfile(userProfile);
+          setTenantId(null);
+          setWorkspaceTenantId(null);
+          setWorkspaceTenantLabel(null);
+          tenantedSupabase.setTenantId(null);
+          clearTenantCache();
+          setCatalogueMode('simple');
+          setEffectiveTenantDisplayName(null);
+          setEffectiveTenantLogoUrl(null);
+          setNavigationItems([]);
+          navigationHydratedRef.current = true;
+          setNavigationError(null);
+          setTenantAccessBlocked(true);
+          setError(accessGate.message);
+          if (!background) {
+            setWorkspaceHydrated(true);
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        setTenantAccessBlocked(false);
+
         const prevTenantId = lastTenantIdRef.current;
         hasUserAndTenantRef.current = true;
         superAdminNoTenantRef.current = false;
@@ -764,18 +849,34 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         setTenantCache(currentUser.id, tid);
         console.log('✓ User authenticated with tenant:', tid);
 
+        const storedWorkspace = readStoredWorkspaceForSuperAdmin(
+          currentUser.id,
+          currentUser,
+          effectiveProfile
+        );
+        if (storedWorkspace) {
+          setWorkspaceTenantId(storedWorkspace.id);
+          setWorkspaceTenantLabel(storedWorkspace.label ?? null);
+          if (storedWorkspace.label) {
+            setEffectiveTenantDisplayName(storedWorkspace.label);
+          }
+          lastRestoredWorkspaceUserRef.current = currentUser.id;
+          tenantedSupabase.setTenantId(storedWorkspace.id);
+        }
+        const navTenantId = storedWorkspace?.id ?? tid;
+
         const sessionOrTenantChanged = userChanged || prevTenantId !== tid;
         const navPromise = (async () => {
-          if (tid !== tidHint) {
-            await loadNavigation(background, tid);
+          if (navTenantId !== tidHint) {
+            await loadNavigation(background, navTenantId);
           } else if (!tidHint && (sessionOrTenantChanged || !navigationHydratedRef.current)) {
-            await loadNavigation(background, tid);
+            await loadNavigation(background, navTenantId);
           }
         })();
-        const surfacePromise = fetchEffectiveTenantSurface(tid).then((s) => {
+        const surfacePromise = fetchEffectiveTenantSurface(navTenantId).then((s) => {
           if (hasSignedOutRef.current) return;
           setCatalogueMode(s.mode);
-          setEffectiveTenantDisplayName(s.displayName);
+          setEffectiveTenantDisplayName(s.displayName ?? storedWorkspace?.label ?? null);
           setEffectiveTenantLogoUrl(s.logoUrl);
         });
         await Promise.all([navPromise, surfacePromise]);
@@ -827,13 +928,54 @@ export function TenantProvider({ children }: { children: ReactNode }) {
           }
         }
       } finally {
-        if (!background) setIsLoading(false);
+        if (!background) {
+          setWorkspaceHydrated(true);
+          setIsLoading(false);
+        }
       }
     },
     [fetchTenantId, fetchProfile, loadNavigation]
   );
 
   const refreshTenant = useCallback(() => revalidate(false), [revalidate]);
+
+  const recheckTenantAccess = useCallback(async () => {
+    const uid = lastUserIdRef.current;
+    const currentUser = user;
+    const currentProfile = profileRef.current;
+    const tid =
+      lastTenantIdRef.current ??
+      (currentProfile?.tenant_id && isValidTenantId(currentProfile.tenant_id)
+        ? currentProfile.tenant_id
+        : null);
+    if (!uid || !tid || !currentUser) return;
+
+    const isPlatformSuper = isSuperAdminSession(currentUser, currentProfile);
+    const homeTenantActive = await fetchTenantIsActive(supabase, tid);
+    const accessGate = evaluateTenantAccess(homeTenantActive, isPlatformSuper);
+
+    if (!accessGate.allowed) {
+      hasUserAndTenantRef.current = false;
+      lastTenantIdRef.current = null;
+      setTenantId(null);
+      setWorkspaceTenantId(null);
+      setWorkspaceTenantLabel(null);
+      tenantedSupabase.setTenantId(null);
+      clearTenantCache();
+      setTenantAccessBlocked(true);
+      setError(accessGate.message);
+      setNavigationItems([]);
+      navigationHydratedRef.current = true;
+      return;
+    }
+
+    if (tenantAccessBlocked) {
+      setTenantAccessBlocked(false);
+      setError(null);
+      forceAccessRecheckRef.current = true;
+      await revalidate(false);
+    }
+  }, [user, revalidate, tenantAccessBlocked]);
 
   const refreshCatalogueMode = useCallback(async () => {
     const tid = effectiveTenantIdRef.current;
@@ -888,6 +1030,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       setEffectiveTenantDisplayName(null);
       setEffectiveTenantLogoUrl(null);
       setError(null);
+      setTenantAccessBlocked(false);
       setNavigationItems(null);
       setNavigationError(null);
       navigationHydratedRef.current = false;
@@ -940,6 +1083,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         session = null;
       }
       if (cancelled) {
+        setWorkspaceHydrated(true);
         setIsLoading(false);
         return;
       }
@@ -956,6 +1100,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         setNavigationError(null);
         navigationHydratedRef.current = false;
         clearTenantCache();
+        setWorkspaceHydrated(true);
         setIsLoading(false);
         return;
       }
@@ -972,14 +1117,33 @@ export function TenantProvider({ children }: { children: ReactNode }) {
           lastUserIdRef.current = session.user.id;
           lastTenantIdRef.current = cache.tenant_id;
 
-          const [userProfile, navResult, surface] = await Promise.all([
-            fetchProfile(session.user.id, {
+          const [userProfile, navResult, surface] = await (async () => {
+            const profileResult = await fetchProfile(session.user.id, {
               authUser: session.user,
               tenantIdHint: cache.tenant_id,
-            }),
-            fetchNavigation(cache.tenant_id),
-            fetchEffectiveTenantSurface(cache.tenant_id),
-          ]);
+            });
+
+            const storedWorkspace = profileResult
+              ? readStoredWorkspaceForSuperAdmin(session.user.id, session.user, profileResult)
+              : null;
+
+            if (storedWorkspace) {
+              setWorkspaceTenantId(storedWorkspace.id);
+              setWorkspaceTenantLabel(storedWorkspace.label ?? null);
+              if (storedWorkspace.label) {
+                setEffectiveTenantDisplayName(storedWorkspace.label);
+              }
+              lastRestoredWorkspaceUserRef.current = session.user.id;
+              tenantedSupabase.setTenantId(storedWorkspace.id);
+            }
+
+            const navTenantId = storedWorkspace?.id ?? cache.tenant_id;
+            const [nav, surf] = await Promise.all([
+              fetchNavigation(navTenantId),
+              fetchEffectiveTenantSurface(navTenantId),
+            ]);
+            return [profileResult, nav, surf] as const;
+          })();
 
           if (cancelled) {
             setIsLoading(false);
@@ -1002,13 +1166,17 @@ export function TenantProvider({ children }: { children: ReactNode }) {
           setNavigationError(navResult.error);
           // Only mark hydrated when we have a real outcome; otherwise a later revalidate must load.
           navigationHydratedRef.current = navResult.error != null || navResult.data != null;
+          const navTenantForFallback =
+            readStoredWorkspaceForSuperAdmin(session.user.id, session.user, userProfile)?.id ??
+            cache.tenant_id;
           if (!navigationHydratedRef.current) {
-            await loadNavigation(false, cache.tenant_id);
+            await loadNavigation(false, navTenantForFallback);
           }
           if (cancelled) {
             setIsLoading(false);
             return;
           }
+          setWorkspaceHydrated(true);
           setIsLoading(false);
           return;
         } catch (bootCacheErr) {
@@ -1060,6 +1228,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
         lastRestoredWorkspaceUserRef.current = null;
         setWorkspaceTenantId(null);
         setWorkspaceTenantLabel(null);
+        setWorkspaceHydrated(false);
         hasUserAndTenantRef.current = false;
         superAdminNoTenantRef.current = false;
         lastUserIdRef.current = null;
@@ -1086,6 +1255,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
           (lastTenantIdRef.current || superAdminNoTenantRef.current)
         ) {
           // Duplicate SIGNED_IN while already hydrated: never leave isLoading true (e.g. prior setIsLoading(true) + noop).
+          setWorkspaceHydrated(true);
           setIsLoading(false);
           return;
         }
@@ -1128,6 +1298,14 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   }, [loadNavigation]);
 
   useEffect(() => {
+    const onTenantStatus = () => {
+      void recheckTenantAccess();
+    };
+    window.addEventListener(TENANT_STATUS_CHANGED_EVENT, onTenantStatus);
+    return () => window.removeEventListener(TENANT_STATUS_CHANGED_EVENT, onTenantStatus);
+  }, [recheckTenantAccess]);
+
+  useEffect(() => {
     tenantedSupabase.setTenantId(effectiveTenantId);
   }, [effectiveTenantId]);
 
@@ -1158,27 +1336,34 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (isLoading || !user) return;
-    if (!platformSuperSession) return;
-    if (lastRestoredWorkspaceUserRef.current === user.id) return;
+    if (!platformSuperSession) {
+      setWorkspaceHydrated(true);
+      return;
+    }
+    if (lastRestoredWorkspaceUserRef.current === user.id) {
+      setWorkspaceHydrated(true);
+      return;
+    }
     lastRestoredWorkspaceUserRef.current = user.id;
-    const parsed = parseWorkspaceStored(
-      typeof localStorage !== 'undefined'
-        ? localStorage.getItem(workspaceStorageKey(user.id))
-        : null
-    );
+    const parsed = readStoredWorkspaceForSuperAdmin(user.id, user, profile);
     if (parsed) {
       setWorkspaceTenantId(parsed.id);
       setWorkspaceTenantLabel(parsed.label ?? null);
+      if (parsed.label) {
+        setEffectiveTenantDisplayName(parsed.label);
+      }
+      tenantedSupabase.setTenantId(parsed.id);
       void Promise.all([
         loadNavigation(false, parsed.id),
         fetchEffectiveTenantSurface(parsed.id).then((s) => {
           if (hasSignedOutRef.current) return;
           setCatalogueMode(s.mode);
-          setEffectiveTenantDisplayName(s.displayName);
+          setEffectiveTenantDisplayName(s.displayName ?? parsed.label ?? null);
           setEffectiveTenantLogoUrl(s.logoUrl);
         }),
       ]);
     }
+    setWorkspaceHydrated(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- user/profile via platformSuperSession + ids
   }, [isLoading, user?.id, profile?.user_id, platformSuperSession, loadNavigation]);
 
@@ -1218,6 +1403,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       isLoading,
       ready,
       error,
+      tenantAccessBlocked,
       navigationItems,
       navigationError,
       catalogue_mode: catalogueMode,
@@ -1228,6 +1414,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       signOut,
       impersonation: user ? getImpersonationFromSession(user) : null,
       endTenantImpersonation,
+      workspaceHydrated,
     }),
     [
       tenant_id,
@@ -1241,6 +1428,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       isLoading,
       ready,
       error,
+      tenantAccessBlocked,
       navigationItems,
       navigationError,
       catalogueMode,
@@ -1249,6 +1437,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
       refreshTenant,
       refreshCatalogueMode,
       signOut,
+      workspaceHydrated,
     ]
   );
 

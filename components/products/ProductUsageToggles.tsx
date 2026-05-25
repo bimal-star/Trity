@@ -1,7 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useCallback } from 'react';
 import PremiumSectionTitle from '@/components/layout/premium/PremiumSectionTitle';
 import type { Product, ProductFormData } from '@/types/product';
 export type ProductUsagePatch = Pick<
@@ -26,7 +25,6 @@ function UsageSwitchRow({
   description,
   checked,
   disabled,
-  isSaving,
   onChange,
 }: {
   id: string;
@@ -34,7 +32,6 @@ function UsageSwitchRow({
   description: string;
   checked: boolean;
   disabled: boolean;
-  isSaving: boolean;
   onChange: (next: boolean) => void;
 }) {
   return (
@@ -64,12 +61,6 @@ function UsageSwitchRow({
             className="pointer-events-none absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-4 peer-disabled:opacity-50"
           />
         </label>
-        {isSaving ? (
-          <Loader2
-            className="absolute right-0 h-3.5 w-3.5 animate-spin text-green-600 dark:text-green-400"
-            aria-hidden
-          />
-        ) : null}
       </div>
     </div>
   );
@@ -88,19 +79,12 @@ export default function ProductUsageToggles({
   onUpdate,
   className = '',
 }: ProductUsageTogglesProps) {
-  const [savingKey, setSavingKey] = useState<keyof ProductUsagePatch | null>(null);
-
   const handleToggle = useCallback(
     async (key: keyof ProductUsagePatch, next: boolean) => {
-      if (disabled || savingKey) return;
-      setSavingKey(key);
-      try {
-        await onUpdate({ [key]: next });
-      } finally {
-        setSavingKey(null);
-      }
+      if (disabled) return;
+      await onUpdate({ [key]: next });
     },
-    [disabled, onUpdate, savingKey]
+    [disabled, onUpdate]
   );
 
   return (
@@ -121,8 +105,7 @@ export default function ProductUsageToggles({
               label={label}
               description={description}
               checked={Boolean(product[key])}
-              disabled={disabled || Boolean(savingKey)}
-              isSaving={savingKey === key}
+              disabled={disabled}
               onChange={(next) => void handleToggle(key, next)}
             />
           );

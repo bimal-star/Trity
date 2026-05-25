@@ -48,7 +48,7 @@ function Main({ children }: { children: React.ReactNode }) {
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { ready, user } = useTenant();
+  const { ready, user, tenantAccessBlocked } = useTenant();
   const publicPaths = ['/login', '/reset-password'];
   const isPublicPage = publicPaths.includes(pathname);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -96,6 +96,14 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return <LayoutSkeleton />;
+  }
+
+  if (tenantAccessBlocked) {
+    return (
+      <div className="flex min-h-dvh flex-col bg-gray-50 dark:bg-gray-950">
+        <div className="flex min-h-0 w-full flex-1 flex-col">{children}</div>
+      </div>
+    );
   }
 
   return (

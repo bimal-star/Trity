@@ -20,12 +20,13 @@ describe('toast store', () => {
 
   it('applies per-variant default durations and allows overrides', () => {
     const store = createToastStore({
-      defaults: { success: 1000, error: 5000, info: 2000 },
+      defaults: { success: 1000, error: 5000, info: 2000, warning: 3000 },
       now: () => 0,
     });
 
     const okId = store.add({ variant: 'success', message: 'ok' });
     const errId = store.add({ variant: 'error', message: 'fail' });
+    const warnId = store.add({ variant: 'warning', message: 'warn' });
     const stickyId = store.add({
       variant: 'info',
       message: 'sticky',
@@ -40,8 +41,22 @@ describe('toast store', () => {
     const toasts = store.getToasts();
     expect(toasts.find((t) => t.id === okId)?.duration).toBe(1000);
     expect(toasts.find((t) => t.id === errId)?.duration).toBe(5000);
+    expect(toasts.find((t) => t.id === warnId)?.duration).toBe(3000);
     expect(toasts.find((t) => t.id === stickyId)?.duration).toBeNull();
     expect(toasts.find((t) => t.id === customId)?.duration).toBe(250);
+  });
+
+  it('defaults error and warning to manual dismiss', () => {
+    const store = createToastStore({ now: () => 0 });
+    const errId = store.add({ variant: 'error', message: 'fail' });
+    const warnId = store.add({ variant: 'warning', message: 'warn' });
+    const successId = store.add({ variant: 'success', message: 'ok' });
+    const infoId = store.add({ variant: 'info', message: 'note' });
+    const toasts = store.getToasts();
+    expect(toasts.find((t) => t.id === errId)?.duration).toBeNull();
+    expect(toasts.find((t) => t.id === warnId)?.duration).toBeNull();
+    expect(toasts.find((t) => t.id === successId)?.duration).toBe(4000);
+    expect(toasts.find((t) => t.id === infoId)?.duration).toBe(4000);
   });
 
   it('prunes expired toasts and leaves sticky ones in place', () => {
@@ -105,7 +120,7 @@ describe('toast store', () => {
 
     store.add({ variant: 'success', message: 'first', duration: 500 });
     t = 10;
-    store.add({ variant: 'error', message: 'second', duration: 200 });
+    store.add({ variant: 'info', message: 'second', duration: 200 });
 
     expect(store.peekNextExpiry()).toBe(210);
   });

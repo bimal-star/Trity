@@ -33,11 +33,13 @@ import { TopNavQuickSearch } from '@/components/navigation/TopNavQuickSearch';
 import { pillarAccent, type PremiumModule } from '@/lib/premiumUi';
 import { buildNavBreadcrumbs } from '@/lib/navBreadcrumbs';
 import {
+  enabledSectionChildren,
   findProductPillarRoot,
   firstEnabledPathUnderPillarPrefix,
   PILLAR_DEFAULT_LANDING,
   pillarSectionRowItems,
 } from '@/lib/navPillarResolve';
+import { Row2SectionFlyout } from '@/components/navigation/Row2SectionFlyout';
 
 interface TopNavProps {
   mobileSidebarOpen: boolean;
@@ -316,6 +318,7 @@ function MenuTree({
 export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [openSectionId, setOpenSectionId] = useState<string | null>(null);
+  const [sectionAnchorEl, setSectionAnchorEl] = useState<HTMLElement | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const row2NavRef = useRef<HTMLElement>(null);
@@ -326,6 +329,7 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
     profile,
     workspaceTenantId,
     effectiveTenantId,
+    workspaceTenantLabel,
     effectiveTenantDisplayName,
     effectiveTenantLogoUrl,
     exitWorkspaceTenant,
@@ -344,6 +348,10 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
   );
 
   const activeAccent = pillarAccent(activeAccentModule);
+
+  const chromeDisplayName = workspaceTenantId
+    ? (workspaceTenantLabel ?? effectiveTenantDisplayName)
+    : effectiveTenantDisplayName;
 
   /** Row-2 tab colour maps are keyed by `PremiumModule`; use a pillar when none is active (e.g. home `/`). */
   const row2TabModule: PremiumModule = activeAccentModule ?? 'businessCore';
@@ -379,6 +387,16 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
     [navigationItems, activePillarLabel]
   );
 
+  const openSectionItem = useMemo(
+    () => sectionRowItems.find((i) => i.id === openSectionId) ?? null,
+    [sectionRowItems, openSectionId]
+  );
+
+  const openSectionChildren = useMemo(
+    () => (openSectionItem ? enabledSectionChildren(openSectionItem, navigationItems) : []),
+    [openSectionItem, navigationItems]
+  );
+
   const firstPathInActivePillar = useMemo(
     () => firstEnabledNavPathInTree(sectionRowItems),
     [sectionRowItems]
@@ -412,14 +430,18 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
 
   useEffect(() => {
     setUserMenuOpen(false);
+    setOpenSectionId(null);
+    setSectionAnchorEl(null);
   }, [pathname]);
 
   useEffect(() => {
     if (openSectionId === null) return;
     const handler = (e: MouseEvent) => {
-      if (row2NavRef.current && !row2NavRef.current.contains(e.target as Node)) {
-        setOpenSectionId(null);
-      }
+      const target = e.target as Node;
+      if (row2NavRef.current?.contains(target)) return;
+      if (target instanceof Element && target.closest('[data-row2-section-flyout]')) return;
+      setOpenSectionId(null);
+      setSectionAnchorEl(null);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -428,7 +450,10 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
   useEffect(() => {
     if (openSectionId === null) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpenSectionId(null);
+      if (e.key === 'Escape') {
+        setOpenSectionId(null);
+        setSectionAnchorEl(null);
+      }
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
@@ -717,7 +742,7 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
               <WorkspaceBrandStrip
                 collapsed={false}
                 hasWorkspace={Boolean(effectiveTenantId)}
-                displayName={effectiveTenantDisplayName}
+                displayName={chromeDisplayName}
                 logoUrl={effectiveTenantLogoUrl}
                 onExitWorkspace={
                   user && workspaceTenantId && isSuperAdminSession(user, profile)
@@ -767,7 +792,7 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
               ) : (
                 sectionRowItems.map((item, sectionIndex) => {
                   const path = normalizeNavPath(item.path);
-                  const children = (item.children ?? []).filter((c) => c.is_enabled !== false);
+                  const children = enabledSectionChildren(item, navigationItems);
                   const hasChildren = children.length > 0;
                   const { icon: SecIcon } = getIconAndPillarForNavLabel(item.label);
                   const sectionActive = subtreeContainsPath(item, pathname);
@@ -844,21 +869,6 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
                     );
                   }
 
-                  const row2Flyout =
-                    isOpen && hasChildren ? (
-                      <div
-                        role="menu"
-                        className="absolute left-0 top-full z-[70] mt-0 max-h-[min(70vh,420px)] min-w-[220px] max-w-[min(92vw,320px)] overflow-y-auto rounded-b-lg rounded-tr-lg border border-gray-200 bg-white py-1 shadow-xl dark:border-gray-700 dark:bg-gray-900"
-                      >
-                        <MenuTree
-                          items={children}
-                          onClose={() => setOpenSectionId(null)}
-                          accentModule={row2TabModule}
-                          variant="lightFlyout"
-                        />
-                      </div>
-                    ) : null;
-
                   const splitTabBarClass = [
                     'flex items-stretch gap-0 border-b-2 border-transparent',
                     sectionActive || isOpen
@@ -866,9 +876,16 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
                       : ROW2_TAB_IDLE[row2TabModule],
                   ].join(' ');
 
-                  const toggleSectionFlyout = () => {
+                  const toggleSectionFlyout = (anchor: HTMLElement) => {
                     setUserMenuOpen(false);
-                    setOpenSectionId((id) => (id === item.id ? null : item.id));
+                    setOpenSectionId((id) => {
+                      if (id === item.id) {
+                        setSectionAnchorEl(null);
+                        return null;
+                      }
+                      setSectionAnchorEl(anchor);
+                      return item.id;
+                    });
                   };
 
                   // Path + children: label navigates (matches Sidebar), chevron opens flyout only.
@@ -876,13 +893,19 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
                     return (
                       <Fragment key={item.id}>
                         {rowSep}
-                        <div className="relative shrink-0">
+                        <div
+                          className="relative shrink-0"
+                          ref={(el) => {
+                            if (isOpen && el) setSectionAnchorEl(el);
+                          }}
+                        >
                           <div className={splitTabBarClass}>
                             <Link
                               href={path}
                               onClick={() => {
                                 setUserMenuOpen(false);
                                 setOpenSectionId(null);
+                                setSectionAnchorEl(null);
                               }}
                               className="flex min-w-0 shrink items-center gap-1.5 whitespace-nowrap px-2 py-2 pl-2.5 text-sm font-medium transition-colors"
                             >
@@ -894,11 +917,12 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
                               aria-label={`${item.label} submenu`}
                               aria-expanded={isOpen}
                               aria-haspopup="menu"
-                              className="flex shrink-0 items-center px-1.5 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 rounded-none"
+                              className="flex shrink-0 items-center rounded-none px-1.5 py-2 transition-colors focus:outline-none"
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                toggleSectionFlyout();
+                                const anchor = e.currentTarget.closest('.relative');
+                                if (anchor instanceof HTMLElement) toggleSectionFlyout(anchor);
                               }}
                             >
                               <ChevronDown
@@ -908,7 +932,6 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
                               />
                             </button>
                           </div>
-                          {row2Flyout}
                         </div>
                       </Fragment>
                     );
@@ -919,7 +942,12 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
                     return (
                       <Fragment key={item.id}>
                         {rowSep}
-                        <div className="relative shrink-0">
+                        <div
+                          className="relative shrink-0"
+                          ref={(el) => {
+                            if (isOpen && el) setSectionAnchorEl(el);
+                          }}
+                        >
                           <div className={splitTabBarClass}>
                             <div
                               title={INVALID_DYNAMIC_PATH_TITLE}
@@ -933,11 +961,12 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
                               aria-label={`${item.label} submenu`}
                               aria-expanded={isOpen}
                               aria-haspopup="menu"
-                              className="flex shrink-0 cursor-pointer items-center px-1.5 py-2 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 rounded-none"
+                              className="flex shrink-0 cursor-pointer items-center rounded-none px-1.5 py-2 transition-colors focus:outline-none"
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                toggleSectionFlyout();
+                                const anchor = e.currentTarget.closest('.relative');
+                                if (anchor instanceof HTMLElement) toggleSectionFlyout(anchor);
                               }}
                             >
                               <ChevronDown
@@ -947,7 +976,6 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
                               />
                             </button>
                           </div>
-                          {row2Flyout}
                         </div>
                       </Fragment>
                     );
@@ -956,12 +984,18 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
                   return (
                     <Fragment key={item.id}>
                       {rowSep}
-                      <div className="relative shrink-0">
+                      <div
+                        className="relative shrink-0"
+                        ref={(el) => {
+                          if (isOpen && el) setSectionAnchorEl(el);
+                        }}
+                      >
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={(e) => {
                             setUserMenuOpen(false);
-                            setOpenSectionId((id) => (id === item.id ? null : item.id));
+                            const anchor = e.currentTarget.closest('.relative');
+                            if (anchor instanceof HTMLElement) toggleSectionFlyout(anchor);
                           }}
                           aria-expanded={isOpen}
                           aria-haspopup="menu"
@@ -980,7 +1014,6 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
                             aria-hidden
                           />
                         </button>
-                        {row2Flyout}
                       </div>
                     </Fragment>
                   );
@@ -1035,6 +1068,24 @@ export function TopNav({ mobileSidebarOpen, onMobileSidebarToggle }: TopNavProps
               );
             })}
           </div>
+          <Row2SectionFlyout
+            open={Boolean(openSectionItem && openSectionChildren.length > 0)}
+            anchorEl={sectionAnchorEl}
+            sectionLabel={String(openSectionItem?.label ?? '').trim()}
+            sectionPath={openSectionItem ? normalizeNavPath(openSectionItem.path) || null : null}
+            sectionPathOk={Boolean(
+              openSectionItem &&
+              normalizeNavPath(openSectionItem.path).trim() !== '' &&
+              !hasAppRouterDynamicSegments(normalizeNavPath(openSectionItem.path))
+            )}
+            items={openSectionChildren}
+            onClose={() => {
+              setOpenSectionId(null);
+              setSectionAnchorEl(null);
+            }}
+            accentModule={row2TabModule}
+            MenuTree={MenuTree}
+          />
         </nav>
       </header>
 

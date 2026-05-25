@@ -23,7 +23,7 @@ export function useProductRecordNav(
   const [isLoading, setIsLoading] = useState(Boolean(tenantId));
 
   const load = useCallback(async () => {
-    if (!tenantId) {
+    if (!tenantId || productId === 'new') {
       setIds([]);
       setIsLoading(false);
       return;

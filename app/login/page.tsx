@@ -8,12 +8,18 @@ import { useTenant } from '@/contexts/TenantContext';
 import { isValidTenantId, setTenantCache } from '@/lib/tenantCache';
 import { premiumSurfaces, premiumTypography } from '@/lib/premiumUi';
 import { useToast } from '@/lib/toast';
+import { isSuperAdminSession } from '@/lib/permissions';
+import {
+  TENANT_INACTIVE_MESSAGE,
+  evaluateTenantAccess,
+  fetchTenantIsActive,
+} from '@/lib/tenantAccess';
 
 export default function LoginPage() {
   const router = useRouter();
   const pathname = usePathname();
   const didRedirectRef = useRef(false);
-  const { user, ready, error: tenantContextError } = useTenant();
+  const { user, ready, error: tenantContextError, tenantAccessBlocked } = useTenant();
   const { toast } = useToast();
   const authLoading = !ready;
   const [email, setEmail] = useState('');
@@ -35,11 +41,15 @@ export default function LoginPage() {
       didRedirectRef.current = false;
       return;
     }
+    if (tenantAccessBlocked) {
+      didRedirectRef.current = false;
+      return;
+    }
     if (pathname !== '/login') return;
     if (didRedirectRef.current) return;
     didRedirectRef.current = true;
     router.replace('/');
-  }, [user, router, pathname]);
+  }, [user, tenantAccessBlocked, router, pathname]);
 
   /** One profile read when JWT has no tenant_id — same row TenantContext will use; avoids duplicate work. */
   async function resolveTenantIdForLoginUser(user: User): Promise<string | null> {
@@ -170,6 +180,19 @@ export default function LoginPage() {
       if (data?.user) {
         const uid = data.user.id;
         const tid = await resolveTenantIdForLoginUser(data.user);
+        const isPlatformSuper = isSuperAdminSession(data.user, null);
+
+        if (tid && !isPlatformSuper) {
+          const homeTenantActive = await fetchTenantIsActive(supabase, tid);
+          const accessGate = evaluateTenantAccess(homeTenantActive, false);
+          if (!accessGate.allowed) {
+            await supabase.auth.signOut({ scope: 'local' });
+            toast.error(TENANT_INACTIVE_MESSAGE);
+            setIsSubmitting(false);
+            return;
+          }
+        }
+
         if (tid) {
           setTenantCache(uid, tid);
         }
@@ -237,7 +260,7 @@ export default function LoginPage() {
 
   // Don't render login form if already authenticated (redirect will happen via useEffect)
   // But show loading state instead of null to prevent blank page
-  if (user) {
+  if (user && !tenantAccessBlocked) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
@@ -372,9 +395,12 @@ export default function LoginPage() {
 
         {/* Login Form */}
         <div className={`${premiumSurfaces.cardElevated} !p-8 backdrop-blur-sm dark:!bg-gray-800`}>
-          {tenantContextError && !user && !authLoading && (
-            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-200">
-              {tenantContextError}
+          {(tenantAccessBlocked || (tenantContextError && !user)) && !authLoading && (
+            <div
+              role="alert"
+              className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/30 dark:text-amber-100"
+            >
+              {tenantContextError || TENANT_INACTIVE_MESSAGE}
             </div>
           )}
           <form onSubmit={handleSubmit} className="space-y-6 w-full">

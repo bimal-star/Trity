@@ -24,7 +24,6 @@ const VIS_FILTERS: { value: CustomerRecordVisibility; label: string }[] = [
 
 interface CustomerListProps {
   customers: Customer[];
-  selectedCustomerId: string | null;
   isLoading: boolean;
   error: string | null;
   search: string;
@@ -40,7 +39,6 @@ interface CustomerListProps {
 
 export default function CustomerList({
   customers,
-  selectedCustomerId,
   isLoading,
   error,
   search,
@@ -174,19 +172,13 @@ export default function CustomerList({
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {customers.map((c) => {
-                  const selected = c.id === selectedCustomerId;
                   const displayName = c.legal_name || c.email || '—';
                   return (
                     <tr
                       key={c.id}
                       tabIndex={0}
-                      aria-selected={selected}
                       aria-label={`${displayName}, ${formatCustomerCode(c.customer_code)}. Press Enter for details.`}
-                      className={`cursor-pointer outline-none transition-colors focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-800 ${
-                        selected
-                          ? 'bg-green-50/70 hover:bg-green-50/80 dark:bg-green-800/20 dark:hover:bg-green-800/50'
-                          : 'hover:bg-green-50/80 dark:hover:bg-green-800/50'
-                      }`}
+                      className="cursor-pointer outline-none transition-colors hover:bg-green-50/80 focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:hover:bg-green-800/50 dark:focus-visible:ring-offset-gray-800"
                       onClick={() => onSelect(c)}
                       onKeyDown={(e) => onRowKeyDown(e, c)}
                     >

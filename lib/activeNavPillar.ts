@@ -1,5 +1,5 @@
 import type { NavigationItem } from '@/types/navigation';
-import { PILLAR_DEFAULT_LANDING } from '@/lib/navPillarResolve';
+import { findProductPillarRoot, PILLAR_DEFAULT_LANDING } from '@/lib/navPillarResolve';
 import {
   PILLAR_ROOT_LABEL_ORDER,
   PILLAR_ROOT_LABELS,
@@ -123,7 +123,7 @@ export function deriveActivePillar(
   // Use product pillar order, not `navigationItems` array order, so overlapping subtrees
   // (e.g. same path linked under two pillars) resolve deterministically — Business Core before Execution.
   for (const pillarName of PILLAR_ROOT_LABEL_ORDER) {
-    const root = navigationItems.find((item) => String(item.label ?? '').trim() === pillarName);
+    const root = findProductPillarRoot(navigationItems, pillarName as PillarRootLabel);
     if (!root) continue;
     const label = pillarName as PillarRootLabel;
     if (subtreeContainsPath(root, currentPath)) {

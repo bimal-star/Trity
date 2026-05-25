@@ -82,6 +82,8 @@ export function getIconAndPillarForNavLabel(label: string): {
     'Forecast Model': { icon: BarChart2, pillar: 'analytics' },
     'Customer Forecast': { icon: TrendingUp, pillar: 'analytics' },
     'Cost File': { icon: FileText, pillar: 'analytics' },
+    'Cost Card': { icon: FileBarChart, pillar: 'businessCore' },
+    Logistics: { icon: Truck, pillar: 'analytics' },
     'Cost of Goods': { icon: FileBarChart, pillar: 'analytics' },
     'Logistics Costs': { icon: Truck, pillar: 'analytics' },
     Inventory: { icon: Boxes, pillar: 'analytics' },

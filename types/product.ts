@@ -85,6 +85,8 @@ export interface PriceListItem {
   unit_price: number;
   min_quantity: number | null;
   max_quantity: number | null;
+  effective_from: string | null; // date
+  effective_to: string | null; // date
   created_at: string | null;
   price_list?: PriceList;
 }
@@ -123,6 +125,7 @@ export interface ProductMetric {
 export interface BomHeader {
   id: string;
   product_id: string;
+  bom_code?: string | null;
   name: string | null;
   description: string | null;
   notes: string | null;
@@ -273,6 +276,8 @@ export interface Product {
   cost_price: number | null;
   /** Weighted-average inventory unit cost; null until costing updates it. */
   weighted_avg_unit_cost?: number | null;
+  /** Default manufacturing waste %; copied to BOM lines on add. */
+  waste_percentage?: number | null;
   sell_price: number | null;
   currency: string | null;
 

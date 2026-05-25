@@ -742,6 +742,336 @@ export type Database = {
           },
         ];
       };
+      cost_card_cost_sets: {
+        Row: {
+          cloned_from_cost_set_id: string | null;
+          cost_set_type: string;
+          created_at: string;
+          created_by: string | null;
+          effective_date_from: string;
+          effective_date_to: string | null;
+          id: string;
+          label: string;
+          status: string;
+          tenant_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          cloned_from_cost_set_id?: string | null;
+          cost_set_type: string;
+          created_at?: string;
+          created_by?: string | null;
+          effective_date_from: string;
+          effective_date_to?: string | null;
+          id?: string;
+          label: string;
+          status?: string;
+          tenant_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          cloned_from_cost_set_id?: string | null;
+          cost_set_type?: string;
+          created_at?: string;
+          created_by?: string | null;
+          effective_date_from?: string;
+          effective_date_to?: string | null;
+          id?: string;
+          label?: string;
+          status?: string;
+          tenant_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'cost_card_cost_sets_cloned_from_cost_set_id_fkey';
+            columns: ['cloned_from_cost_set_id'];
+            isOneToOne: false;
+            referencedRelation: 'cost_card_cost_sets';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'cost_card_scenarios_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      cost_card_product_entries: {
+        Row: {
+          base_currency: string;
+          created_at: string;
+          customer_id: string | null;
+          id: string;
+          notes: string | null;
+          product_id: string;
+          selling_price_resolved: number | null;
+          target_margin_pct: number | null;
+          tenant_id: string;
+          updated_at: string;
+          version_id: string;
+        };
+        Insert: {
+          base_currency?: string;
+          created_at?: string;
+          customer_id?: string | null;
+          id?: string;
+          notes?: string | null;
+          product_id: string;
+          selling_price_resolved?: number | null;
+          target_margin_pct?: number | null;
+          tenant_id: string;
+          updated_at?: string;
+          version_id: string;
+        };
+        Update: {
+          base_currency?: string;
+          created_at?: string;
+          customer_id?: string | null;
+          id?: string;
+          notes?: string | null;
+          product_id?: string;
+          selling_price_resolved?: number | null;
+          target_margin_pct?: number | null;
+          tenant_id?: string;
+          updated_at?: string;
+          version_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'cost_card_product_entries_customer_id_fkey';
+            columns: ['customer_id'];
+            isOneToOne: false;
+            referencedRelation: 'customers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'cost_card_product_entries_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'products';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'cost_card_product_entries_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'vw_products_full';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'cost_card_product_entries_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'cost_card_product_entries_version_id_fkey';
+            columns: ['version_id'];
+            isOneToOne: false;
+            referencedRelation: 'cost_card_versions';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      cost_card_versions: {
+        Row: {
+          cloned_from_version_id: string | null;
+          cost_set_id: string;
+          created_at: string;
+          created_by: string | null;
+          effective_date: string;
+          id: string;
+          label: string | null;
+          locked: boolean;
+          notes: string | null;
+          status: string;
+          tenant_id: string;
+          updated_at: string;
+          version_number: number;
+        };
+        Insert: {
+          cloned_from_version_id?: string | null;
+          cost_set_id: string;
+          created_at?: string;
+          created_by?: string | null;
+          effective_date: string;
+          id?: string;
+          label?: string | null;
+          locked?: boolean;
+          notes?: string | null;
+          status?: string;
+          tenant_id: string;
+          updated_at?: string;
+          version_number: number;
+        };
+        Update: {
+          cloned_from_version_id?: string | null;
+          cost_set_id?: string;
+          created_at?: string;
+          created_by?: string | null;
+          effective_date?: string;
+          id?: string;
+          label?: string | null;
+          locked?: boolean;
+          notes?: string | null;
+          status?: string;
+          tenant_id?: string;
+          updated_at?: string;
+          version_number?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'cost_card_versions_cloned_from_version_id_fkey';
+            columns: ['cloned_from_version_id'];
+            isOneToOne: false;
+            referencedRelation: 'cost_card_versions';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'cost_card_versions_cost_set_id_fkey';
+            columns: ['cost_set_id'];
+            isOneToOne: false;
+            referencedRelation: 'cost_card_cost_sets';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'cost_card_versions_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      cost_lines: {
+        Row: {
+          block_type: string;
+          component_product_id: string | null;
+          converted_cost: number | null;
+          created_at: string;
+          description: string | null;
+          entry_id: string;
+          exchange_rate: number;
+          exchange_rate_date: string | null;
+          id: string;
+          is_locked: boolean;
+          is_manual_override: boolean;
+          logistics_rate_card_id: string | null;
+          logistics_rate_line_id: string | null;
+          notes: string | null;
+          quantity: number | null;
+          resolved_unit_cost: number | null;
+          sort_order: number;
+          source_currency: string;
+          supplier_id: string | null;
+          tenant_id: string;
+          uom: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          block_type: string;
+          component_product_id?: string | null;
+          converted_cost?: number | null;
+          created_at?: string;
+          description?: string | null;
+          entry_id: string;
+          exchange_rate?: number;
+          exchange_rate_date?: string | null;
+          id?: string;
+          is_locked?: boolean;
+          is_manual_override?: boolean;
+          logistics_rate_card_id?: string | null;
+          logistics_rate_line_id?: string | null;
+          notes?: string | null;
+          quantity?: number | null;
+          resolved_unit_cost?: number | null;
+          sort_order?: number;
+          source_currency?: string;
+          supplier_id?: string | null;
+          tenant_id: string;
+          uom?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          block_type?: string;
+          component_product_id?: string | null;
+          converted_cost?: number | null;
+          created_at?: string;
+          description?: string | null;
+          entry_id?: string;
+          exchange_rate?: number;
+          exchange_rate_date?: string | null;
+          id?: string;
+          is_locked?: boolean;
+          is_manual_override?: boolean;
+          logistics_rate_card_id?: string | null;
+          logistics_rate_line_id?: string | null;
+          notes?: string | null;
+          quantity?: number | null;
+          resolved_unit_cost?: number | null;
+          sort_order?: number;
+          source_currency?: string;
+          supplier_id?: string | null;
+          tenant_id?: string;
+          uom?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'cost_lines_component_product_id_fkey';
+            columns: ['component_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'products';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'cost_lines_component_product_id_fkey';
+            columns: ['component_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'vw_products_full';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'cost_lines_entry_id_fkey';
+            columns: ['entry_id'];
+            isOneToOne: false;
+            referencedRelation: 'cost_card_product_entries';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'cost_lines_logistics_rate_card_id_fkey';
+            columns: ['logistics_rate_card_id'];
+            isOneToOne: false;
+            referencedRelation: 'logistics_rate_cards';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'cost_lines_logistics_rate_line_id_fkey';
+            columns: ['logistics_rate_line_id'];
+            isOneToOne: false;
+            referencedRelation: 'logistics_rate_lines';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'cost_lines_supplier_id_fkey';
+            columns: ['supplier_id'];
+            isOneToOne: false;
+            referencedRelation: 'suppliers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'cost_lines_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       customer_addresses: {
         Row: {
           address_type: string;
@@ -1292,6 +1622,50 @@ export type Database = {
           },
         ];
       };
+      exchange_rates: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          effective_date: string;
+          from_currency: string;
+          id: string;
+          rate: number;
+          source: string;
+          tenant_id: string;
+          to_currency: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          effective_date: string;
+          from_currency: string;
+          id?: string;
+          rate: number;
+          source?: string;
+          tenant_id: string;
+          to_currency: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          effective_date?: string;
+          from_currency?: string;
+          id?: string;
+          rate?: number;
+          source?: string;
+          tenant_id?: string;
+          to_currency?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'exchange_rates_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       feature_provisioning_log: {
         Row: {
           created_at: string | null;
@@ -1502,6 +1876,13 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'goods_receipts_purchase_order_id_fkey';
+            columns: ['purchase_order_id'];
+            isOneToOne: false;
+            referencedRelation: 'vw_product_last_purchase_price';
+            referencedColumns: ['purchase_order_id'];
+          },
+          {
             foreignKeyName: 'goods_receipts_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: false;
@@ -1662,6 +2043,106 @@ export type Database = {
         };
         Relationships: [];
       };
+      logistics_rate_cards: {
+        Row: {
+          created_at: string;
+          created_by: string | null;
+          direction: string;
+          effective_date_from: string;
+          effective_date_to: string | null;
+          id: string;
+          label: string;
+          notes: string | null;
+          provider: string | null;
+          status: string;
+          tenant_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by?: string | null;
+          direction: string;
+          effective_date_from: string;
+          effective_date_to?: string | null;
+          id?: string;
+          label: string;
+          notes?: string | null;
+          provider?: string | null;
+          status?: string;
+          tenant_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string | null;
+          direction?: string;
+          effective_date_from?: string;
+          effective_date_to?: string | null;
+          id?: string;
+          label?: string;
+          notes?: string | null;
+          provider?: string | null;
+          status?: string;
+          tenant_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'logistics_rate_cards_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      logistics_rate_lines: {
+        Row: {
+          charge_type: string;
+          created_at: string;
+          currency: string;
+          fuel_surcharge_pct: number | null;
+          id: string;
+          lane: string | null;
+          min_charge: number | null;
+          notes: string | null;
+          rate: number;
+          rate_card_id: string;
+        };
+        Insert: {
+          charge_type: string;
+          created_at?: string;
+          currency?: string;
+          fuel_surcharge_pct?: number | null;
+          id?: string;
+          lane?: string | null;
+          min_charge?: number | null;
+          notes?: string | null;
+          rate: number;
+          rate_card_id: string;
+        };
+        Update: {
+          charge_type?: string;
+          created_at?: string;
+          currency?: string;
+          fuel_surcharge_pct?: number | null;
+          id?: string;
+          lane?: string | null;
+          min_charge?: number | null;
+          notes?: string | null;
+          rate?: number;
+          rate_card_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'logistics_rate_lines_rate_card_id_fkey';
+            columns: ['rate_card_id'];
+            isOneToOne: false;
+            referencedRelation: 'logistics_rate_cards';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       navigation: {
         Row: {
           created_at: string;
@@ -1744,9 +2225,9 @@ export type Database = {
           is_deleted: boolean;
           last_synced_at: string | null;
           length: number | null;
-          level: Database['public']['Enums']['packing_level'];
+          level: string;
           metadata: Json;
-          previous_level: Database['public']['Enums']['packing_level'] | null;
+          previous_level: string | null;
           product_id: string;
           quantity: number;
           tenant_id: string;
@@ -1773,9 +2254,9 @@ export type Database = {
           is_deleted?: boolean;
           last_synced_at?: string | null;
           length?: number | null;
-          level: Database['public']['Enums']['packing_level'];
+          level: string;
           metadata?: Json;
-          previous_level?: Database['public']['Enums']['packing_level'] | null;
+          previous_level?: string | null;
           product_id: string;
           quantity: number;
           tenant_id: string;
@@ -1802,9 +2283,9 @@ export type Database = {
           is_deleted?: boolean;
           last_synced_at?: string | null;
           length?: number | null;
-          level?: Database['public']['Enums']['packing_level'];
+          level?: string;
           metadata?: Json;
-          previous_level?: Database['public']['Enums']['packing_level'] | null;
+          previous_level?: string | null;
           product_id?: string;
           quantity?: number;
           tenant_id?: string;
@@ -1816,6 +2297,20 @@ export type Database = {
           width?: number | null;
         };
         Relationships: [
+          {
+            foreignKeyName: 'fk_packing_configurations_previous_sellable_pack_level';
+            columns: ['tenant_id', 'previous_level'];
+            isOneToOne: false;
+            referencedRelation: 'tenant_sellable_pack_levels';
+            referencedColumns: ['tenant_id', 'code'];
+          },
+          {
+            foreignKeyName: 'fk_packing_configurations_sellable_pack_level';
+            columns: ['tenant_id', 'level'];
+            isOneToOne: false;
+            referencedRelation: 'tenant_sellable_pack_levels';
+            referencedColumns: ['tenant_id', 'code'];
+          },
           {
             foreignKeyName: 'fk_packing_configurations_tenant_id';
             columns: ['tenant_id'];
@@ -1938,6 +2433,8 @@ export type Database = {
           created_at: string | null;
           created_by: string | null;
           currency: string | null;
+          effective_from: string | null;
+          effective_to: string | null;
           id: string;
           is_deleted: boolean;
           max_quantity: number | null;
@@ -1955,6 +2452,8 @@ export type Database = {
           created_at?: string | null;
           created_by?: string | null;
           currency?: string | null;
+          effective_from?: string | null;
+          effective_to?: string | null;
           id?: string;
           is_deleted?: boolean;
           max_quantity?: number | null;
@@ -1972,6 +2471,8 @@ export type Database = {
           created_at?: string | null;
           created_by?: string | null;
           currency?: string | null;
+          effective_from?: string | null;
+          effective_to?: string | null;
           id?: string;
           is_deleted?: boolean;
           max_quantity?: number | null;
@@ -2185,7 +2686,7 @@ export type Database = {
           is_primary: boolean | null;
           last_synced_at: string | null;
           metadata: Json;
-          packing_level: Database['public']['Enums']['packing_level'] | null;
+          packing_level: string | null;
           product_id: string;
           quantity: number | null;
           tenant_id: string;
@@ -2208,7 +2709,7 @@ export type Database = {
           is_primary?: boolean | null;
           last_synced_at?: string | null;
           metadata?: Json;
-          packing_level?: Database['public']['Enums']['packing_level'] | null;
+          packing_level?: string | null;
           product_id: string;
           quantity?: number | null;
           tenant_id: string;
@@ -2231,7 +2732,7 @@ export type Database = {
           is_primary?: boolean | null;
           last_synced_at?: string | null;
           metadata?: Json;
-          packing_level?: Database['public']['Enums']['packing_level'] | null;
+          packing_level?: string | null;
           product_id?: string;
           quantity?: number | null;
           tenant_id?: string;
@@ -2240,6 +2741,13 @@ export type Database = {
           version?: number;
         };
         Relationships: [
+          {
+            foreignKeyName: 'fk_product_barcodes_sellable_pack_level';
+            columns: ['tenant_id', 'packing_level'];
+            isOneToOne: false;
+            referencedRelation: 'tenant_sellable_pack_levels';
+            referencedColumns: ['tenant_id', 'code'];
+          },
           {
             foreignKeyName: 'fk_product_barcodes_tenant_id';
             columns: ['tenant_id'];
@@ -2535,6 +3043,50 @@ export type Database = {
           },
         ];
       };
+      product_list_saved_views: {
+        Row: {
+          created_at: string;
+          definition: Json;
+          id: string;
+          is_personal_default: boolean;
+          name: string;
+          owner_user_id: string;
+          page_key: string;
+          tenant_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          definition?: Json;
+          id?: string;
+          is_personal_default?: boolean;
+          name: string;
+          owner_user_id: string;
+          page_key?: string;
+          tenant_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          definition?: Json;
+          id?: string;
+          is_personal_default?: boolean;
+          name?: string;
+          owner_user_id?: string;
+          page_key?: string;
+          tenant_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'product_list_saved_views_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       product_metrics: {
         Row: {
           average_stock: number | null;
@@ -2752,50 +3304,6 @@ export type Database = {
           },
         ];
       };
-      product_list_saved_views: {
-        Row: {
-          created_at: string;
-          definition: Json;
-          id: string;
-          is_personal_default: boolean;
-          name: string;
-          owner_user_id: string;
-          page_key: string;
-          tenant_id: string;
-          updated_at: string;
-        };
-        Insert: {
-          created_at?: string;
-          definition?: Json;
-          id?: string;
-          is_personal_default?: boolean;
-          name: string;
-          owner_user_id: string;
-          page_key: string;
-          tenant_id: string;
-          updated_at?: string;
-        };
-        Update: {
-          created_at?: string;
-          definition?: Json;
-          id?: string;
-          is_personal_default?: boolean;
-          name?: string;
-          owner_user_id?: string;
-          page_key?: string;
-          tenant_id?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'product_list_saved_views_tenant_id_fkey';
-            columns: ['tenant_id'];
-            isOneToOne: false;
-            referencedRelation: 'tenants';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
       products: {
         Row: {
           allergens: string[] | null;
@@ -2812,6 +3320,8 @@ export type Database = {
           description: string | null;
           dimension_unit_id: string | null;
           documents: Json | null;
+          effective_from: string | null;
+          effective_to: string | null;
           external_id: string | null;
           external_system: string | null;
           height: number | null;
@@ -2858,6 +3368,7 @@ export type Database = {
           version: number;
           volume: number | null;
           volume_unit_id: string | null;
+          waste_percentage: number | null;
           weight: number | null;
           weight_unit_id: string | null;
           weighted_avg_unit_cost: number | null;
@@ -2878,6 +3389,8 @@ export type Database = {
           description?: string | null;
           dimension_unit_id?: string | null;
           documents?: Json | null;
+          effective_from?: string | null;
+          effective_to?: string | null;
           external_id?: string | null;
           external_system?: string | null;
           height?: number | null;
@@ -2924,6 +3437,7 @@ export type Database = {
           version?: number;
           volume?: number | null;
           volume_unit_id?: string | null;
+          waste_percentage?: number | null;
           weight?: number | null;
           weight_unit_id?: string | null;
           weighted_avg_unit_cost?: number | null;
@@ -2944,6 +3458,8 @@ export type Database = {
           description?: string | null;
           dimension_unit_id?: string | null;
           documents?: Json | null;
+          effective_from?: string | null;
+          effective_to?: string | null;
           external_id?: string | null;
           external_system?: string | null;
           height?: number | null;
@@ -2990,6 +3506,7 @@ export type Database = {
           version?: number;
           volume?: number | null;
           volume_unit_id?: string | null;
+          waste_percentage?: number | null;
           weight?: number | null;
           weight_unit_id?: string | null;
           weighted_avg_unit_cost?: number | null;
@@ -3129,6 +3646,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: 'purchase_orders';
             referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'purchase_order_lines_purchase_order_id_fkey';
+            columns: ['purchase_order_id'];
+            isOneToOne: false;
+            referencedRelation: 'vw_product_last_purchase_price';
+            referencedColumns: ['purchase_order_id'];
           },
           {
             foreignKeyName: 'purchase_order_lines_tenant_id_fkey';
@@ -3725,6 +4249,13 @@ export type Database = {
             referencedColumns: ['id'];
           },
           {
+            foreignKeyName: 'supplier_invoices_purchase_order_id_fkey';
+            columns: ['purchase_order_id'];
+            isOneToOne: false;
+            referencedRelation: 'vw_product_last_purchase_price';
+            referencedColumns: ['purchase_order_id'];
+          },
+          {
             foreignKeyName: 'supplier_invoices_supplier_id_fkey';
             columns: ['supplier_id'];
             isOneToOne: false;
@@ -4084,6 +4615,65 @@ export type Database = {
             foreignKeyName: 'tenant_schemas_tenant_id_fkey';
             columns: ['tenant_id'];
             isOneToOne: true;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      tenant_sellable_pack_levels: {
+        Row: {
+          code: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          is_active: boolean;
+          is_deleted: boolean;
+          is_system: boolean;
+          label: string;
+          metadata: Json;
+          sort_order: number;
+          tenant_id: string;
+          updated_at: string;
+          updated_by: string | null;
+          version: number;
+        };
+        Insert: {
+          code: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          is_active?: boolean;
+          is_deleted?: boolean;
+          is_system?: boolean;
+          label: string;
+          metadata?: Json;
+          sort_order?: number;
+          tenant_id: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          version?: number;
+        };
+        Update: {
+          code?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          is_active?: boolean;
+          is_deleted?: boolean;
+          is_system?: boolean;
+          label?: string;
+          metadata?: Json;
+          sort_order?: number;
+          tenant_id?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'tenant_sellable_pack_levels_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
             referencedRelation: 'tenants';
             referencedColumns: ['id'];
           },
@@ -4649,14 +5239,29 @@ export type Database = {
           bom_id: string | null;
           component_count: number | null;
           cost_per_unit: number | null;
+          cost_per_unit_landing: number | null;
+          cost_per_unit_last_buy: number | null;
+          is_active: boolean | null;
           output_quantity: number | null;
+          output_unit_id: string | null;
+          output_unit_symbol: string | null;
           product_id: string | null;
           product_name: string | null;
           product_sku: string | null;
+          tenant_id: string | null;
           total_component_cost: number | null;
+          total_component_cost_landing: number | null;
+          total_component_cost_last_buy: number | null;
           version: string | null;
         };
         Relationships: [
+          {
+            foreignKeyName: 'bom_headers_output_unit_id_fkey';
+            columns: ['output_unit_id'];
+            isOneToOne: false;
+            referencedRelation: 'units';
+            referencedColumns: ['id'];
+          },
           {
             foreignKeyName: 'bom_headers_product_id_fkey';
             columns: ['product_id'];
@@ -4669,6 +5274,120 @@ export type Database = {
             columns: ['product_id'];
             isOneToOne: false;
             referencedRelation: 'vw_products_full';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'fk_bom_headers_tenant_id';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      vw_bom_line_costing: {
+        Row: {
+          avg_landing_unit_cost: number | null;
+          base_unit_symbol: string | null;
+          bom_header_id: string | null;
+          bom_line_id: string | null;
+          component_name: string | null;
+          component_product_id: string | null;
+          component_sku: string | null;
+          effective_quantity: number | null;
+          last_buy_currency: string | null;
+          last_buy_unit_price: number | null;
+          last_buy_uom: string | null;
+          line_total_cost_landing: number | null;
+          line_total_cost_last_buy: number | null;
+          line_total_cost_standard: number | null;
+          line_waste_percentage: number | null;
+          product_waste_percentage: number | null;
+          quantity: number | null;
+          sequence: number | null;
+          standard_unit_cost: number | null;
+          tenant_id: string | null;
+          unit_id: string | null;
+          uom_symbol: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'bom_lines_bom_header_id_fkey';
+            columns: ['bom_header_id'];
+            isOneToOne: false;
+            referencedRelation: 'bom_headers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'bom_lines_bom_header_id_fkey';
+            columns: ['bom_header_id'];
+            isOneToOne: false;
+            referencedRelation: 'vw_bom_costing';
+            referencedColumns: ['bom_id'];
+          },
+          {
+            foreignKeyName: 'bom_lines_component_product_id_fkey';
+            columns: ['component_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'products';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'bom_lines_component_product_id_fkey';
+            columns: ['component_product_id'];
+            isOneToOne: false;
+            referencedRelation: 'vw_products_full';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'bom_lines_unit_id_fkey';
+            columns: ['unit_id'];
+            isOneToOne: false;
+            referencedRelation: 'units';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'fk_bom_lines_tenant_id';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      vw_product_last_purchase_price: {
+        Row: {
+          currency: string | null;
+          last_buy_unit_price: number | null;
+          last_buy_uom: string | null;
+          po_number: string | null;
+          product_id: string | null;
+          purchase_order_date: string | null;
+          purchase_order_id: string | null;
+          purchase_order_status: string | null;
+          purchased_at: string | null;
+          tenant_id: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'purchase_order_lines_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'products';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'purchase_order_lines_product_id_fkey';
+            columns: ['product_id'];
+            isOneToOne: false;
+            referencedRelation: 'vw_products_full';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'purchase_order_lines_tenant_id_fkey';
+            columns: ['tenant_id'];
+            isOneToOne: false;
+            referencedRelation: 'tenants';
             referencedColumns: ['id'];
           },
         ];
@@ -4744,6 +5463,7 @@ export type Database = {
           volume: number | null;
           volume_unit_id: string | null;
           volume_unit_symbol: string | null;
+          waste_percentage: number | null;
           weight: number | null;
           weight_unit_id: string | null;
           weight_unit_symbol: string | null;
@@ -4804,10 +5524,36 @@ export type Database = {
       };
     };
     Functions: {
+      _hard_delete_tenant_rows: {
+        Args: { p_table: string; p_tenant_id: string };
+        Returns: undefined;
+      };
       app_effective_tenant_id: { Args: never; Returns: string };
       app_impersonate_tenant_id: { Args: never; Returns: string };
       app_impersonation_is_active: { Args: never; Returns: boolean };
       app_impersonation_write_blocked: { Args: never; Returns: boolean };
+      bom_effective_quantity: {
+        Args: { p_quantity: number; p_waste_pct?: number };
+        Returns: number;
+      };
+      clone_cost_card_cost_set: {
+        Args: {
+          include_archived_versions?: boolean;
+          new_effective_date_from?: string;
+          new_effective_date_to?: string;
+          new_label: string;
+          source_cost_set_id: string;
+        };
+        Returns: Json;
+      };
+      clone_cost_card_version: {
+        Args: {
+          new_effective_date: string;
+          new_label: string;
+          source_version_id: string;
+        };
+        Returns: string;
+      };
       count_tenant_records: {
         Args: { table_name: string; tenant_uuid: string };
         Returns: number;
@@ -4864,13 +5610,27 @@ export type Database = {
           tenant_name: string;
         }[];
       };
+      hard_delete_tenant: { Args: { p_tenant_id: string }; Returns: Json };
       is_tenant_admin: { Args: { user_id: string }; Returns: boolean };
       is_tenants_platform_super_admin: { Args: never; Returns: boolean };
+      po_line_net_unit_price: {
+        Args: {
+          p_discount_amount?: number;
+          p_discount_pct?: number;
+          p_qty: number;
+          p_unit_price: number;
+        };
+        Returns: number;
+      };
       provision_tenant_from_template: {
         Args: { p_new_tenant: string; p_template_tenant: string };
         Returns: Json;
       };
       refresh_cached_timezones: { Args: never; Returns: undefined };
+      seed_tenant_calendar_year: {
+        Args: { p_tenant_id: string; p_year: number };
+        Returns: number;
+      };
       seed_tenant_default_navigation: {
         Args: { p_tenant_id: string };
         Returns: number;
@@ -4879,6 +5639,15 @@ export type Database = {
         Args: { p_target_tenant_id: string };
         Returns: number;
       };
+      seed_tenant_sellable_pack_levels: {
+        Args: { p_tenant_id: string };
+        Returns: undefined;
+      };
+      sync_tenant_navigation_from_template: {
+        Args: { p_target_tenant: string; p_template_tenant: string };
+        Returns: Json;
+      };
+      tenant_is_active: { Args: { p_tenant_id: string }; Returns: boolean };
       user_has_tenant_access: {
         Args: { tenant_uuid: string };
         Returns: boolean;
@@ -4899,7 +5668,6 @@ export type Database = {
         | 'manufacturing'
         | 'retail'
         | 'other';
-      packing_level: 'unit' | 'inner' | 'case' | 'pallet' | 'container';
       product_type:
         | 'raw_material'
         | 'semi_finished'
@@ -5051,7 +5819,6 @@ export const Constants = {
         'retail',
         'other',
       ],
-      packing_level: ['unit', 'inner', 'case', 'pallet', 'container'],
       product_type: [
         'raw_material',
         'semi_finished',

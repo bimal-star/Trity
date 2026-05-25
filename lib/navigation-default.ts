@@ -39,6 +39,13 @@ export const defaultNavigationItems: NavigationItem[] = [
     path: '/analytics/cost-file',
   },
   {
+    id: 'nav-logistics',
+    label: 'Logistics',
+    position: '1.26',
+    is_enabled: true,
+    path: '/logistics',
+  },
+  {
     id: 'nav-inventory',
     label: 'Inventory',
     position: '1.3',
@@ -75,6 +82,20 @@ export const defaultNavigationItems: NavigationItem[] = [
     position: '2.1.2',
     is_enabled: true,
     path: '/products/price-lists',
+  },
+  {
+    id: 'nav-cost-card',
+    label: 'Cost Card',
+    position: '2.1.3',
+    is_enabled: true,
+    path: '/cost-card',
+  },
+  {
+    id: 'nav-boms',
+    label: 'Bills of Materials',
+    position: '2.1.4',
+    is_enabled: true,
+    path: '/boms',
   },
   {
     id: 'nav-customers',
@@ -251,6 +272,13 @@ export const defaultNavigationItems: NavigationItem[] = [
     position: '4.3',
     is_enabled: true,
     path: '/tenant-settings',
+  },
+  {
+    id: 'nav-document-codes',
+    label: 'Document codes',
+    position: '4.35',
+    is_enabled: true,
+    path: '/tenant-settings/document-codes',
   },
   {
     id: 'nav-tenants',

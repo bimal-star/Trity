@@ -1,152 +1,80 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { AlertCircle, Check, ChevronDown, Plus, X } from 'lucide-react';
-import LogoUrlField from '@/components/common/LogoUrlField';
+import { Check, Plus, X } from 'lucide-react';
+import PremiumSectionTitle from '@/components/layout/premium/PremiumSectionTitle';
 import { formatSupplierCode } from '@/lib/supplierDisplay';
-import { uploadSupplierLogo } from '@/lib/supplierLogoStorage';
+import { supplierToFormData } from '@/lib/supplierForm';
+import { emptySupplierFormData } from '@/lib/supplierPreview';
+import { premiumTypography } from '@/lib/premiumUi';
 import { useToast } from '@/lib/toast';
-import type { Supplier, SupplierFormData, SupplierStatus, SupplierType } from '@/types/supplier';
+import type { Supplier, SupplierFormData, SupplierType } from '@/types/supplier';
+import { formInputClass as inputClass, formLabelClass as labelClass } from '@/lib/formTokens';
 
 const supplierTypes: SupplierType[] = ['manufacturer', 'distributor', 'service', 'other'];
-const statusOptions: SupplierStatus[] = ['active', 'inactive', 'on_hold'];
 
-import {
-  formCardShell,
-  formInputClass as inputClass,
-  formLabelClass as labelClass,
-} from '@/lib/formTokens';
-
-function supplierToForm(s: Supplier): SupplierFormData {
-  return {
-    supplier_type: (s.supplier_type as SupplierType) || 'distributor',
-    logo_url: s.logo_url ?? null,
-    legal_name: s.legal_name || '',
-    trading_name: s.trading_name || '',
-    email: s.email || '',
-    phone: s.phone || '',
-    status: (s.status as SupplierStatus) || 'active',
-    address_line1: s.address_line1 || '',
-    address_line2: s.address_line2 || '',
-    city: s.city || '',
-    state: s.state || '',
-    postcode: s.postcode || '',
-    country: s.country || '',
-    payment_terms: s.payment_terms || '',
-    currency: s.currency || '',
-    tax_id: s.tax_id || '',
-    notes: s.notes || '',
-    metadata: (s.metadata && typeof s.metadata === 'object' ? s.metadata : {}) as Record<
-      string,
-      unknown
-    >,
-  };
-}
-
-const emptyForm: SupplierFormData = {
-  supplier_type: 'distributor',
-  logo_url: null,
-  legal_name: '',
-  trading_name: '',
-  email: '',
-  phone: '',
-  status: 'active',
-  address_line1: '',
-  address_line2: '',
-  city: '',
-  state: '',
-  postcode: '',
-  country: '',
-  payment_terms: '',
-  currency: '',
-  tax_id: '',
-  notes: '',
-  metadata: {},
-};
-
-type SectionId = 'address' | 'commercial' | 'meta';
+export type SupplierFormTabId = 'details' | 'address' | 'related';
 
 interface SupplierFormProps {
   mode: 'create' | 'edit';
   supplier?: Supplier | null;
-  onSubmit: (data: SupplierFormData) => Promise<{ success: boolean; error?: string }>;
+  activeTab: SupplierFormTabId;
+  onSubmit: (data: SupplierFormData) => Promise<{ success: boolean; error?: string; id?: string }>;
   onCancel?: () => void;
+  onSuccess?: (createdId?: string) => void;
+  onFormChange?: (data: SupplierFormData) => void;
+  /** Logo/status managed in summary card — keep form in sync. */
+  syncFormData?: Pick<SupplierFormData, 'logo_url' | 'status'> | null;
   showHeader?: boolean;
+  /** Flat layout inside PremiumRecordPanel (no nested card chrome). */
+  embedded?: boolean;
 }
 
 export default function SupplierForm({
   mode,
   supplier,
+  activeTab,
   onSubmit,
   onCancel,
-  showHeader = true,
+  onSuccess,
+  onFormChange,
+  syncFormData,
+  showHeader = false,
+  embedded = true,
 }: SupplierFormProps) {
-  const [formData, setFormData] = useState<SupplierFormData>(emptyForm);
+  const [formData, setFormData] = useState<SupplierFormData>(emptySupplierFormData);
   const [metadataJson, setMetadataJson] = useState('{}');
-  const [openSection, setOpenSection] = useState<SectionId | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     if (supplier) {
-      setFormData(supplierToForm(supplier));
+      setFormData(supplierToFormData(supplier));
       setMetadataJson(JSON.stringify(supplier.metadata ?? {}, null, 2));
     } else {
-      setFormData(emptyForm);
+      setFormData(emptySupplierFormData);
       setMetadataJson('{}');
     }
     setValidationError(null);
   }, [supplier]);
 
+  useEffect(() => {
+    if (!syncFormData) return;
+    setFormData((prev) => {
+      if (prev.logo_url === syncFormData.logo_url && prev.status === syncFormData.status) {
+        return prev;
+      }
+      return { ...prev, logo_url: syncFormData.logo_url, status: syncFormData.status };
+    });
+  }, [syncFormData?.logo_url, syncFormData?.status, syncFormData]);
+
+  useEffect(() => {
+    onFormChange?.(formData);
+  }, [formData, onFormChange]);
+
   const setField = <K extends keyof SupplierFormData>(key: K, value: SupplierFormData[K]) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const hasAddressDetails = Boolean(
-    formData.address_line1 ||
-    formData.address_line2 ||
-    formData.city ||
-    formData.state ||
-    formData.postcode ||
-    formData.country
-  );
-  const hasCommercialDetails = Boolean(
-    formData.payment_terms || formData.currency || formData.tax_id
-  );
-  const hasMetaDetails = Boolean(formData.notes || metadataJson.trim() !== '{}');
-
-  const sectionBtn = (id: SectionId, label: string, hasDetails: boolean) => {
-    const open = openSection === id;
-    return (
-      <button
-        type="button"
-        onClick={() => setOpenSection((p) => (p === id ? null : id))}
-        className={`flex w-full items-center justify-between rounded-lg border px-3 py-1.5 text-left text-xs font-medium transition-colors ${
-          open
-            ? 'border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-200'
-            : 'border-gray-200 bg-white text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'
-        }`}
-        aria-expanded={open}
-      >
-        <span>{label}</span>
-        <span className="flex items-center gap-2">
-          <span
-            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
-              hasDetails
-                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
-            }`}
-          >
-            {!hasDetails && <AlertCircle className="mr-1 h-3 w-3" aria-hidden />}
-            {hasDetails ? 'Added' : 'Missing'}
-          </span>
-          <ChevronDown
-            className={`h-4 w-4 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
-          />
-        </span>
-      </button>
-    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -178,8 +106,12 @@ export default function SupplierForm({
       }
       toast.success(mode === 'edit' ? 'Supplier updated.' : 'Supplier created.');
       if (mode === 'create') {
-        setFormData(emptyForm);
-        setMetadataJson('{}');
+        if (onSuccess) {
+          onSuccess(result.id);
+        } else {
+          setFormData(emptySupplierFormData);
+          setMetadataJson('{}');
+        }
       }
     } finally {
       setIsSubmitting(false);
@@ -191,63 +123,51 @@ export default function SupplierForm({
       ? formatSupplierCode(supplier.supplier_code)
       : formatSupplierCode(null);
 
+  const shellClass = embedded
+    ? 'flex min-h-0 w-full flex-1 flex-col'
+    : 'flex w-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800';
+
+  const formClass = embedded
+    ? 'flex min-h-0 flex-1 flex-col'
+    : 'flex min-h-0 flex-1 flex-col overflow-hidden bg-gray-50 dark:bg-gray-900/50';
+
+  const fieldGrid = 'grid grid-cols-1 gap-3 sm:grid-cols-2';
+
   return (
-    <div className={formCardShell}>
-      <form
-        onSubmit={handleSubmit}
-        className="flex min-h-0 flex-1 flex-col overflow-hidden bg-gray-50 dark:bg-gray-900/50"
-      >
+    <div className={shellClass}>
+      <form onSubmit={handleSubmit} className={formClass}>
         {showHeader && (
-          <div className="shrink-0 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
-            <div className="flex items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                {mode === 'create' ? 'New Supplier' : 'Edit Supplier'}
-              </h3>
-              {onCancel && (
-                <button
-                  type="button"
-                  onClick={onCancel}
-                  className="rounded p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  aria-label="Close"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+          <div className="mb-3 shrink-0 border-b border-gray-200 pb-3 dark:border-gray-700">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
+              {mode === 'create' ? 'New supplier' : 'Edit supplier'}
+            </h3>
           </div>
         )}
 
-        <div className="shrink-0 px-4 pt-3">
-          {validationError && (
-            <div className="mb-3 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20">
-              <p className="text-sm text-red-600 dark:text-red-400">{validationError}</p>
-            </div>
-          )}
-        </div>
+        {validationError && (
+          <div className="mb-3 shrink-0 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-900/20">
+            <p className="text-sm text-red-600 dark:text-red-400">{validationError}</p>
+          </div>
+        )}
 
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-y-contain px-4 pb-4 lg:flex-row lg:gap-6">
-          <div className="flex w-full shrink-0 flex-col rounded-xl border border-gray-200/90 bg-white p-4 ring-1 ring-black/[0.04] dark:border-gray-700/90 dark:bg-gray-800/60 dark:ring-white/[0.06] lg:w-[min(42rem,52%)]">
-            <h4 className="mb-3 border-b border-gray-200 pb-2 text-xs font-semibold uppercase tracking-wider text-gray-600 dark:border-gray-700 dark:text-gray-400">
-              Primary
-            </h4>
-            <div className="space-y-3">
-              <LogoUrlField
-                logoUrl={formData.logo_url}
-                onLogoUrlChange={(url) => setField('logo_url', url)}
-                uploadFile={(tenantId, file) => uploadSupplierLogo(tenantId, file)}
-                disabled={isSubmitting}
-              />
-              <div>
-                <label className={labelClass}>Supplier code</label>
-                <input
-                  type="text"
-                  value={codePreview}
-                  readOnly
-                  disabled
-                  className={`${inputClass} cursor-not-allowed bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400`}
-                />
-              </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {activeTab === 'details' && (
+            <div className="space-y-4">
+              <PremiumSectionTitle>Primary details</PremiumSectionTitle>
+              <p className={`mb-3 ${premiumTypography.helper}`}>
+                Legal identity, contact, and supplier classification.
+              </p>
+              <div className={fieldGrid}>
+                <div className="sm:col-span-2">
+                  <label className={labelClass}>Supplier code</label>
+                  <input
+                    type="text"
+                    value={codePreview}
+                    readOnly
+                    disabled
+                    className={`${inputClass} cursor-not-allowed bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400`}
+                  />
+                </div>
                 <div>
                   <label className={labelClass}>
                     Legal name <span className="text-red-500">*</span>
@@ -270,8 +190,6 @@ export default function SupplierForm({
                     disabled={isSubmitting}
                   />
                 </div>
-              </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className={labelClass}>Email</label>
                   <input
@@ -292,8 +210,6 @@ export default function SupplierForm({
                     disabled={isSubmitting}
                   />
                 </div>
-              </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className={labelClass}>Type</label>
                   <select
@@ -309,31 +225,19 @@ export default function SupplierForm({
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className={labelClass}>Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setField('status', e.target.value as SupplierStatus)}
-                    className={inputClass}
-                    disabled={isSubmitting}
-                  >
-                    {statusOptions.map((s) => (
-                      <option key={s} value={s}>
-                        {s.replace(/_/g, ' ')}
-                      </option>
-                    ))}
-                  </select>
-                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 overflow-y-auto lg:max-w-md">
-            {sectionBtn('address', 'Address', hasAddressDetails)}
-            {openSection === 'address' && (
-              <div className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
-                <div className="space-y-2">
-                  <div>
+          {activeTab === 'address' && (
+            <div className="space-y-6">
+              <div>
+                <PremiumSectionTitle>Address</PremiumSectionTitle>
+                <p className={`mb-3 ${premiumTypography.helper}`}>
+                  Primary location for deliveries and correspondence.
+                </p>
+                <div className={`mt-3 ${fieldGrid}`}>
+                  <div className="sm:col-span-2">
                     <label className={labelClass}>Line 1</label>
                     <input
                       type="text"
@@ -343,7 +247,7 @@ export default function SupplierForm({
                       disabled={isSubmitting}
                     />
                   </div>
-                  <div>
+                  <div className="sm:col-span-2">
                     <label className={labelClass}>Line 2</label>
                     <input
                       type="text"
@@ -353,59 +257,56 @@ export default function SupplierForm({
                       disabled={isSubmitting}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className={labelClass}>City</label>
-                      <input
-                        type="text"
-                        value={formData.city}
-                        onChange={(e) => setField('city', e.target.value)}
-                        className={inputClass}
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>State</label>
-                      <input
-                        type="text"
-                        value={formData.state}
-                        onChange={(e) => setField('state', e.target.value)}
-                        className={inputClass}
-                        disabled={isSubmitting}
-                      />
-                    </div>
+                  <div>
+                    <label className={labelClass}>City</label>
+                    <input
+                      type="text"
+                      value={formData.city}
+                      onChange={(e) => setField('city', e.target.value)}
+                      className={inputClass}
+                      disabled={isSubmitting}
+                    />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className={labelClass}>Postcode</label>
-                      <input
-                        type="text"
-                        value={formData.postcode}
-                        onChange={(e) => setField('postcode', e.target.value)}
-                        className={inputClass}
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Country</label>
-                      <input
-                        type="text"
-                        value={formData.country}
-                        onChange={(e) => setField('country', e.target.value)}
-                        className={inputClass}
-                        disabled={isSubmitting}
-                      />
-                    </div>
+                  <div>
+                    <label className={labelClass}>State / region</label>
+                    <input
+                      type="text"
+                      value={formData.state}
+                      onChange={(e) => setField('state', e.target.value)}
+                      className={inputClass}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Postcode</label>
+                    <input
+                      type="text"
+                      value={formData.postcode}
+                      onChange={(e) => setField('postcode', e.target.value)}
+                      className={inputClass}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Country</label>
+                    <input
+                      type="text"
+                      value={formData.country}
+                      onChange={(e) => setField('country', e.target.value)}
+                      className={inputClass}
+                      disabled={isSubmitting}
+                    />
                   </div>
                 </div>
               </div>
-            )}
 
-            {sectionBtn('commercial', 'Commercial', hasCommercialDetails)}
-            {openSection === 'commercial' && (
-              <div className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
-                <div className="space-y-2">
-                  <div>
+              <div>
+                <PremiumSectionTitle>Commercial terms</PremiumSectionTitle>
+                <p className={`mb-3 ${premiumTypography.helper}`}>
+                  Payment and tax identifiers used on purchase documents.
+                </p>
+                <div className={`mt-3 ${fieldGrid}`}>
+                  <div className="sm:col-span-2">
                     <label className={labelClass}>Payment terms</label>
                     <input
                       type="text"
@@ -415,43 +316,42 @@ export default function SupplierForm({
                       disabled={isSubmitting}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className={labelClass}>Currency</label>
-                      <input
-                        type="text"
-                        value={formData.currency}
-                        onChange={(e) => setField('currency', e.target.value)}
-                        className={inputClass}
-                        placeholder="e.g. GBP"
-                        disabled={isSubmitting}
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClass}>Tax / VAT ID</label>
-                      <input
-                        type="text"
-                        value={formData.tax_id}
-                        onChange={(e) => setField('tax_id', e.target.value)}
-                        className={inputClass}
-                        disabled={isSubmitting}
-                      />
-                    </div>
+                  <div>
+                    <label className={labelClass}>Currency</label>
+                    <input
+                      type="text"
+                      value={formData.currency}
+                      onChange={(e) => setField('currency', e.target.value)}
+                      className={inputClass}
+                      placeholder="e.g. GBP"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Tax / VAT ID</label>
+                    <input
+                      type="text"
+                      value={formData.tax_id}
+                      onChange={(e) => setField('tax_id', e.target.value)}
+                      className={inputClass}
+                      disabled={isSubmitting}
+                    />
                   </div>
                 </div>
               </div>
-            )}
 
-            {sectionBtn('meta', 'Notes & metadata', hasMetaDetails)}
-            {openSection === 'meta' && (
-              <div className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-600 dark:bg-gray-800">
-                <div className="space-y-2">
+              <div>
+                <PremiumSectionTitle>Notes & metadata</PremiumSectionTitle>
+                <p className={`mb-3 ${premiumTypography.helper}`}>
+                  Internal notes and optional JSON metadata for integrations.
+                </p>
+                <div className="mt-3 space-y-3">
                   <div>
                     <label className={labelClass}>Notes</label>
                     <textarea
                       value={formData.notes}
                       onChange={(e) => setField('notes', e.target.value)}
-                      rows={3}
+                      rows={4}
                       className={`${inputClass} resize-none`}
                       disabled={isSubmitting}
                     />
@@ -461,24 +361,24 @@ export default function SupplierForm({
                     <textarea
                       value={metadataJson}
                       onChange={(e) => setMetadataJson(e.target.value)}
-                      rows={4}
+                      rows={6}
                       className={`${inputClass} resize-none font-mono text-xs`}
                       disabled={isSubmitting}
                     />
                   </div>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
-        <div className="shrink-0 flex w-full justify-end gap-3 border-t border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900">
+        <div className="mt-4 flex shrink-0 justify-end gap-3 border-t border-gray-200 pt-4 dark:border-gray-700">
           {onCancel && (
             <button
               type="button"
               onClick={onCancel}
               disabled={isSubmitting}
-              className="inline-flex min-w-[8rem] h-8 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+              className="inline-flex h-8 min-w-[8rem] items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
             >
               <X className="h-3.5 w-3.5 shrink-0" aria-hidden />
               Cancel
@@ -487,7 +387,7 @@ export default function SupplierForm({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="inline-flex min-w-[8rem] h-8 items-center justify-center gap-2 rounded-lg bg-green-600 px-3 text-xs font-medium text-white shadow-sm transition-colors hover:bg-green-700 active:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-8 min-w-[8rem] items-center justify-center gap-2 rounded-lg bg-green-600 px-3 text-xs font-medium text-white shadow-sm hover:bg-green-700 disabled:opacity-50"
           >
             {mode === 'create' ? (
               <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -496,11 +396,11 @@ export default function SupplierForm({
             )}
             {isSubmitting
               ? mode === 'create'
-                ? 'Creating...'
-                : 'Saving...'
+                ? 'Creating…'
+                : 'Saving…'
               : mode === 'create'
-                ? 'Create Supplier'
-                : 'Save Changes'}
+                ? 'Create supplier'
+                : 'Save changes'}
           </button>
         </div>
       </form>

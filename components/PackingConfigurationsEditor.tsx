@@ -1,9 +1,13 @@
 import React from 'react';
 import { PackingConfiguration } from '@/types/product';
+import type { SellablePackLevelOption } from '@/types/sellablePackLevel';
+import { DEFAULT_SELLABLE_PACK_OPTIONS } from '@/lib/sellablePackLevel';
+import { isValidPackingLevel } from '@/lib/productBarcodePacking';
 
 interface PackingConfigurationsEditorProps {
   value: PackingConfiguration[];
   onChange: (configs: PackingConfiguration[]) => void;
+  levelOptions?: SellablePackLevelOption[];
 }
 
 const emptyConfig: PackingConfiguration = {
@@ -22,14 +26,21 @@ const emptyConfig: PackingConfiguration = {
 export default function PackingConfigurationsEditor({
   value,
   onChange,
+  levelOptions = DEFAULT_SELLABLE_PACK_OPTIONS,
 }: PackingConfigurationsEditorProps) {
-  const handleFieldChange = (idx: number, field: keyof PackingConfiguration, fieldValue: any) => {
+  const handleFieldChange = (
+    idx: number,
+    field: keyof PackingConfiguration,
+    fieldValue: unknown
+  ) => {
     const updated = value.map((cfg, i) => (i === idx ? { ...cfg, [field]: fieldValue } : cfg));
     onChange(updated);
   };
 
   const handleAdd = () => {
-    onChange([...value, { ...emptyConfig }]);
+    const defaultLevel =
+      levelOptions.find((o) => o.code === 'unit')?.code ?? levelOptions[0]?.code ?? 'unit';
+    onChange([...value, { ...emptyConfig, level: defaultLevel }]);
   };
 
   const handleRemove = (idx: number) => {
@@ -37,15 +48,13 @@ export default function PackingConfigurationsEditor({
   };
 
   return (
-    <div>
+    <div className="min-w-0">
       <table className="min-w-full border text-xs">
         <thead>
           <tr className="bg-gray-100 dark:bg-gray-800">
             <th className="border px-2 py-1">Level</th>
             <th className="border px-2 py-1">Qty</th>
-            <th className="border px-2 py-1">Length</th>
-            <th className="border px-2 py-1">Width</th>
-            <th className="border px-2 py-1">Height</th>
+            <th className="border px-2 py-1 whitespace-nowrap">L × W × H</th>
             <th className="border px-2 py-1">Weight</th>
             <th className="border px-2 py-1">Weight Unit</th>
             <th className="border px-2 py-1">Dim Unit</th>
@@ -57,7 +66,7 @@ export default function PackingConfigurationsEditor({
         <tbody>
           {value.length === 0 && (
             <tr>
-              <td colSpan={11} className="text-center text-gray-400 py-2">
+              <td colSpan={9} className="text-center text-gray-400 py-2">
                 No packing configurations
               </td>
             </tr>
@@ -65,12 +74,21 @@ export default function PackingConfigurationsEditor({
           {value.map((cfg, idx) => (
             <tr key={idx}>
               <td className="border px-2 py-1">
-                <input
-                  type="text"
-                  value={cfg.level || ''}
+                <select
+                  value={cfg.level || 'unit'}
                   onChange={(e) => handleFieldChange(idx, 'level', e.target.value)}
-                  className="w-16 px-1 py-0.5 border rounded"
-                />
+                  className="max-w-[7.5rem] min-w-0 px-1 py-0.5 border rounded dark:bg-gray-900"
+                  aria-label="Pack level"
+                >
+                  {levelOptions.map((o) => (
+                    <option key={o.code} value={o.code}>
+                      {o.label}
+                    </option>
+                  ))}
+                  {cfg.level && !isValidPackingLevel(cfg.level, levelOptions) && (
+                    <option value={cfg.level}>{cfg.level} (unknown)</option>
+                  )}
+                </select>
               </td>
               <td className="border px-2 py-1">
                 <input
@@ -82,28 +100,39 @@ export default function PackingConfigurationsEditor({
                 />
               </td>
               <td className="border px-2 py-1">
-                <input
-                  type="number"
-                  value={cfg.length ?? 0}
-                  onChange={(e) => handleFieldChange(idx, 'length', Number(e.target.value))}
-                  className="w-14 px-1 py-0.5 border rounded"
-                />
-              </td>
-              <td className="border px-2 py-1">
-                <input
-                  type="number"
-                  value={cfg.width ?? 0}
-                  onChange={(e) => handleFieldChange(idx, 'width', Number(e.target.value))}
-                  className="w-14 px-1 py-0.5 border rounded"
-                />
-              </td>
-              <td className="border px-2 py-1">
-                <input
-                  type="number"
-                  value={cfg.height ?? 0}
-                  onChange={(e) => handleFieldChange(idx, 'height', Number(e.target.value))}
-                  className="w-14 px-1 py-0.5 border rounded"
-                />
+                <div
+                  className="flex min-w-[8.5rem] items-center gap-0.5"
+                  role="group"
+                  aria-label="Dimensions"
+                >
+                  <input
+                    type="number"
+                    value={cfg.length ?? 0}
+                    onChange={(e) => handleFieldChange(idx, 'length', Number(e.target.value))}
+                    className="w-11 min-w-0 px-1 py-0.5 border rounded"
+                    aria-label="Length"
+                  />
+                  <span className="shrink-0 text-gray-400" aria-hidden>
+                    ×
+                  </span>
+                  <input
+                    type="number"
+                    value={cfg.width ?? 0}
+                    onChange={(e) => handleFieldChange(idx, 'width', Number(e.target.value))}
+                    className="w-11 min-w-0 px-1 py-0.5 border rounded"
+                    aria-label="Width"
+                  />
+                  <span className="shrink-0 text-gray-400" aria-hidden>
+                    ×
+                  </span>
+                  <input
+                    type="number"
+                    value={cfg.height ?? 0}
+                    onChange={(e) => handleFieldChange(idx, 'height', Number(e.target.value))}
+                    className="w-11 min-w-0 px-1 py-0.5 border rounded"
+                    aria-label="Height"
+                  />
+                </div>
               </td>
               <td className="border px-2 py-1">
                 <input
@@ -136,12 +165,12 @@ export default function PackingConfigurationsEditor({
                   onChange={(e) => handleFieldChange(idx, 'is_default', e.target.checked)}
                 />
               </td>
-              <td className="border px-2 py-1 min-w-[10rem] max-w-xs">
+              <td className="border px-2 py-1 min-w-[12rem] w-full">
                 <input
                   type="text"
                   value={cfg.description || ''}
                   onChange={(e) => handleFieldChange(idx, 'description', e.target.value)}
-                  className="w-full min-w-0 max-w-[16rem] px-1 py-0.5 border rounded"
+                  className="w-full min-w-0 px-1 py-0.5 border rounded"
                 />
               </td>
               <td className="border px-2 py-1 text-center">

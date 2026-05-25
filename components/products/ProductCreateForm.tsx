@@ -364,7 +364,7 @@ export default function ProductCreateForm({
 
   return (
     <>
-      <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+      <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
         <form
           onSubmit={handleSubmit}
           className="flex flex-col flex-1 min-h-0 overflow-hidden bg-gray-50 dark:bg-gray-900/50"
@@ -378,13 +378,13 @@ export default function ProductCreateForm({
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-y-contain px-4 pb-4 lg:flex-row lg:gap-6 lg:overflow-hidden">
-            <div className="flex flex-col shrink-0 w-full lg:w-[min(45rem,54%)] rounded-xl border border-gray-200/90 dark:border-gray-700/90 bg-white dark:bg-gray-800/60 p-4 ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+            <div className="flex min-h-0 w-full shrink-0 flex-col overflow-hidden rounded-xl border border-gray-200/90 bg-white p-4 ring-1 ring-black/[0.04] dark:border-gray-700/90 dark:bg-gray-800/60 dark:ring-white/[0.06] lg:w-[min(45rem,54%)]">
               <h3
-                className={`${sectionTitleClass} mb-3 border-b border-gray-200 pb-2 dark:border-gray-700`}
+                className={`${sectionTitleClass} mb-2 shrink-0 border-b border-gray-200 pb-2 dark:border-gray-700`}
               >
                 Basics & classification
               </h3>
-              <div className="space-y-3">
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-y-contain pr-0.5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className={fieldLabelClass}>
@@ -556,72 +556,73 @@ export default function ProductCreateForm({
                   </div>
                 )}
 
-                <div className="rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50/80 dark:bg-gray-900/40 p-3 space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium text-gray-800 dark:text-gray-200">
+                <div className="rounded-lg border border-gray-200 bg-gray-50/80 p-2.5 dark:border-gray-600 dark:bg-gray-900/40">
+                  <div className="mb-1.5 flex items-center gap-2 text-sm font-medium text-gray-800 dark:text-gray-200">
                     <ImageIcon
-                      className="w-3.5 h-3.5 text-green-600 dark:text-green-400"
+                      className="h-3.5 w-3.5 shrink-0 text-green-600 dark:text-green-400"
                       aria-hidden
                     />
                     Product image
                   </div>
-                  <p className={helperTextClass}>
-                    Upload a file (stored in your workspace) or paste an image URL. If you choose a
-                    file, it is used instead of the URL.
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-                      className="hidden"
-                      disabled={isSubmitting}
-                      onChange={(e) => {
-                        const f = e.target.files?.[0] ?? null;
-                        setPendingImageFile(f);
-                        if (f) setImageUrlInput('');
-                      }}
-                    />
-                    <button
-                      type="button"
-                      disabled={isSubmitting}
-                      onClick={() => fileInputRef.current?.click()}
-                      className={`inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-gray-800 shadow-sm hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 ${buttonTextClass}`}
-                    >
-                      <Upload className="w-3.5 h-3.5" aria-hidden />
-                      Choose file
-                    </button>
-                    {pendingImageFile && (
-                      <>
-                        <span className="max-w-[12rem] truncate text-xs text-gray-600 dark:text-gray-300">
-                          {pendingImageFile.name}
-                        </span>
-                        <button
-                          type="button"
-                          disabled={isSubmitting}
-                          onClick={() => {
-                            setPendingImageFile(null);
-                            if (fileInputRef.current) fileInputRef.current.value = '';
-                          }}
-                          className="text-xs font-medium text-green-700 hover:underline dark:text-green-400"
-                        >
-                          Remove
-                        </button>
-                      </>
-                    )}
-                  </div>
-                  <div>
-                    <label className={fieldLabelClass}>Image URL (optional)</label>
-                    <input
-                      type="url"
-                      value={imageUrlInput}
-                      onChange={(e) => {
-                        setImageUrlInput(e.target.value);
-                        if (e.target.value.trim()) setPendingImageFile(null);
-                      }}
-                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
-                      placeholder="https://…"
-                      disabled={isSubmitting || !!pendingImageFile}
-                    />
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                    <div className="flex shrink-0 flex-wrap items-center gap-2 sm:pb-0.5">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                        className="hidden"
+                        disabled={isSubmitting}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0] ?? null;
+                          setPendingImageFile(f);
+                          if (f) setImageUrlInput('');
+                        }}
+                      />
+                      <button
+                        type="button"
+                        disabled={isSubmitting}
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`inline-flex shrink-0 items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-gray-800 shadow-sm hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 ${buttonTextClass}`}
+                      >
+                        <Upload className="h-3.5 w-3.5" aria-hidden />
+                        Choose file
+                      </button>
+                      {pendingImageFile && (
+                        <>
+                          <span className="max-w-[8rem] truncate text-xs text-gray-600 dark:text-gray-300 sm:max-w-[10rem]">
+                            {pendingImageFile.name}
+                          </span>
+                          <button
+                            type="button"
+                            disabled={isSubmitting}
+                            onClick={() => {
+                              setPendingImageFile(null);
+                              if (fileInputRef.current) fileInputRef.current.value = '';
+                            }}
+                            className="text-xs font-medium text-green-700 hover:underline dark:text-green-400"
+                          >
+                            Remove
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <label className={`${fieldLabelClass} sr-only sm:not-sr-only`}>
+                        Image URL (optional)
+                      </label>
+                      <input
+                        type="url"
+                        value={imageUrlInput}
+                        onChange={(e) => {
+                          setImageUrlInput(e.target.value);
+                          if (e.target.value.trim()) setPendingImageFile(null);
+                        }}
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 transition-all focus:outline-none focus:ring-2 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                        placeholder="Image URL (optional)"
+                        aria-label="Image URL (optional)"
+                        disabled={isSubmitting || !!pendingImageFile}
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -673,12 +674,9 @@ export default function ProductCreateForm({
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50/80 dark:bg-gray-900/40 p-3 space-y-3">
-                  <p className={sectionTitleClass}>Product usage</p>
-                  <p className={helperTextClass}>
-                    Controls where this SKU can be used in Trity workflows.
-                  </p>
-                  <div className="flex flex-wrap gap-x-6 gap-y-2">
+                <div className="rounded-lg border border-gray-200 bg-gray-50/80 p-2.5 dark:border-gray-600 dark:bg-gray-900/40">
+                  <p className={`${sectionTitleClass} mb-1.5`}>Product usage</p>
+                  <div className="flex flex-wrap gap-x-5 gap-y-1.5">
                     {(
                       [
                         ['is-sellable', 'Sellable', isSellable, setIsSellable],
@@ -711,8 +709,8 @@ export default function ProductCreateForm({
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50/80 dark:bg-gray-900/40 p-3">
-                  <label className="flex items-start gap-2.5 cursor-pointer">
+                <div className="rounded-lg border border-gray-200 bg-gray-50/80 p-2.5 dark:border-gray-600 dark:bg-gray-900/40">
+                  <label className="flex cursor-pointer items-start gap-2">
                     <input
                       type="checkbox"
                       id="tracks-inventory"
@@ -725,9 +723,10 @@ export default function ProductCreateForm({
                       <span className="block text-sm font-medium text-gray-800 dark:text-gray-200">
                         Track inventory
                       </span>
-                      <span className={`mt-0.5 block ${helperTextClass}`}>
-                        Turn off for services, fees, or SKUs not held in stock (no stock levels /
-                        MRP).
+                      <span
+                        className={`mt-0.5 block text-xs leading-snug text-gray-500 dark:text-gray-400`}
+                      >
+                        Off for services or SKUs not held in stock.
                       </span>
                     </span>
                   </label>
@@ -931,7 +930,7 @@ export default function ProductCreateForm({
             </div>
           </div>
 
-          <div className="shrink-0 flex justify-end gap-3 border-t border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-900">
+          <div className="sticky bottom-0 z-10 mt-auto flex shrink-0 justify-end gap-3 border-t border-gray-200 bg-gray-50 px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)] dark:border-gray-700 dark:bg-gray-900 dark:shadow-[0_-4px_12px_rgba(0,0,0,0.35)]">
             <button
               type="button"
               onClick={handleClose}

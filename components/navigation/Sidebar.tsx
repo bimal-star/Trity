@@ -101,6 +101,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     profile,
     workspaceTenantId,
     effectiveTenantId,
+    workspaceTenantLabel,
     effectiveTenantDisplayName,
     effectiveTenantLogoUrl,
     exitWorkspaceTenant,
@@ -110,6 +111,11 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
     signOut,
   } = useTenant();
   const error = navigationError;
+
+  const chromeDisplayName = workspaceTenantId
+    ? (workspaceTenantLabel ?? effectiveTenantDisplayName)
+    : effectiveTenantDisplayName;
+
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const normalizePath = (path: string | null | undefined): string => {
     if (!path) return '';
@@ -818,7 +824,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         <WorkspaceBrandStrip
           collapsed={isCollapsed}
           hasWorkspace={Boolean(effectiveTenantId)}
-          displayName={effectiveTenantDisplayName}
+          displayName={chromeDisplayName}
           logoUrl={effectiveTenantLogoUrl}
           onExitWorkspace={
             user && workspaceTenantId && isSuperAdminSession(user, profile)

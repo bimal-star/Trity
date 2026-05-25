@@ -12,7 +12,8 @@ import type { TenantDetailsUpdate } from '@/types/profile';
 import { pillarAccent, premiumPrimaryButton, premiumTypography } from '@/lib/premiumUi';
 import { useToast } from '@/lib/toast';
 import TenantLogoField from '@/components/tenants/TenantLogoField';
-import { Building2, Loader2, AlertCircle, Save, Settings } from 'lucide-react';
+import Link from 'next/link';
+import { Building2, Loader2, AlertCircle, Save, Settings, Hash, ChevronRight } from 'lucide-react';
 
 const ex = pillarAccent('execution');
 
@@ -153,6 +154,26 @@ export default function TenantSettingsPage() {
             </div>
           ) : (
             <>
+              <Link
+                href="/tenant-settings/document-codes"
+                className="mb-4 flex items-center justify-between rounded-lg border border-purple-200/60 bg-purple-50/50 px-4 py-3 transition-colors hover:bg-purple-50 dark:border-purple-900/40 dark:bg-purple-950/25 dark:hover:bg-purple-950/40"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/40">
+                    <Hash className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                      Document codes
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Product, customer, supplier, BOM, PO/GR, and category formats
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="h-5 w-5 text-gray-400" aria-hidden />
+              </Link>
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6 space-y-4">
                   <div className="flex items-center gap-3 pb-4 border-b border-gray-200 dark:border-gray-700">

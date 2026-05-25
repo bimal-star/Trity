@@ -3,13 +3,22 @@
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Copy, FileDown, Loader2, MoreVertical, Package2, Trash2 } from 'lucide-react';
+import { Copy, FileDown, Loader2, MoreVertical, Package2, Plus, Trash2 } from 'lucide-react';
 import PageContainer from '@/components/PageContainer';
 import PremiumStickyHeader from '@/components/layout/premium/PremiumStickyHeader';
 import ProductDetailsTabs from '@/components/products/ProductDetailsTabs';
 import ProductImageGallery from '@/components/products/ProductImageGallery';
+import ProductKeyDetailsModal from '@/components/products/ProductKeyDetailsModal';
 import ProductRecordSummaryCard from '@/components/products/ProductRecordSummaryCard';
 import { type ProductUsagePatch } from '@/components/products/ProductUsageToggles';
+import { logProductCreated } from '@/lib/auditLog';
+import {
+  emptyProductKeyDetailsDraft,
+  keyDetailsToCreateFormData,
+  keyDetailsToProductPreview,
+  productToKeyDetailsDraft,
+} from '@/lib/productKeyDetails';
+import { defaultUsageForProductType } from '@/lib/productUsageDefaults';
 import { ArchiveRestoreActions } from '@/components/common/ArchiveRestoreActions';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { useTenant } from '@/contexts/TenantContext';
@@ -60,10 +69,13 @@ export default function ProductDetailPage() {
   const { toast } = useToast();
   const rawId = params?.id;
   const productId = typeof rawId === 'string' ? rawId : Array.isArray(rawId) ? rawId[0] : undefined;
+  const isCreateMode = productId === 'new';
 
   const { effectiveTenantId: tenant_id, user } = useTenant();
-  const { product, isLoading, error, refreshProduct } = useProduct(productId);
-  const { deleteProduct, restoreProduct, updateProduct } = useProducts(
+  const { product, isLoading, error, refreshProduct, patchProduct } = useProduct(
+    isCreateMode ? undefined : productId
+  );
+  const { deleteProduct, restoreProduct, updateProduct, createProduct } = useProducts(
     undefined,
     'created_at',
     'desc',
@@ -81,9 +93,35 @@ export default function ProductDetailPage() {
   const [settingDefault, setSettingDefault] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [statusUpdating, setStatusUpdating] = useState(false);
-  const recordNav = useProductRecordNav(tenant_id ?? undefined, productId);
+  const [keyDetails, setKeyDetails] = useState(emptyProductKeyDetailsDraft);
+  const [usageDraft, setUsageDraft] = useState<ProductUsagePatch>(() => {
+    const u = defaultUsageForProductType('finished_good');
+    return {
+      is_sellable: u.is_sellable,
+      is_purchasable: u.is_purchasable,
+      is_manufacturable: u.is_manufacturable,
+      is_component: u.is_component,
+    };
+  });
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const recordNav = useProductRecordNav(
+    tenant_id ?? undefined,
+    isCreateMode ? undefined : productId
+  );
 
-  const galleryEntries = useMemo(() => (product ? normalizeProductImages(product) : []), [product]);
+  const displayProduct = useMemo(() => {
+    if (isCreateMode) {
+      const preview = keyDetailsToProductPreview(keyDetails, tenant_id ?? '');
+      return { ...preview, ...usageDraft };
+    }
+    return product;
+  }, [isCreateMode, keyDetails, tenant_id, usageDraft, product]);
+
+  const galleryEntries = useMemo(
+    () => (displayProduct ? normalizeProductImages(displayProduct) : []),
+    [displayProduct]
+  );
 
   useEffect(() => {
     setSelectedImageIndex(0);
@@ -102,13 +140,14 @@ export default function ProductDetailPage() {
   }, [product, productId]);
 
   const mediaDisabled = useMemo(() => {
+    if (isCreateMode) return true;
     if (!product || product.is_deleted) return true;
     if (user) {
       const imp = getImpersonationFromSession(user);
       if (imp?.readOnly) return true;
     }
     return false;
-  }, [product, user]);
+  }, [isCreateMode, product, user]);
 
   const handleProductUpdated = useCallback(async () => {
     await refreshProduct();
@@ -116,20 +155,34 @@ export default function ProductDetailPage() {
 
   const handleUsageUpdate = useCallback(
     async (patch: ProductUsagePatch) => {
+      if (isCreateMode) {
+        setUsageDraft((prev) => ({ ...prev, ...patch }));
+        return;
+      }
       if (!product) return;
+      const prev: ProductUsagePatch = {
+        is_sellable: product.is_sellable,
+        is_purchasable: product.is_purchasable,
+        is_manufacturable: product.is_manufacturable,
+        is_component: product.is_component,
+      };
+      patchProduct(patch);
       const result = await updateProduct(product.id, patch);
       if (!result.success) {
+        patchProduct(prev);
         toast.error(result.error ?? 'Failed to update product usage');
         throw new Error(result.error);
       }
-      await refreshProduct();
-      toast.success('Product usage updated.');
     },
-    [product, updateProduct, refreshProduct, toast]
+    [isCreateMode, product, updateProduct, patchProduct, toast]
   );
 
   const handleStatusChange = useCallback(
     async (status: StatusType) => {
+      if (isCreateMode) {
+        setKeyDetails((prev) => ({ ...prev, status }));
+        return;
+      }
       if (!product || product.status === status) return;
       setStatusUpdating(true);
       try {
@@ -144,8 +197,72 @@ export default function ProductDetailPage() {
         setStatusUpdating(false);
       }
     },
-    [product, updateProduct, refreshProduct, toast]
+    [isCreateMode, product, updateProduct, refreshProduct, toast]
   );
+
+  const handleKeyDetailsSave = useCallback(
+    async (draft: typeof keyDetails) => {
+      if (isCreateMode) {
+        setKeyDetails(draft);
+        const usage = defaultUsageForProductType(draft.product_type);
+        setUsageDraft({
+          is_sellable: usage.is_sellable,
+          is_purchasable: usage.is_purchasable,
+          is_manufacturable: usage.is_manufacturable,
+          is_component: usage.is_component,
+        });
+        return;
+      }
+      if (!product) return;
+      const result = await updateProduct(product.id, {
+        name: draft.name.trim(),
+        short_description: draft.short_description.trim() || undefined,
+        description: draft.description.trim() || undefined,
+        industry_type: draft.industry_type,
+        product_type: draft.product_type,
+        status: draft.status,
+      });
+      if (!result.success) {
+        throw new Error(result.error ?? 'Failed to update product');
+      }
+      await refreshProduct();
+      toast.success('Product details updated.');
+    },
+    [isCreateMode, product, updateProduct, refreshProduct, toast]
+  );
+
+  const handleCreateProduct = useCallback(async () => {
+    if (!keyDetails.sku.trim() || !keyDetails.name.trim()) {
+      toast.error('Open Edit and enter SKU and name before creating.');
+      setDetailsModalOpen(true);
+      return;
+    }
+    setCreating(true);
+    try {
+      const payload = {
+        ...keyDetailsToCreateFormData(keyDetails),
+        ...usageDraft,
+      };
+      const result = await createProduct(payload);
+      if (!result.success || !result.data?.id) {
+        toast.error(result.error ?? 'Failed to create product');
+        return;
+      }
+      if (tenant_id) {
+        await logProductCreated(
+          tenant_id,
+          result.data.id,
+          payload.name,
+          payload.sku || 'N/A',
+          user?.id ?? null
+        );
+      }
+      toast.success('Product created.');
+      router.replace(`/products/${result.data.id}`);
+    } finally {
+      setCreating(false);
+    }
+  }, [keyDetails, usageDraft, createProduct, tenant_id, user?.id, router, toast]);
 
   useEffect(() => {
     if (!overflowOpen) return;
@@ -396,28 +513,29 @@ export default function ProductDetailPage() {
   ) : null;
 
   const renderSummaryCard = (p: Product) => {
-    const entries = p.id === product?.id ? galleryEntries : normalizeProductImages(p);
+    const entries = galleryEntries;
     const stock = getProductStockStatus(p);
-    const isArchived = Boolean(p.is_deleted);
+    const isArchived = !isCreateMode && Boolean(p.is_deleted);
+    const skuSubtitle =
+      isCreateMode && !keyDetails.sku.trim()
+        ? 'SKU required · GBP'
+        : `SKU ${p.sku || '—'} · ${p.currency?.trim() || 'GBP'}`;
+
     return (
       <ProductRecordSummaryCard
         product={p}
         title={p.name}
-        subtitle={
-          <>
-            SKU {p.sku || '—'} · {p.currency?.trim() || 'GBP'}
-          </>
-        }
-        updatedAt={formatShortDate(p.updated_at)}
+        subtitle={<>{skuSubtitle}</>}
+        updatedAt={isCreateMode ? undefined : formatShortDate(p.updated_at)}
         accentClassName={stockRecordBorderClass(stock.bucket)}
+        onEditDetails={() => setDetailsModalOpen(true)}
+        editDetailsLabel={isCreateMode ? 'Details' : 'Edit'}
         imagePanel={
           <ProductImageGallery
             entries={entries}
             defaultUrl={p.image_url}
-            selectedIndex={
-              p.id === product?.id ? selectedImageIndex : getDefaultImageIndex(entries, p.image_url)
-            }
-            onSelectIndex={p.id === product?.id ? setSelectedImageIndex : () => {}}
+            selectedIndex={selectedImageIndex}
+            onSelectIndex={setSelectedImageIndex}
             onUpload={handleImageUpload}
             onSetDefault={handleSetDefaultImage}
             onRemove={mediaDisabled ? undefined : handleImageRemove}
@@ -428,72 +546,92 @@ export default function ProductDetailPage() {
           />
         }
         actions={
-          <>
-            <ArchiveRestoreActions
-              entity={p}
-              isArchived={isArchived}
-              onArchive={handleArchive}
-              onRestore={handleRestore}
-              archiveTitle="Archive: keep data but hide from default lists."
-              restoreTitle="Restore this product to the active catalog."
-            />
-            <div className="relative" ref={overflowRef}>
-              <button
-                type="button"
-                aria-expanded={overflowOpen}
-                aria-haspopup="menu"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setOverflowOpen((o) => !o);
-                }}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
-                title="More actions"
-              >
-                <MoreVertical className="h-4 w-4" aria-hidden />
-              </button>
-              {overflowOpen && (
-                <div
-                  role="menu"
-                  className="absolute right-0 z-40 mt-1 min-w-[11rem] overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-600 dark:bg-gray-900"
-                  onMouseDown={(e) => e.stopPropagation()}
+          isCreateMode ? (
+            <button
+              type="button"
+              disabled={creating}
+              onClick={() => void handleCreateProduct()}
+              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md bg-green-600 px-3 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+            >
+              {creating ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+              ) : (
+                <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              )}
+              Create product
+            </button>
+          ) : (
+            <>
+              <ArchiveRestoreActions
+                entity={p}
+                isArchived={isArchived}
+                onArchive={handleArchive}
+                onRestore={handleRestore}
+                archiveTitle="Archive: keep data but hide from default lists."
+                restoreTitle="Restore this product to the active catalog."
+              />
+              <div className="relative" ref={overflowRef}>
+                <button
+                  type="button"
+                  aria-expanded={overflowOpen}
+                  aria-haspopup="menu"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOverflowOpen((o) => !o);
+                  }}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+                  title="More actions"
                 >
-                  <button
-                    type="button"
-                    role="menuitem"
-                    disabled
-                    title="Coming soon"
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-400 dark:text-gray-500"
+                  <MoreVertical className="h-4 w-4" aria-hidden />
+                </button>
+                {overflowOpen && (
+                  <div
+                    role="menu"
+                    className="absolute right-0 z-40 mt-1 min-w-[11rem] overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-600 dark:bg-gray-900"
+                    onMouseDown={(e) => e.stopPropagation()}
                   >
-                    <Copy className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
-                    Duplicate
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-800 hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-gray-800"
-                    onClick={exportProductCsv}
-                  >
-                    <FileDown className="h-4 w-4 shrink-0" aria-hidden />
-                    Export CSV
-                  </button>
-                  {!isArchived && (
                     <button
                       type="button"
                       role="menuitem"
-                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
-                      onClick={() => handleArchive(p)}
+                      disabled
+                      title="Coming soon"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-400 dark:text-gray-500"
                     >
-                      <Trash2 className="h-4 w-4 shrink-0" aria-hidden />
-                      Delete
+                      <Copy className="h-4 w-4 shrink-0 opacity-70" aria-hidden />
+                      Duplicate
                     </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-800 hover:bg-gray-50 dark:text-gray-100 dark:hover:bg-gray-800"
+                      onClick={exportProductCsv}
+                    >
+                      <FileDown className="h-4 w-4 shrink-0" aria-hidden />
+                      Export CSV
+                    </button>
+                    {!isArchived && (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30"
+                        onClick={() => handleArchive(p)}
+                      >
+                        <Trash2 className="h-4 w-4 shrink-0" aria-hidden />
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
+          )
         }
         footer={
-          isArchived ? (
+          isCreateMode ? (
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+              Draft — not saved yet
+            </p>
+          ) : isArchived ? (
             <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
               Archived — hidden from default catalog lists.
             </p>
@@ -504,7 +642,7 @@ export default function ProductDetailPage() {
         onStatusChange={(s) => void handleStatusChange(s)}
         onUsageUpdate={handleUsageUpdate}
         recordNav={
-          recordNav.total > 0
+          !isCreateMode && recordNav.total > 0
             ? {
                 index: recordNav.index,
                 total: recordNav.total,
@@ -528,22 +666,22 @@ export default function ProductDetailPage() {
           module="businessCore"
           backHref="/products"
           backLabel="Products"
-          className="!mb-0 !border-b-0 !py-0 [&_a]:!mb-1"
-          {...(error && !isLoading
+          className="!mb-0 !border-b-0 !py-0 [&_a]:!mb-2.5"
+          {...(!isCreateMode && error && !isLoading
             ? {
                 icon: Package2,
                 title: 'Product',
                 subtitle: typeof error === 'string' ? error : 'Unable to load this product',
                 subtitleClassName: `${premiumTypography.pageSubtitle} ${bc.subtitleTint}`,
               }
-            : isLoading
+            : !isCreateMode && isLoading
               ? {
                   icon: Package2,
                   title: 'Product',
                   subtitle: 'Loading…',
                   subtitleClassName: `${premiumTypography.pageSubtitle} ${bc.subtitleTint}`,
                 }
-              : !product
+              : !isCreateMode && !product
                 ? {
                     icon: Package2,
                     title: 'Product',
@@ -571,7 +709,7 @@ export default function ProductDetailPage() {
         )}
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden">
-          {isLoading && (
+          {!isCreateMode && isLoading && (
             <div
               className="flex flex-1 flex-col items-center justify-center gap-3 py-12 text-gray-500"
               role="status"
@@ -582,7 +720,7 @@ export default function ProductDetailPage() {
             </div>
           )}
 
-          {!isLoading && error && (
+          {!isCreateMode && !isLoading && error && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-6 text-center dark:border-amber-900/40 dark:bg-amber-950/20">
               <p className="text-sm text-amber-900 dark:text-amber-200">{error}</p>
               <Link
@@ -594,11 +732,14 @@ export default function ProductDetailPage() {
             </div>
           )}
 
-          {!isLoading && product && (
+          {displayProduct && (isCreateMode || (!isLoading && product)) && (
             <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-              {renderSummaryCard(product)}
+              {renderSummaryCard(displayProduct)}
               <ProductDetailsTabs
-                product={product}
+                product={displayProduct}
+                createMode={isCreateMode}
+                creating={creating}
+                onCreateProduct={handleCreateProduct}
                 onProductUpdated={handleProductUpdated}
                 onSelectProduct={(id) => {
                   router.push(`/products/${id}`);
@@ -608,6 +749,15 @@ export default function ProductDetailPage() {
           )}
         </div>
       </PageContainer>
+      <ProductKeyDetailsModal
+        open={detailsModalOpen}
+        isCreateMode={isCreateMode}
+        initial={
+          isCreateMode ? keyDetails : product ? productToKeyDetailsDraft(product) : keyDetails
+        }
+        onClose={() => setDetailsModalOpen(false)}
+        onSave={handleKeyDetailsSave}
+      />
     </ProtectedRoute>
   );
 }

@@ -7,6 +7,7 @@ import type { ProductImageEntry } from '@/types/product';
 
 const ACCEPT = 'image/jpeg,image/png,image/webp,image/gif';
 const MAIN_SIZE_CLASS = 'size-[252px]';
+const MAIN_WIDTH_CLASS = 'w-[252px]';
 
 export interface ProductImageGalleryProps {
   entries: ProductImageEntry[];
@@ -38,6 +39,7 @@ export default function ProductImageGallery({
   const rootRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [manageOpen, setManageOpen] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const busy = uploading || settingDefault || removing;
   const controlsDisabled = disabled || busy;
@@ -46,6 +48,18 @@ export default function ProductImageGallery({
   const selectedUrl = resolveGalleryPreviewUrl(entries, safeIndex, defaultUrl);
   const isDefault = Boolean(selectedUrl && defaultUrl && selectedUrl === defaultUrl.trim());
   const canSetDefault = Boolean(selectedUrl && !isDefault && entries.length > 0);
+  const hasImage = Boolean(selectedUrl);
+
+  const openManage = useCallback(
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      if (controlsDisabled) return;
+      setManageOpen(true);
+    },
+    [controlsDisabled]
+  );
+
+  const closeLightbox = useCallback(() => setLightboxOpen(false), []);
 
   const handlePick = useCallback(() => {
     if (controlsDisabled) return;
@@ -66,10 +80,14 @@ export default function ProductImageGallery({
     [onUpload]
   );
 
-  const toggleManage = useCallback(() => {
+  const handleImageAreaClick = useCallback(() => {
     if (controlsDisabled) return;
-    setManageOpen((open) => !open);
-  }, [controlsDisabled]);
+    if (hasImage) {
+      setLightboxOpen(true);
+    } else {
+      setManageOpen(true);
+    }
+  }, [controlsDisabled, hasImage]);
 
   useEffect(() => {
     if (!manageOpen) return;
@@ -89,27 +107,55 @@ export default function ProductImageGallery({
     };
   }, [manageOpen]);
 
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightboxOpen(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [lightboxOpen]);
+
   return (
     <div ref={rootRef} className="relative shrink-0">
       <div
-        className={`group relative ${MAIN_SIZE_CLASS} shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-600 dark:bg-gray-950`}
+        className={`group relative ${MAIN_SIZE_CLASS} shrink-0 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-600 dark:bg-gray-950 ${
+          !controlsDisabled ? 'cursor-pointer' : ''
+        }`}
+        onClick={handleImageAreaClick}
+        onKeyDown={(e) => {
+          if (controlsDisabled) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleImageAreaClick();
+          }
+        }}
+        role={!controlsDisabled ? 'button' : undefined}
+        tabIndex={!controlsDisabled ? 0 : undefined}
+        aria-label={
+          hasImage
+            ? 'View full size image'
+            : controlsDisabled
+              ? 'No product image'
+              : 'Add product image'
+        }
       >
         {selectedUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={selectedUrl}
             alt=""
-            className="block h-full w-full object-cover object-center"
+            className="block h-full w-full object-cover object-center transition-[filter,box-shadow] duration-150 group-hover:brightness-[0.88] group-hover:ring-2 group-hover:ring-inset group-hover:ring-green-500/35"
             referrerPolicy="no-referrer"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center">
+          <div className="flex h-full w-full items-center justify-center transition-[filter,box-shadow] duration-150 group-hover:brightness-[0.92] group-hover:ring-2 group-hover:ring-inset group-hover:ring-green-500/35">
             <Package2 className="h-12 w-12 text-gray-400" aria-hidden />
           </div>
         )}
 
         {entries.length > 1 ? (
-          <span className="pointer-events-none absolute bottom-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium tabular-nums text-white">
+          <span className="pointer-events-none absolute bottom-2 right-2 z-[1] rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-medium tabular-nums text-white">
             {safeIndex + 1}/{entries.length}
           </span>
         ) : null}
@@ -117,42 +163,59 @@ export default function ProductImageGallery({
         {!controlsDisabled ? (
           <button
             type="button"
-            onClick={toggleManage}
+            onClick={openManage}
             aria-expanded={manageOpen}
             aria-haspopup="dialog"
             aria-label="Manage product images"
-            className={`absolute inset-0 z-10 flex items-center justify-center transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500 ${
-              manageOpen
-                ? 'bg-black/45'
-                : 'bg-black/0 group-hover:bg-black/40 group-focus-within:bg-black/40'
-            }`}
+            className="absolute right-2 top-2 z-20 inline-flex items-center justify-center rounded-md bg-black/55 p-1.5 text-white shadow-sm backdrop-blur-[2px] transition-colors hover:bg-black/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-500"
           >
-            <span
-              className={`rounded-full bg-white/95 p-2.5 text-gray-800 shadow-md transition-opacity dark:bg-gray-900/95 dark:text-gray-100 ${
-                manageOpen
-                  ? 'opacity-100'
-                  : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
-              }`}
-            >
-              {entries.length > 0 ? (
-                <Pencil className="h-5 w-5" aria-hidden />
-              ) : (
-                <Camera className="h-5 w-5" aria-hidden />
-              )}
-            </span>
+            {entries.length > 0 ? (
+              <Pencil className="h-3.5 w-3.5" aria-hidden />
+            ) : (
+              <Camera className="h-3.5 w-3.5" aria-hidden />
+            )}
           </button>
         ) : null}
       </div>
+
+      {lightboxOpen && selectedUrl ? (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Product image preview"
+          onClick={closeLightbox}
+        >
+          <button
+            type="button"
+            onClick={closeLightbox}
+            aria-label="Close image preview"
+            className="absolute right-4 top-4 z-[101] inline-flex h-9 w-9 items-center justify-center rounded-lg bg-black/50 text-white transition-colors hover:bg-black/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          >
+            <X className="h-5 w-5" aria-hidden />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={selectedUrl}
+            alt=""
+            className="max-h-[min(90vh,900px)] max-w-[min(92vw,1200px)] object-contain shadow-2xl"
+            referrerPolicy="no-referrer"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      ) : null}
 
       {manageOpen && !controlsDisabled ? (
         <div
           role="dialog"
           aria-label="Product image management"
-          className="absolute left-0 top-full z-50 mt-1.5 w-[min(17.5rem,90vw)] rounded-lg border border-gray-200 bg-white p-2 shadow-lg dark:border-gray-600 dark:bg-gray-900"
+          className={`absolute left-0 top-full z-50 mt-1.5 ${MAIN_WIDTH_CLASS} overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-900`}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
         >
           {entries.length > 0 ? (
             <div
-              className="mb-2 flex gap-1 overflow-x-auto pb-0.5"
+              className="flex gap-1 overflow-x-auto p-2 pb-0"
               role="listbox"
               aria-label="Product images"
             >
@@ -220,12 +283,14 @@ export default function ProductImageGallery({
             onChange={handleFileChange}
           />
 
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-col">
             <button
               type="button"
               disabled={busy}
               onClick={handlePick}
-              className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+              className={`inline-flex ${MAIN_WIDTH_CLASS} items-center justify-center gap-1 bg-white px-2 py-1.5 text-[11px] font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-60 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 ${
+                entries.length > 0 ? 'border-t border-gray-200 dark:border-gray-600' : ''
+              }`}
             >
               {uploading ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
@@ -239,7 +304,7 @@ export default function ProductImageGallery({
                 type="button"
                 disabled={busy}
                 onClick={() => void onSetDefault()}
-                className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-emerald-600/40 bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-800 hover:bg-emerald-100 disabled:opacity-60 dark:border-emerald-500/40 dark:bg-emerald-950/40 dark:text-emerald-200 dark:hover:bg-emerald-950/70"
+                className={`inline-flex ${MAIN_WIDTH_CLASS} items-center justify-center gap-1 border-t border-emerald-600/40 bg-emerald-50 px-2 py-1.5 text-[11px] font-medium text-emerald-800 hover:bg-emerald-100 disabled:opacity-60 dark:border-emerald-500/40 dark:bg-emerald-950/40 dark:text-emerald-200 dark:hover:bg-emerald-950/70`}
               >
                 {settingDefault ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />

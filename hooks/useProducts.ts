@@ -446,7 +446,6 @@ export function useProducts(
       const packingData = data.packing_configurations;
 
       const allowedFields = [
-        'sku',
         'name',
         'description',
         'short_description',
@@ -543,7 +542,9 @@ export function useProducts(
         }
       }
 
-      await fetchProducts();
+      if (loadProducts) {
+        await fetchProducts();
+      }
       return {
         success: true,
         image_url: updatedRow?.image_url ?? undefined,

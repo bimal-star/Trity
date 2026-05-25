@@ -2,7 +2,15 @@
 
 import Link from 'next/link';
 import type { TableColumnDefinition } from '@/types/tableView';
-import { KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  KeyboardEvent,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import PremiumCard from '@/components/layout/premium/PremiumCard';
 import { Product, ProductRecordVisibility, ProductType, StatusType } from '@/types/product';
 import { Filter, Loader2, Package, Plus, Search, TableProperties } from 'lucide-react';
@@ -42,6 +50,8 @@ const VISIBILITY_FILTERS: { value: ProductRecordVisibility; label: string }[] = 
 
 /** Stable reference for `ColumnCustomiser` (inline `[]` would reset draft state every parent render). */
 const PRODUCT_LIST_ALWAYS_ON_COLUMN_IDS: string[] = ['_select', '_thumbnail'];
+
+const PRODUCT_LIST_COLUMN_WIDTH_SAMPLE_ROWS = 30;
 
 export type SortUiOption = 'recent' | 'name_asc' | 'price_asc';
 
@@ -126,8 +136,13 @@ export default function ProductList({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [bulkWorking, setBulkWorking] = useState(false);
   const selectAllRef = useRef<HTMLInputElement>(null);
+  const columnBodyScrollRef = useRef<HTMLDivElement>(null);
+  const columnBodyTableRef = useRef<HTMLTableElement>(null);
+
+  const [syncedColumnWidths, setSyncedColumnWidths] = useState<number[] | null>(null);
   const [columnsOpen, setColumnsOpen] = useState(false);
   const columnsBtnRef = useRef<HTMLButtonElement>(null);
+
   const columnHiddenSet = useMemo(() => new Set(columnHidden), [columnHidden]);
 
   const listColumnDefinitionById = useMemo(() => {
@@ -310,239 +325,334 @@ export default function ProductList({
     [columnOrder, columnHiddenSet, showGroupColumn]
   );
 
-  return (
-    <PremiumCard className="relative flex min-h-0 w-full flex-1 flex-col !border-t-0 !p-0">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <div className="z-30 shrink-0 -mx-1 mb-0 flex flex-col gap-2 border-b border-gray-200/70 bg-gray-50 px-1 pb-0 dark:border-gray-700 dark:bg-gray-900">
-          {someSelected && (
-            <div
-              className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-green-600 px-1 py-2 text-white dark:border-gray-700 dark:bg-green-700 sm:px-0"
-              role="region"
-              aria-label="Bulk actions"
-            >
-              <span className={`font-medium ${premiumTypography.tableCell}`}>
-                {filteredSelectedProducts.length} selected
-              </span>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  disabled={bulkWorking}
-                  className={`rounded-md border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-semibold backdrop-blur-sm hover:bg-white/20 disabled:opacity-60`}
-                  onClick={runBulkExport}
-                >
-                  Export
-                </button>
-                <button
-                  type="button"
-                  disabled={bulkWorking || !archiveProducts}
-                  className={`rounded-md border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-semibold backdrop-blur-sm hover:bg-white/20 disabled:opacity-60`}
-                  onClick={() => void runBulkArchive()}
-                >
-                  {bulkWorking ? 'Working…' : 'Archive'}
-                </button>
-                <button
-                  type="button"
-                  disabled={bulkWorking || !archiveProducts}
-                  className={`rounded-md border border-white/40 bg-red-600/90 px-3 py-1.5 text-xs font-semibold hover:bg-red-600 disabled:opacity-60`}
-                  onClick={() => void runBulkArchive()}
-                  title="Archives selected products (soft delete)"
-                >
-                  Delete
-                </button>
-                <button
-                  type="button"
-                  className="rounded-md px-2 py-1 text-xs font-medium text-white/90 hover:bg-white/10"
-                  onClick={() => setSelectedIds(new Set())}
-                >
-                  Clear
-                </button>
-              </div>
-            </div>
+  const columnsSynced =
+    syncedColumnWidths != null && syncedColumnWidths.length === visibleColumnIds.length;
+
+  const measureAndSyncColumnWidths = useCallback(() => {
+    const bodyTable = columnBodyTableRef.current;
+    if (!bodyTable) return;
+
+    if (bodyTable.classList.contains('table-fixed')) {
+      return;
+    }
+
+    const headCells = bodyTable.querySelectorAll('thead th');
+    const colCount = headCells.length;
+    if (colCount === 0) {
+      setSyncedColumnWidths(null);
+      return;
+    }
+
+    const rows = bodyTable.querySelectorAll('tbody tr');
+    const maxWidths = new Array<number>(colCount).fill(0);
+    for (let r = 0; r < rows.length && r < PRODUCT_LIST_COLUMN_WIDTH_SAMPLE_ROWS; r++) {
+      const cells = rows[r].querySelectorAll('td');
+      for (let i = 0; i < colCount && i < cells.length; i++) {
+        maxWidths[i] = Math.max(maxWidths[i], cells[i].getBoundingClientRect().width);
+      }
+    }
+    for (let i = 0; i < colCount; i++) {
+      maxWidths[i] = Math.max(maxWidths[i], headCells[i].getBoundingClientRect().width);
+    }
+
+    const widths = maxWidths.map((w) => Math.ceil(w));
+    const total = widths.reduce((sum, w) => sum + w, 0);
+    if (total <= 0) return;
+
+    setSyncedColumnWidths(widths);
+    bodyTable.style.width = '';
+    bodyTable.style.minWidth = '';
+  }, []);
+
+  useLayoutEffect(() => {
+    setSyncedColumnWidths(null);
+  }, [visibleColumnIds]);
+
+  useLayoutEffect(() => {
+    if (isLoading || products.length === 0) {
+      setSyncedColumnWidths(null);
+      return;
+    }
+    measureAndSyncColumnWidths();
+  }, [isLoading, products, visibleColumnIds, measureAndSyncColumnWidths]);
+
+  const syncedColumnWidthPercents = useMemo(() => {
+    if (!columnsSynced || !syncedColumnWidths) return null;
+    const total = syncedColumnWidths.reduce((sum, w) => sum + w, 0);
+    if (total <= 0) return null;
+    return syncedColumnWidths.map((w) => (w / total) * 100);
+  }, [columnsSynced, syncedColumnWidths]);
+
+  const productListTableClass = columnsSynced
+    ? 'w-full max-w-full table-fixed border-collapse text-left'
+    : 'w-full max-w-full table-auto border-collapse text-left';
+
+  const renderProductListColGroup = () => (
+    <colgroup>
+      {visibleColumnIds.map((id, i) => (
+        <col
+          key={id}
+          style={
+            syncedColumnWidthPercents ? { width: `${syncedColumnWidthPercents[i]}%` } : undefined
+          }
+        />
+      ))}
+    </colgroup>
+  );
+
+  const headerRow = (
+    <tr>
+      {visibleColumnIds.map((id) => (
+        <th
+          key={id}
+          scope="col"
+          className={`whitespace-nowrap py-2 text-left text-gray-600 dark:text-gray-300 ${premiumTypography.tableCell} font-semibold ${
+            id === '_thumbnail' ? 'w-11 min-w-[2.75rem] px-1' : 'px-2'
+          }`}
+        >
+          {id === '_select' ? (
+            <input
+              type="checkbox"
+              checked={allSelectableSelected}
+              ref={selectAllRef}
+              onChange={(e) => toggleSelectAll(e.target.checked)}
+              aria-label="Select all visible products"
+              className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+            />
+          ) : id === '_thumbnail' ? (
+            <span className="inline-block w-11 text-center text-xs font-semibold text-gray-500 dark:text-gray-400">
+              Image
+            </span>
+          ) : (
+            getProductListColumnLabel(id)
           )}
+        </th>
+      ))}
+    </tr>
+  );
 
-          <div className="flex min-h-[3.5rem] min-w-0 shrink-0 flex-nowrap items-center justify-between gap-4">
-            <div className="flex min-h-0 min-w-0 flex-1 flex-nowrap items-center gap-2 overflow-x-auto">
-              <div className="relative w-[240px] shrink-0">
-                <Search
-                  className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
-                  aria-hidden
-                />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => onSearchChange(e.target.value)}
-                  placeholder="Search products…"
-                  className={`${premiumInputCompact} h-10 w-[240px] max-w-full py-2 pl-10 pr-3 ${premiumTypography.body}`}
-                  aria-label="Search products"
-                />
-              </div>
-
-              <div className={`${segmented} shrink-0`}>
-                {VISIBILITY_FILTERS.map((option) => {
-                  const selected = recordVisibility === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => onRecordVisibilityChange(option.value)}
-                      className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors ${
-                        selected
-                          ? 'bg-green-600 text-white shadow-sm dark:bg-green-600'
-                          : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
-                      }`}
-                      aria-pressed={selected}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <label className="flex shrink-0 items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
-                <span className="sr-only md:not-sr-only md:inline">Sort</span>
-                <select
-                  value={sortUiValue}
-                  onChange={(e) => onSortUiChange(e.target.value as SortUiOption)}
-                  className={`${filterControlClass} min-w-[10.5rem]`}
-                  aria-label="Sort products"
-                >
-                  <option value="name_asc">Name A–Z</option>
-                  <option value="price_asc">Price low–high</option>
-                  <option value="recent">Recently added</option>
-                </select>
-              </label>
-            </div>
-
-            <div className="relative z-[45] flex shrink-0 flex-nowrap items-center gap-2 overflow-visible border-l border-gray-200/90 pl-4 dark:border-gray-600/80">
-              {listViewsUi && (
-                <ViewSelector
-                  views={listViewsUi.views}
-                  selection={listViewsUi.selection}
-                  onSelectionChange={listViewsUi.onSelectionChange}
-                  loading={listViewsUi.loading}
-                  onSaveView={listViewsUi.onSaveView}
-                  onSetPersonalDefault={listViewsUi.onSetPersonalDefault}
-                  onClearPersonalDefault={listViewsUi.onClearPersonalDefault}
-                  onSaveWorkspaceDefault={listViewsUi.onSaveWorkspaceDefault}
-                  canWorkspaceDefault={listViewsUi.canWorkspaceDefault}
-                  onDeleteSelectedView={listViewsUi.onDeleteSelectedView}
-                />
-              )}
+  return (
+    <PremiumCard className="!p-0 flex min-h-0 min-w-0 flex-1 w-full flex-col overflow-hidden">
+      <div
+        className="z-30 flex shrink-0 flex-col gap-2 bg-gray-50 px-1 pb-0 dark:bg-gray-900"
+        role="region"
+        aria-label="Product list toolbar"
+      >
+        {someSelected && (
+          <div
+            className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-green-600 px-1 py-2 text-white dark:border-gray-700 dark:bg-green-700 sm:px-0"
+            role="region"
+            aria-label="Bulk actions"
+          >
+            <span className={`font-medium ${premiumTypography.tableCell}`}>
+              {filteredSelectedProducts.length} selected
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
               <button
-                ref={columnsBtnRef}
                 type="button"
-                aria-expanded={columnsOpen}
-                aria-haspopup="dialog"
-                onClick={() => setColumnsOpen((o) => !o)}
-                className={`inline-flex !h-8 shrink-0 items-center gap-1.5 px-2.5 text-xs ${premiumSecondaryButton('businessCore', 'sm', 'auto')} ${premiumTypography.tableCell}`}
+                disabled={bulkWorking}
+                className={`rounded-md border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-semibold backdrop-blur-sm hover:bg-white/20 disabled:opacity-60`}
+                onClick={runBulkExport}
               >
-                <TableProperties className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                Columns
+                Export
               </button>
-              <ColumnCustomiser
-                open={columnsOpen}
-                onClose={() => setColumnsOpen(false)}
-                anchorRef={columnsBtnRef}
-                columnOrder={columnOrder}
-                columnHidden={columnHidden}
-                alwaysOnIds={PRODUCT_LIST_ALWAYS_ON_COLUMN_IDS}
-                excludeColumnId={showGroupColumn ? null : 'product_group'}
-                isColumnPickable={isProductListColumnUserConfigurable}
-                getLabel={getProductListColumnLabel}
-                onApply={(order, hidden) => onColumnStateChange(order, hidden)}
-              />
-              <span className="relative inline-flex shrink-0">
-                <button
-                  type="button"
-                  aria-expanded={Boolean(filtersDrawerOpen)}
-                  aria-haspopup="dialog"
-                  aria-label={filtersButtonAriaLabel}
-                  title={advancedSummary}
-                  onClick={() => onOpenFilters?.()}
-                  disabled={!onOpenFilters}
-                  className={`inline-flex !h-8 shrink-0 items-center gap-1.5 px-2.5 text-xs ${premiumSecondaryButton('businessCore', 'sm', 'auto')} disabled:pointer-events-none disabled:opacity-50 ${premiumTypography.tableCell}`}
-                >
-                  <Filter className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                  Filters
-                </button>
-                {showFiltersBadge && (
-                  <span
-                    className="pointer-events-none absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-green-600 px-0.5 text-[10px] font-bold tabular-nums leading-none text-white shadow-sm ring-2 ring-white dark:bg-green-500 dark:ring-gray-950"
-                    aria-hidden
-                  >
-                    {toolbarFiltersBadgeCount > 9 ? '9+' : toolbarFiltersBadgeCount}
-                  </span>
-                )}
-              </span>
-              {onClearFilters && (
-                <button
-                  type="button"
-                  onClick={onClearFilters}
-                  disabled={!filterActive}
-                  className={`shrink-0 whitespace-nowrap text-xs font-semibold text-gray-600 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-50 dark:text-gray-300 ${premiumTypography.tableCell}`}
-                >
-                  Clear filters
-                </button>
-              )}
+              <button
+                type="button"
+                disabled={bulkWorking || !archiveProducts}
+                className={`rounded-md border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-semibold backdrop-blur-sm hover:bg-white/20 disabled:opacity-60`}
+                onClick={() => void runBulkArchive()}
+              >
+                {bulkWorking ? 'Working…' : 'Archive'}
+              </button>
+              <button
+                type="button"
+                disabled={bulkWorking || !archiveProducts}
+                className={`rounded-md border border-white/40 bg-red-600/90 px-3 py-1.5 text-xs font-semibold hover:bg-red-600 disabled:opacity-60`}
+                onClick={() => void runBulkArchive()}
+                title="Archives selected products (soft delete)"
+              >
+                Delete
+              </button>
+              <button
+                type="button"
+                className="rounded-md px-2 py-1 text-xs font-medium text-white/90 hover:bg-white/10"
+                onClick={() => setSelectedIds(new Set())}
+              >
+                Clear
+              </button>
             </div>
           </div>
-        </div>
+        )}
 
-        <div
-          className={`min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable] ${premiumTypography.body}`}
-        >
-          {error && !isLoading && (
-            <div className={`shrink-0 p-3 text-red-500 ${premiumTypography.helper}`} role="alert">
-              {error}
-            </div>
-          )}
-          {isLoading && (
-            <div
-              className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-gray-500"
-              role="status"
-              aria-live="polite"
-            >
-              <Loader2
-                className="h-6 w-6 animate-spin text-green-600 dark:text-green-500"
+        <div className="flex min-h-[3.5rem] min-w-0 shrink-0 flex-nowrap items-center justify-between gap-4">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-nowrap items-center gap-2 overflow-x-auto">
+            <div className="relative w-[240px] shrink-0">
+              <Search
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
                 aria-hidden
               />
-              <span>Loading products…</span>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder="Search products…"
+                className={`${premiumInputCompact} h-10 w-[240px] max-w-full py-2 pl-10 pr-3 ${premiumTypography.body}`}
+                aria-label="Search products"
+              />
             </div>
-          )}
-          {!isLoading && !error && products.length === 0 && !filterActive && (
-            <EmptyCatalogState variant="none" />
-          )}
-          {!isLoading && !error && products.length === 0 && filterActive && (
-            <EmptyCatalogState variant="filtered" />
-          )}
-          {!isLoading && products.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] table-auto border-collapse text-left">
-                <thead className="sticky top-0 z-20 border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900">
-                  <tr>
-                    {visibleColumnIds.map((id) => (
-                      <th
-                        key={id}
-                        scope="col"
-                        className={`whitespace-nowrap px-2 py-2 text-left text-gray-600 dark:text-gray-300 ${premiumTypography.tableCell} font-semibold`}
-                      >
-                        {id === '_select' ? (
-                          <input
-                            type="checkbox"
-                            checked={allSelectableSelected}
-                            ref={selectAllRef}
-                            onChange={(e) => toggleSelectAll(e.target.checked)}
-                            aria-label="Select all visible products"
-                            className="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                          />
-                        ) : id === '_thumbnail' ? (
-                          <span className="sr-only">Image</span>
-                        ) : (
-                          getProductListColumnLabel(id)
-                        )}
-                      </th>
-                    ))}
-                  </tr>
+
+            <div className={`${segmented} shrink-0`}>
+              {VISIBILITY_FILTERS.map((option) => {
+                const selected = recordVisibility === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => onRecordVisibilityChange(option.value)}
+                    className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                      selected
+                        ? 'bg-green-600 text-white shadow-sm dark:bg-green-600'
+                        : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+                    }`}
+                    aria-pressed={selected}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <label className="flex shrink-0 items-center gap-1.5 text-xs text-gray-600 dark:text-gray-400">
+              <span className="sr-only md:not-sr-only md:inline">Sort</span>
+              <select
+                value={sortUiValue}
+                onChange={(e) => onSortUiChange(e.target.value as SortUiOption)}
+                className={`${filterControlClass} min-w-[10.5rem]`}
+                aria-label="Sort products"
+              >
+                <option value="name_asc">Name A–Z</option>
+                <option value="price_asc">Price low–high</option>
+                <option value="recent">Recently added</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="relative z-[45] flex shrink-0 flex-nowrap items-center gap-2 overflow-visible border-l border-gray-200/90 pl-4 dark:border-gray-600/80">
+            {listViewsUi && (
+              <ViewSelector
+                views={listViewsUi.views}
+                selection={listViewsUi.selection}
+                onSelectionChange={listViewsUi.onSelectionChange}
+                loading={listViewsUi.loading}
+                onSaveView={listViewsUi.onSaveView}
+                onSetPersonalDefault={listViewsUi.onSetPersonalDefault}
+                onClearPersonalDefault={listViewsUi.onClearPersonalDefault}
+                onSaveWorkspaceDefault={listViewsUi.onSaveWorkspaceDefault}
+                canWorkspaceDefault={listViewsUi.canWorkspaceDefault}
+                onDeleteSelectedView={listViewsUi.onDeleteSelectedView}
+              />
+            )}
+            <button
+              ref={columnsBtnRef}
+              type="button"
+              aria-expanded={columnsOpen}
+              aria-haspopup="dialog"
+              onClick={() => setColumnsOpen((o) => !o)}
+              className={`inline-flex !h-8 shrink-0 items-center gap-1.5 px-2.5 text-xs ${premiumSecondaryButton('businessCore', 'sm', 'auto')} ${premiumTypography.tableCell}`}
+            >
+              <TableProperties className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              Columns
+            </button>
+            <ColumnCustomiser
+              open={columnsOpen}
+              onClose={() => setColumnsOpen(false)}
+              anchorRef={columnsBtnRef}
+              columnOrder={columnOrder}
+              columnHidden={columnHidden}
+              alwaysOnIds={PRODUCT_LIST_ALWAYS_ON_COLUMN_IDS}
+              excludeColumnId={showGroupColumn ? null : 'product_group'}
+              isColumnPickable={isProductListColumnUserConfigurable}
+              getLabel={getProductListColumnLabel}
+              onApply={(order, hidden) => onColumnStateChange(order, hidden)}
+            />
+            <span className="relative inline-flex shrink-0">
+              <button
+                type="button"
+                aria-expanded={Boolean(filtersDrawerOpen)}
+                aria-haspopup="dialog"
+                aria-label={filtersButtonAriaLabel}
+                title={advancedSummary}
+                onClick={() => onOpenFilters?.()}
+                disabled={!onOpenFilters}
+                className={`inline-flex !h-8 shrink-0 items-center gap-1.5 px-2.5 text-xs ${premiumSecondaryButton('businessCore', 'sm', 'auto')} disabled:pointer-events-none disabled:opacity-50 ${premiumTypography.tableCell}`}
+              >
+                <Filter className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                Filters
+              </button>
+              {showFiltersBadge && (
+                <span
+                  className="pointer-events-none absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-green-600 px-0.5 text-[10px] font-bold tabular-nums leading-none text-white shadow-sm ring-2 ring-white dark:bg-green-500 dark:ring-gray-950"
+                  aria-hidden
+                >
+                  {toolbarFiltersBadgeCount > 9 ? '9+' : toolbarFiltersBadgeCount}
+                </span>
+              )}
+            </span>
+            {onClearFilters && (
+              <button
+                type="button"
+                onClick={onClearFilters}
+                disabled={!filterActive}
+                className={`shrink-0 whitespace-nowrap text-xs font-semibold text-gray-600 underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:no-underline disabled:opacity-50 dark:text-gray-300 ${premiumTypography.tableCell}`}
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div
+        className={`flex min-h-0 flex-1 basis-0 flex-col overflow-hidden ${premiumTypography.body}`}
+      >
+        {error && !isLoading && (
+          <div className={`shrink-0 p-3 text-red-500 ${premiumTypography.helper}`} role="alert">
+            {error}
+          </div>
+        )}
+        {isLoading && (
+          <div
+            className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-gray-500"
+            role="status"
+            aria-live="polite"
+          >
+            <Loader2
+              className="h-6 w-6 animate-spin text-green-600 dark:text-green-500"
+              aria-hidden
+            />
+            <span>Loading products…</span>
+          </div>
+        )}
+        {!isLoading && !error && products.length === 0 && !filterActive && (
+          <EmptyCatalogState variant="none" />
+        )}
+        {!isLoading && !error && products.length === 0 && filterActive && (
+          <EmptyCatalogState variant="filtered" />
+        )}
+        {!isLoading && products.length > 0 && (
+          <div
+            className="flex min-h-0 min-w-0 flex-1 basis-0 flex-col overflow-hidden border-t border-gray-200 dark:border-gray-700"
+            role="region"
+            aria-label="Product table"
+          >
+            <div
+              ref={columnBodyScrollRef}
+              className="min-h-0 min-w-0 flex-1 basis-0 overflow-auto overscroll-y-none [overflow-anchor:none] [scrollbar-gutter:stable]"
+            >
+              <table ref={columnBodyTableRef} className={productListTableClass}>
+                {renderProductListColGroup()}
+                <thead className="sticky top-0 z-10 border-b border-gray-200 bg-gray-50/95 shadow-[0_1px_0_0_rgba(229,231,235,0.9)] backdrop-blur-sm dark:border-gray-700 dark:bg-gray-900/95 dark:shadow-[0_1px_0_0_rgba(55,65,81,0.8)]">
+                  {headerRow}
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                   {products.map((p, idx) => {
@@ -591,8 +701,8 @@ export default function ProductList({
                 </tbody>
               </table>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </PremiumCard>
   );

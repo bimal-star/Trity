@@ -21,6 +21,7 @@ import {
   provisionTenantFromTemplate,
 } from '@/lib/templateTenant';
 import { isSuperAdminRole } from '@/lib/permissions';
+import { dispatchTenantStatusChanged, syncTenantSchemaStatus } from '@/lib/tenantAccess';
 import {
   pillarAccent,
   premiumFocusRing,
@@ -110,6 +111,7 @@ export default function TenantFormPage() {
   const [catalogueChangeDialogOpen, setCatalogueChangeDialogOpen] = useState(false);
   /** Catalogue mode last loaded from DB (edit mode); used to detect changes before save. */
   const savedCatalogueBaselineRef = useRef<CatalogueMode | null>(null);
+  const savedIsActiveBaselineRef = useRef<boolean | null>(null);
   const bypassCatalogueChangeConfirmRef = useRef(false);
 
   const isSuperAdmin = isSuperAdminRole(profile?.role);
@@ -170,6 +172,7 @@ export default function TenantFormPage() {
         setContractEndDate(row.contract_end_date || '');
         setNotes(row.notes || '');
         setIsActive(row.is_active);
+        savedIsActiveBaselineRef.current = row.is_active;
         setIsTemplate((row as { is_template?: boolean }).is_template === true);
         const normalized = normalizeCatalogueMode(row.catalogue_mode);
         setCatalogueMode(normalized);
@@ -219,7 +222,15 @@ export default function TenantFormPage() {
           .eq('id', tenantId);
 
         if (updateError) throw updateError;
+        await syncTenantSchemaStatus(supabase, tenantId, isActive);
         await logTenantUpdated(tenantId, tenantData, user?.id ?? null);
+        if (
+          savedIsActiveBaselineRef.current !== null &&
+          savedIsActiveBaselineRef.current !== isActive
+        ) {
+          savedIsActiveBaselineRef.current = isActive;
+          dispatchTenantStatusChanged();
+        }
 
         const catalogueChanged =
           catalogueBaselineBeforeSave !== null && catalogueMode !== catalogueBaselineBeforeSave;

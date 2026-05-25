@@ -1,5 +1,6 @@
 'use client';
 
+import { Pencil } from 'lucide-react';
 import ProductRecordNavigator from '@/components/products/ProductRecordNavigator';
 import ProductUsageToggles, {
   type ProductUsagePatch,
@@ -29,6 +30,9 @@ export interface ProductRecordSummaryCardProps {
     onNavigate: (productId: string) => void;
   };
   updatedAt?: string;
+  /** Opens key-details editor (name, SKU on create only, etc.). */
+  onEditDetails?: () => void;
+  editDetailsLabel?: string;
   className?: string;
 }
 
@@ -46,6 +50,8 @@ export default function ProductRecordSummaryCard({
   onUsageUpdate,
   recordNav,
   updatedAt,
+  onEditDetails,
+  editDetailsLabel = 'Edit',
   className = '',
 }: ProductRecordSummaryCardProps) {
   const accent = pillarAccent('businessCore');
@@ -67,8 +73,18 @@ export default function ProductRecordSummaryCard({
               ) : null}
             </div>
 
-            {(showRecordNav || actions) && (
+            {(showRecordNav || onEditDetails || actions) && (
               <div className="flex shrink-0 items-center gap-1.5">
+                {onEditDetails ? (
+                  <button
+                    type="button"
+                    onClick={onEditDetails}
+                    className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md border border-gray-300 px-2.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800"
+                  >
+                    <Pencil className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {editDetailsLabel}
+                  </button>
+                ) : null}
                 {showRecordNav && recordNav ? (
                   <ProductRecordNavigator
                     index={recordNav.index}

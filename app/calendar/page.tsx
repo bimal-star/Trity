@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useCalendar } from '@/hooks/useCalendar';
+import { normalizeCalendarDate, useCalendar } from '@/hooks/useCalendar';
 import { CalendarEntry } from '@/types/calendar';
 import {
   Search,
@@ -35,6 +35,8 @@ import {
 import { stickyBelowTopNavClass } from '@/lib/appChrome';
 import { useToast } from '@/lib/toast';
 import { useTenant } from '@/contexts/TenantContext';
+import { supabase } from '@/lib/supabaseClient';
+import type { NagerPublicHoliday } from '@/lib/nagerHolidays';
 
 const businessCoreAccent = pillarAccent('businessCore');
 
@@ -48,6 +50,8 @@ export default function CalendarPage() {
     isLoading,
     error: calendarError,
     updateCalendarEntry,
+    ensureYearReady,
+    refetch,
   } = useCalendar(year);
   const { toast } = useToast();
 
@@ -398,42 +402,85 @@ export default function CalendarPage() {
   const importHolidays = async () => {
     setIsImporting(true);
     try {
-      const response = await fetch(
-        `https://date.nager.at/api/v3/PublicHolidays/${year}/${selectedCountry}`
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch holidays');
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session?.access_token) {
+        throw new Error('Session expired. Please sign in again.');
       }
 
-      const holidays = await response.json();
+      const response = await fetch(
+        `/api/calendar/holidays?year=${encodeURIComponent(String(year))}&country=${encodeURIComponent(selectedCountry)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${sessionData.session.access_token}`,
+          },
+        }
+      );
+
+      const payload = (await response.json()) as {
+        holidays?: NagerPublicHoliday[];
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Failed to fetch holidays');
+      }
+
+      const holidays = payload.holidays;
+      if (!Array.isArray(holidays)) {
+        throw new Error('Holiday import returned an unexpected response');
+      }
+      const yearRows = await ensureYearReady();
+      const entriesByDate = new Map(
+        yearRows
+          .map((entry) => {
+            const dateKey = normalizeCalendarDate(entry.date);
+            return dateKey ? ([dateKey, entry] as const) : null;
+          })
+          .filter((entry): entry is readonly [string, CalendarEntry] => entry !== null)
+      );
+
       let updatedCount = 0;
       let errors = 0;
+      let skipped = 0;
 
       for (const holiday of holidays) {
-        // Find matching entry in calendar by date
-        const entry = calendarData?.find((e) => e.date === holiday.date);
+        const entry = entriesByDate.get(holiday.date);
 
-        if (entry) {
-          const result = await updateCalendarEntry(entry.id, {
-            bank_holiday: holiday.localName || holiday.name,
-          });
+        if (!entry) {
+          skipped++;
+          continue;
+        }
 
-          if (result.success !== false) {
-            updatedCount++;
-          } else {
-            errors++;
-          }
+        const result = await updateCalendarEntry(entry.id, {
+          bank_holiday: holiday.localName || holiday.name,
+        });
+
+        if (result.success !== false) {
+          updatedCount++;
+        } else {
+          errors++;
         }
       }
 
-      toast.success(
-        `Successfully imported ${updatedCount} bank holidays!${errors > 0 ? ` (${errors} errors)` : ''}`
-      );
+      await refetch();
+
+      if (updatedCount === 0) {
+        toast.error(
+          skipped > 0
+            ? `No calendar days matched the imported holidays for ${year}.`
+            : `No bank holidays were imported for ${year}.`
+        );
+      } else {
+        toast.success(
+          `Successfully imported ${updatedCount} bank holidays!${errors > 0 ? ` (${errors} errors)` : ''}`
+        );
+      }
       setShowImportModal(false);
     } catch (error) {
       console.error('Error importing holidays:', error);
-      toast.error('Failed to import holidays. Please try again.');
+      const message =
+        error instanceof Error ? error.message : 'Failed to import holidays. Please try again.';
+      toast.error(message);
     } finally {
       setIsImporting(false);
     }

@@ -61,6 +61,54 @@ export async function provisionTenantFromTemplate(
   return { data, error: null };
 }
 
+export async function syncTenantNavigationFromTemplate(
+  supabase: SupabaseClient,
+  targetTenantId: string,
+  templateTenantId: string
+): Promise<{ data: unknown; error: string | null }> {
+  const { data, error } = await supabase.rpc('sync_tenant_navigation_from_template', {
+    p_target_tenant: targetTenantId,
+    p_template_tenant: templateTenantId,
+  });
+  if (error) {
+    return { data: null, error: error.message };
+  }
+  return { data, error: null };
+}
+
+/**
+ * Full provision for empty tenants; merge missing navigation when the target already has rows.
+ */
+export async function provisionOrSyncTenantFromTemplate(
+  supabase: SupabaseClient,
+  targetTenantId: string,
+  templateTenantId: string
+): Promise<{ data: unknown; error: string | null; mode: 'provision' | 'sync' }> {
+  const { data: provData, error: provErr } = await provisionTenantFromTemplate(
+    supabase,
+    targetTenantId,
+    templateTenantId
+  );
+  if (provErr) {
+    return { data: null, error: provErr, mode: 'provision' };
+  }
+
+  const prov = provData as Record<string, unknown> | null;
+  if (prov?.skipped === true && prov?.reason === 'target_tenant_already_has_navigation') {
+    const { data: syncData, error: syncErr } = await syncTenantNavigationFromTemplate(
+      supabase,
+      targetTenantId,
+      templateTenantId
+    );
+    if (syncErr) {
+      return { data: null, error: syncErr, mode: 'sync' };
+    }
+    return { data: syncData, error: null, mode: 'sync' };
+  }
+
+  return { data: provData, error: null, mode: 'provision' };
+}
+
 /** Human-readable summary of `provision_tenant_from_template` JSON result. */
 export function formatProvisionResultMessage(payload: unknown): {
   variant: 'success' | 'warning';
@@ -109,4 +157,63 @@ export function formatProvisionResultMessage(payload: unknown): {
     message += ` Note: ${note}`;
   }
   return { variant: 'success', message };
+}
+
+/** Human-readable summary of `sync_tenant_navigation_from_template` JSON result. */
+export function formatSyncResultMessage(payload: unknown): {
+  variant: 'success' | 'warning';
+  message: string;
+} {
+  const p = payload as Record<string, unknown> | null;
+  if (!p || typeof p !== 'object') {
+    return {
+      variant: 'warning',
+      message: 'Sync finished with no result details from the server.',
+    };
+  }
+
+  const inserted = Number(p.navigation_rows_inserted ?? 0);
+  const updated = Number(p.navigation_rows_updated ?? 0);
+  const pr = Number(p.permission_resources_rows ?? 0);
+  const prDisplay = Number(p.permission_display_names_updated ?? 0);
+  const rrg = Number(p.role_resource_grants_rows ?? 0);
+  const pa = Number(p.permission_actions_rows ?? 0);
+  const sup = Number(p.catalog_supplemented_nav_rows ?? 0);
+  const note = typeof p.note === 'string' ? p.note : '';
+
+  if (inserted === 0 && updated === 0) {
+    return {
+      variant: 'warning',
+      message: note || 'Navigation is already in sync with the template; nothing to add or update.',
+    };
+  }
+
+  const parts: string[] = [];
+  if (inserted > 0) {
+    parts.push(`added ${inserted} item(s)`);
+  }
+  if (updated > 0) {
+    parts.push(`updated ${updated} item(s)`);
+  }
+  let message = `Synced navigation from template (${parts.join(', ')}).`;
+  if (pr > 0 || rrg > 0 || pa > 0) {
+    message += ` Permission catalog: ${pr} resource(s), ${rrg} grant(s), ${pa} action(s).`;
+  }
+  if (prDisplay > 0) {
+    message += ` Updated ${prDisplay} permission display name(s).`;
+  }
+  if (sup > 0) {
+    message += ` Supplemented catalog for ${sup} nav item(s) missing in the template.`;
+  }
+  if (note) {
+    message += ` Note: ${note}`;
+  }
+  return { variant: 'success', message };
+}
+
+export function formatTemplateOperationMessage(
+  payload: unknown,
+  mode: 'provision' | 'sync'
+): { variant: 'success' | 'warning'; message: string } {
+  return mode === 'sync' ? formatSyncResultMessage(payload) : formatProvisionResultMessage(payload);
 }

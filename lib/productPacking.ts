@@ -1,20 +1,26 @@
 import type { Database } from '@/types/database';
 import type { PackingConfiguration } from '@/types/product';
+import { resolveBarcodePackingLevel } from '@/lib/productBarcodePacking';
+import type { SellablePackLevelOption } from '@/types/sellablePackLevel';
+import { DEFAULT_SELLABLE_PACK_OPTIONS } from '@/lib/sellablePackLevel';
 
-type PackingLevel = Database['public']['Enums']['packing_level'];
-
-const VALID_LEVELS: readonly PackingLevel[] = ['unit', 'inner', 'case', 'pallet', 'container'];
-
-function coercePackingLevel(raw: string | null | undefined): PackingLevel {
-  if (raw && (VALID_LEVELS as readonly string[]).includes(raw)) {
-    return raw as PackingLevel;
-  }
-  return 'unit';
+function normalizeLevel(
+  raw: string | null | undefined,
+  catalog: SellablePackLevelOption[]
+): string {
+  const trimmed = raw?.trim();
+  if (!trimmed) return resolveBarcodePackingLevel('unit', catalog);
+  if (catalog.some((o) => o.code === trimmed)) return trimmed;
+  return resolveBarcodePackingLevel('unit', catalog);
 }
 
-function coercePreviousLevel(raw: string | null | undefined): PackingLevel | null {
+function normalizePreviousLevel(
+  raw: string | null | undefined,
+  catalog: SellablePackLevelOption[]
+): string | null {
   if (!raw || raw === '') return null;
-  if ((VALID_LEVELS as readonly string[]).includes(raw)) return raw as PackingLevel;
+  const trimmed = raw.trim();
+  if (catalog.some((o) => o.code === trimmed)) return trimmed;
   return null;
 }
 
@@ -23,12 +29,13 @@ export function packingConfigurationInserts(
   productId: string,
   tenantId: string,
   userId: string | null,
-  configs: PackingConfiguration[]
+  configs: PackingConfiguration[],
+  catalog: SellablePackLevelOption[] = DEFAULT_SELLABLE_PACK_OPTIONS
 ): Database['public']['Tables']['packing_configurations']['Insert'][] {
   return configs.map((cfg) => ({
     product_id: productId,
     tenant_id: tenantId,
-    level: coercePackingLevel(cfg.level),
+    level: normalizeLevel(cfg.level, catalog),
     quantity: cfg.quantity ?? 1,
     length: cfg.length ?? null,
     width: cfg.width ?? null,
@@ -41,9 +48,25 @@ export function packingConfigurationInserts(
     description: cfg.description ?? null,
     barcode: cfg.barcode ?? null,
     gtin: cfg.gtin ?? null,
-    previous_level: coercePreviousLevel(cfg.previous_level ?? null),
+    previous_level: normalizePreviousLevel(cfg.previous_level ?? null, catalog),
     created_by: userId,
     updated_by: userId,
     is_deleted: false,
   }));
+}
+
+/** Returns invalid level codes not present in the tenant catalog. */
+export function findUnknownPackingLevels(
+  configs: PackingConfiguration[],
+  catalog: SellablePackLevelOption[]
+): string[] {
+  const known = new Set(catalog.map((o) => o.code));
+  const unknown = new Set<string>();
+  for (const cfg of configs) {
+    const level = cfg.level?.trim();
+    if (level && !known.has(level)) unknown.add(level);
+    const prev = cfg.previous_level?.trim();
+    if (prev && !known.has(prev)) unknown.add(prev);
+  }
+  return [...unknown];
 }

@@ -15,12 +15,14 @@ type VwProductRow = Database['public']['Views']['vw_products_full']['Row'];
 export function useProduct(productId: string | undefined) {
   const { effectiveTenantId: tenant_id } = useTenant();
   const [product, setProduct] = useState<Product | null>(null);
-  const [isLoading, setIsLoading] = useState(Boolean(productId && tenant_id));
+  const [isLoading, setIsLoading] = useState(
+    Boolean(productId && tenant_id && productId !== 'new')
+  );
   const [error, setError] = useState<string | null>(null);
   const hasLoadedOnceRef = useRef(false);
 
   const refreshProduct = useCallback(async () => {
-    if (!tenant_id || !productId) {
+    if (!tenant_id || !productId || productId === 'new') {
       setProduct(null);
       setIsLoading(false);
       setError(null);
@@ -61,9 +63,13 @@ export function useProduct(productId: string | undefined) {
     }
   }, [tenant_id, productId]);
 
+  const patchProduct = useCallback((patch: Partial<Product>) => {
+    setProduct((prev) => (prev ? { ...prev, ...patch } : prev));
+  }, []);
+
   useEffect(() => {
     void refreshProduct();
   }, [refreshProduct]);
 
-  return { product, isLoading, error, refreshProduct };
+  return { product, isLoading, error, refreshProduct, patchProduct };
 }

@@ -12,6 +12,9 @@
 --
 -- Run as postgres in Supabase SQL Editor. If a DELETE fails on FK, extend this
 -- script using the error detail (your DB may have extra tenant-scoped tables).
+--
+-- For a single test tenant from the Admin UI, use migration RPC public.hard_delete_tenant(uuid)
+-- via POST /api/admin/tenants/[id]/hard-delete instead.
 -- =============================================================================
 
 DO $$

@@ -11,10 +11,11 @@ import { useProfile } from '@/hooks/useProfile';
 import { usePermissions } from '@/hooks/usePermissions';
 import { supabase } from '@/lib/supabaseClient';
 import { logTenantUpdated } from '@/lib/auditLog';
+import { dispatchTenantStatusChanged, syncTenantSchemaStatus } from '@/lib/tenantAccess';
 import {
   getResolvedTemplateTenantId,
-  provisionTenantFromTemplate,
-  formatProvisionResultMessage,
+  provisionOrSyncTenantFromTemplate,
+  formatTemplateOperationMessage,
 } from '@/lib/templateTenant';
 import {
   pillarAccent,
@@ -23,6 +24,10 @@ import {
   premiumTypography,
 } from '@/lib/premiumUi';
 import { useToast } from '@/lib/toast';
+import {
+  TenantHardDeleteDialog,
+  type TenantHardDeleteTarget,
+} from '@/components/admin/TenantHardDeleteDialog';
 import {
   Building2,
   Plus,
@@ -34,6 +39,7 @@ import {
   PenSquare,
   Check,
   X,
+  Trash2,
 } from 'lucide-react';
 
 interface Tenant {
@@ -65,7 +71,14 @@ interface Tenant {
 
 export default function AdminTenantsPage() {
   const router = useRouter();
-  const { user, ready, isLoading: tenantBootLoading, enterWorkspaceTenant } = useTenant();
+  const {
+    user,
+    ready,
+    isLoading: tenantBootLoading,
+    enterWorkspaceTenant,
+    exitWorkspaceTenant,
+    workspaceTenantId,
+  } = useTenant();
   const { profile } = useProfile(user?.id);
   const { can, isSuperAdmin } = usePermissions();
   const { toast } = useToast();
@@ -73,6 +86,7 @@ export default function AdminTenantsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [provisioningId, setProvisioningId] = useState<string | null>(null);
+  const [hardDeleteTarget, setHardDeleteTarget] = useState<TenantHardDeleteTarget | null>(null);
   const canManageTenants = can('manage_features') && isSuperAdmin;
 
   // Redirect non-super-admins
@@ -154,15 +168,15 @@ export default function AdminTenantsPage() {
         toast.error('Cannot provision the template tenant from itself.');
         return;
       }
-      const { data: provData, error: pErr } = await provisionTenantFromTemplate(
-        supabase,
-        tenantId,
-        templateId
-      );
+      const {
+        data: provData,
+        error: pErr,
+        mode,
+      } = await provisionOrSyncTenantFromTemplate(supabase, tenantId, templateId);
       if (pErr) {
         throw new Error(pErr);
       }
-      const summary = formatProvisionResultMessage(provData);
+      const summary = formatTemplateOperationMessage(provData, mode);
       if (summary.variant === 'success') {
         toast.success(summary.message);
       } else {
@@ -188,9 +202,12 @@ export default function AdminTenantsPage() {
 
       if (error) throw error;
 
-      await logTenantUpdated(tenantId, { is_active: !currentActive }, user?.id ?? null);
+      const nextActive = !currentActive;
+      await syncTenantSchemaStatus(supabase, tenantId, nextActive);
+      await logTenantUpdated(tenantId, { is_active: nextActive }, user?.id ?? null);
 
       await fetchTenants();
+      dispatchTenantStatusChanged();
       toast.success(currentActive ? 'Tenant deactivated.' : 'Tenant activated.');
     } catch (err) {
       console.error('Error toggling tenant:', err);
@@ -380,8 +397,8 @@ export default function AdminTenantsPage() {
                                 disabled={provisioningId === tenant.id}
                                 onClick={() => void handleProvisionFromTemplate(tenant.id)}
                                 className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${platformAccent.iconColor} transition-colors hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-gray-700`}
-                                aria-label="Provision from template"
-                                title="Provision from template"
+                                aria-label="Sync navigation from template"
+                                title="Sync navigation from template"
                               >
                                 {provisioningId === tenant.id ? (
                                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
@@ -418,6 +435,24 @@ export default function AdminTenantsPage() {
                             >
                               <PenSquare className="h-4 w-4" aria-hidden />
                             </Link>
+                            {!tenant.is_template ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setHardDeleteTarget({
+                                    id: tenant.id,
+                                    name: tenant.name,
+                                    company_name: tenant.company_name,
+                                    user_count: tenant.user_count,
+                                  })
+                                }
+                                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40"
+                                aria-label="Delete tenant permanently"
+                                title="Delete tenant permanently"
+                              >
+                                <Trash2 className="h-4 w-4" aria-hidden />
+                              </button>
+                            ) : null}
                           </div>
                         </td>
                       </tr>
@@ -429,6 +464,24 @@ export default function AdminTenantsPage() {
           )}
         </div>
       </PageContainer>
+
+      {hardDeleteTarget ? (
+        <TenantHardDeleteDialog
+          tenant={hardDeleteTarget}
+          onClose={() => setHardDeleteTarget(null)}
+          onDeleted={(deletedId) => {
+            setHardDeleteTarget(null);
+            if (workspaceTenantId === deletedId) {
+              exitWorkspaceTenant();
+            }
+            void fetchTenants();
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new Event('tenant-status-changed'));
+            }
+            toast.success('Tenant and all related data were permanently deleted.');
+          }}
+        />
+      ) : null}
     </ProtectedRoute>
   );
 }
